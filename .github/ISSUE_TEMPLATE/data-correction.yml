@@ -1,0 +1,60 @@
+name: 数据纠错
+description: 指出某个产品的政策数据与官方原文不一致
+title: "[数据纠错] 产品名 + 涉及字段"
+labels: ["数据纠错"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感谢反馈！本项目所有结论都以官方政策原文为依据。请提供可核验的信息来源，以便我们尽快修正。
+  - type: input
+    id: product
+    attributes:
+      label: 产品名称
+      description: 例如：豆包、Kimi、ChatGPT（如涉及企业版请注明）
+    validations:
+      required: true
+  - type: dropdown
+    id: field
+    attributes:
+      label: 涉及字段
+      options:
+        - 是否用于训练（used_for_training）
+        - 退出机制（opt_out）
+        - 数据留存期限（data_retention）
+        - 去标识化（deidentified）
+        - 版权归属（copyright）
+        - 风险等级（risk_level）
+        - 条款摘录（key_clauses）
+        - 政策链接失效
+        - 其他
+    validations:
+      required: true
+  - type: textarea
+    id: current
+    attributes:
+      label: 当前数据内容（哪里不对）
+      description: 可从详情页或 data/policies/{id}.json 复制
+    validations:
+      required: true
+  - type: input
+    id: source-url
+    attributes:
+      label: 官方原文链接
+      description: 必须是产品官方域名下的政策/协议页面链接
+    validations:
+      required: true
+  - type: textarea
+    id: source-quote
+    attributes:
+      label: 原文摘录或说明
+      description: 请粘贴支撑你结论的政策原文段落（注明条款编号/生效日期），或说明链接失效情况
+    validations:
+      required: true
+  - type: checkboxes
+    id: confirm
+    attributes:
+      label: 确认
+      options:
+        - label: 我确认以上链接来自该产品的官方渠道（官网/官方 App 内嵌页）
+          required: true

@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: 新产品收录建议
+    url: https://github.com/838860610/ai-policy-tracker/blob/main/CONTRIBUTING.md
+    about: 想让某款产品加入对比？请先阅读贡献指南中的"新增产品"一节，欢迎直接提交 PR。
