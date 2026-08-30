@@ -202,6 +202,12 @@ def main():
     if len(ids) != len(set(ids)):
         err("products.json 的 products 存在重复 ID")
 
+    meta = index.get("meta") or {}
+    if "schema_version" not in meta:
+        warn("products.json: meta 缺少 schema_version（建议标注整数版本号，便于将来数据结构迁移时追踪兼容性）")
+    elif not isinstance(meta["schema_version"], int) or isinstance(meta["schema_version"], bool):
+        err(f"products.json: meta.schema_version 必须是整数，当前为 {meta['schema_version']!r}")
+
     policy_files = {f[:-5] for f in os.listdir(POLICIES_DIR) if f.endswith(".json")}
     for pid in ids:
         if not isinstance(pid, str) or not ID_PATTERN.match(pid):

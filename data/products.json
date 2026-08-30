@@ -1,6 +1,7 @@
 {
   "meta": {
     "project": "AI 用户政策追踪器",
+    "schema_version": 1,
     "description": "产品 ID 索引：定义列表顺序。产品的全部数据（名称、公司、版本政策、时间线等）存放在 data/policies/{id}.json，本文件不再重复存储。",
     "last_updated": "2026-08-30",
     "data_sources": "各产品官方隐私政策、用户协议、新闻报道",
