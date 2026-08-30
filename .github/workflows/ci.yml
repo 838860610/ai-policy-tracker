@@ -6,6 +6,9 @@ on:
   push:
     branches: [main]
 
+permissions:
+  contents: write # 推送到 main 时需提交自动生成的 data/bundle.json
+
 jobs:
   validate:
     runs-on: ubuntu-latest
