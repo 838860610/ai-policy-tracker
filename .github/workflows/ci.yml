@@ -24,3 +24,15 @@ jobs:
 
       - name: README 汇总表一致性检查
         run: python scripts/gen_readme_table.py --check
+
+      - name: 生成数据 bundle（首页加载加速）
+        run: python scripts/gen_data_bundle.py
+
+      - name: 提交 bundle（仅 main 推送且有变化时）
+        if: github.event_name == 'push'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          # -f：data/bundle.json 在 .gitignore 中（自动生成），普通 add 会报错
+          git add -f data/bundle.json
+          git diff --cached --quiet || (git commit -m "chore: CI 重新生成 data/bundle.json" && git push)

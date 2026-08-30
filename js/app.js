@@ -39,12 +39,17 @@
   }
 
   function fetchAllProducts() {
-    return fetchJson("data/products.json").then(function (index) {
-      var ids = index.products || [];
-      return Promise.all(ids.map(function (id) {
-        return fetchJson("data/policies/" + id + ".json");
-      })).then(function (policies) {
-        return { meta: index.meta, policies: policies };
+    // 优先加载 CI 生成/提交的合并 bundle（1 个请求）；不存在（CI 未跑/本地新改数据）时回退逐文件加载
+    return fetchJson("data/bundle.json").then(function (bundle) {
+      return { meta: bundle.meta, policies: bundle.policies };
+    }).catch(function () {
+      return fetchJson("data/products.json").then(function (index) {
+        var ids = index.products || [];
+        return Promise.all(ids.map(function (id) {
+          return fetchJson("data/policies/" + id + ".json");
+        })).then(function (policies) {
+          return { meta: index.meta, policies: policies };
+        });
       });
     });
   }
