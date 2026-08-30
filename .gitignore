@@ -10,6 +10,10 @@ venv/
 
 # 监控脚本自动生成（部署流水线会重新生成并提交）
 data/update_status.json
+data/snapshots/
+
+# 首页加速用的数据合并文件（CI 推送到 main 后自动重新生成并提交）
+data/bundle.json
 
 # 本地文档（维护用途，不入库）
 docs/

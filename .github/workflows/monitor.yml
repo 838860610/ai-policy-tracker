@@ -1,7 +1,7 @@
 name: 政策更新监控
 
-# 每周一北京时间 09:00（UTC 01:00）自动检查各产品政策页面变化，
-# 结果写入 data/update_status.json 并提交——首页会读取展示监控状态。
+# 每周一北京时间 09:00（UTC 01:00）自动检查各产品政策页面变化（含个人版/企业版独立条款链接），
+# 结果与正文快照提交入库；检测到变更时自动创建/更新核实 Issue——首页会读取展示监控状态。
 on:
   schedule:
     - cron: "0 1 * * 1" # 每周一 09:00 北京时间
@@ -9,6 +9,7 @@ on:
 
 permissions:
   contents: write
+  issues: write
 
 jobs:
   check-updates:
@@ -30,6 +31,63 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          # -f：data/update_status.json 在 .gitignore 中（本地不跟踪），普通 add 会报错
+          # -f：data/update_status.json 与 data/snapshots/ 在 .gitignore 中（本地不跟踪），普通 add 会报错
           git add -f data/update_status.json
+          if [ -d data/snapshots ]; then git add -f data/snapshots; fi
           git diff --cached --quiet || (git commit -m "monitor: 政策更新检查 $(date -u +%F)" && git push)
+
+      - name: 检测到变更时创建/更新 Issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 - <<'PYEOF'
+          import json
+
+          with open("data/update_status.json", encoding="utf-8") as f:
+              status = json.load(f)
+
+          changed = {pid: info for pid, info in status.get("products", {}).items()
+                     if info.get("status") == "changed"}
+
+          if not changed:
+              print("未检测到政策变更，跳过 Issue 创建")
+              raise SystemExit(0)
+
+          labels = {"main": "主监控页", "toc": "个人版条款", "tob": "企业版条款"}
+          meta = status.get("meta", {})
+          lines = [
+              f"政策监控于 `{str(meta.get('last_run', ''))[:16]}` 检测到 **{len(changed)} 个产品**的官方政策页面发生变化，请人工核实并更新对应数据文件。",
+              "",
+              "核实指引：对比 `data/snapshots/{产品}/{目标}/` 下的日期存档与 latest.txt（正文快照已随本次检查自动留档），确认变更内容后更新 `data/policies/{id}.json` 并补充 timeline。",
+              "",
+          ]
+          for pid, info in changed.items():
+              lines.append(f"## {pid}")
+              for key, t in (info.get("targets") or {}).items():
+                  if t.get("status") == "changed":
+                      lines.append(f"- **{labels.get(key, key)}** 可能已变更：<{t.get('url', '')}>")
+              lines.append("")
+
+          with open("issue_body.md", "w", encoding="utf-8") as f:
+              f.write("\n".join(lines))
+
+          with open("changed_flag", "w") as f:
+              f.write(" ".join(changed.keys()))
+          print(f"检测到 {len(changed)} 个产品变更：{' '.join(changed.keys())}")
+          PYEOF
+
+          if [ ! -f changed_flag ]; then exit 0; fi
+
+          # 确保标签存在（--force：已存在则更新定义，不报错）
+          gh label create "政策变更" --color E99695 --description "监控检测到官方政策页面变化，待人工核实" --force
+
+          # 去重：已有同标签的开放 Issue 则追加评论，否则新建
+          OPEN_NUM=$(gh issue list --label "政策变更" --state open --json number --jq '.[0].number // empty')
+          TITLE="⚠️ 政策变更待核实（$(date -u +%F)）"
+          if [ -n "$OPEN_NUM" ]; then
+            gh issue comment "$OPEN_NUM" --body "$(printf '%s\n---\n本轮变更产品：%s（%s）\n' "$(cat issue_body.md)" "$(cat changed_flag)" "$(date -u +%F)")"
+            echo "已评论到现有 Issue #$OPEN_NUM"
+          else
+            gh issue create --title "$TITLE" --body-file issue_body.md --label "政策变更"
+            echo "已创建新 Issue"
+          fi
