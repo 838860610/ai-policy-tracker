@@ -1,0 +1,42 @@
+{
+  "id": "zhipu-qingyan",
+  "name": "智谱清言",
+  "company": "智谱AI",
+  "region": "中国",
+  "description": "用户数据可能用于模型训练",
+  "policy_url": "https://chatglm.cn/legal/privacyPolicySingle",
+  "last_verified": "2026-08-29",
+  "versions": {
+    "toc": {
+      "used_for_training": true,
+      "training_note": "用户数据可能用于模型训练",
+      "default_state": "默认开启",
+      "opt_out": "设置开关",
+      "opt_out_method": "APP：设置—数据管理—数据使用开关；PC：右上角个人头像—数据管理—数据使用开关",
+      "deidentified": true,
+      "data_retention": "未明确具体期限（\"最短必要期限\"原则；法定留存期届满后删除或匿名化）",
+      "copyright": "用户所有",
+      "other_uses": "模型训练",
+      "risk_level": "yellow",
+      "key_clauses": [
+        "若我们对个人信息采取技术措施和其他必要措施进行处理，使得数据接收方无法重新识别特定个人且不能复原，则我们会对如上处理的数据进行匿名化的研究、统计分析、预测或用于改进我们的产品及服务（如调整产品内容布局、模型优化迭代）。（隐私政策）",
+        "如果您不希望您的数据用于上述用途，可以通过：'（1）APP：点击底部第三个Tab—设置—数据管理—数据使用开关（2）PC：右上角个人头像—数据管理—数据使用开关'来关闭此设置。（隐私政策）"
+      ],
+      "policy_link": "https://chatglm.cn/legal/privacyPolicySingle",
+      "last_verified": "2026-08-29",
+      "label": "个人版"
+    }
+  },
+  "timeline": [],
+  "analysis_summary": "智谱清言用户数据可能用于模型训练，退出需发邮件。",
+  "key_findings": [
+    "可能用于模型训练",
+    "退出需发送邮件"
+  ],
+  "recommendations": [
+    "建议进一步核实具体条款。"
+  ],
+  "icon": "🧊",
+  "product_url": "https://chatglm.cn",
+  "tob_note": "开发者服务（开放平台）已拆分为独立条目 bigmodel（2026-08-29）。智谱清言企业版有无待核实"
+}

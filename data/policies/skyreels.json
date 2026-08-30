@@ -1,0 +1,47 @@
+{
+  "id": "skyreels",
+  "name": "SkyReels（昆仑万维短剧）",
+  "company": "昆仑万维",
+  "region": "中国",
+  "icon": "🎬",
+  "description": "昆仑万维 AI 短剧创作平台（国际版 skyreels.ai，Skywork AI Pte. Ltd. 新加坡主体）。海外版条款已核实（Terms of Service + Privacy Policy，2025-09-09 生效）：3.2 授权平台'通过 AI 技术与模型'分析、数据挖掘、利用用户内容，'仅用于运营、改进和提供服务'，无退出机制；3.1 输出权利转让给用户。国内版（skyreels.cn）无公开条款且本网络无法访问",
+  "product_url": "https://www.skyreels.ai/",
+  "policy_url": "https://www.skyreels.ai/terms",
+  "toc_note": "国内版（skyreels.cn）无公开条款且本网络连接超时（2026-08-30）；本块采用海外版（skyreels.ai）条款原文",
+  "tob_note": "已搜索，信息未公开：海外版未见独立 API/企业条款页面（官网导航有 API Platform 但条款未单独发布），国内版无公开条款（2026-08-30 检索）",
+  "last_verified": "2026-08-29",
+  "versions": {
+    "toc": {
+      "label": "个人版（国际版 skyreels.ai 条款）",
+      "used_for_training": true,
+      "training_note": "未明示'训练'字样，按实质口径涵盖：条款 3.2 授予平台'通过其认为适当的 AI 技术与模型（可含第三方 AI 模型）'对用户内容'访问、处理、发布、复制、分发、公开展示、分析、数据挖掘、改编、修改、创作衍生作品、开发利用'的许可，目的限定'运营、改进和提供服务'（improving）（同纳米AI'用于本产品的优化'判定口径）；未载明退出机制",
+      "default_state": "默认开启（同意条款即授权）",
+      "opt_out": "未明示退出机制",
+      "opt_out_method": "3.2 仅载明'许可的撤回不影响此前使用的合法性'，无产品内开关或退出路径",
+      "deidentified": false,
+      "data_retention": "未明确具体期限（账号删除后'部分数据可能因法律要求或正当商业目的被保留'）（条款1.2；隐私政策留存期同款表述）",
+      "copyright": "用户保留用户内容（输入+输出）的所有权或授权权利，Output 权利归属用户（3.1）；但授予平台可转让、永久、非排他、可再许可、免版税的全球许可（3.2），并可用用户名、图像、声音、形象标明内容来源；其他用户可在共享场景用相同输入生成相似/衍生内容（3.3）；第三方模型生成的输出按第三方条款",
+      "other_uses": "分析与数据挖掘（3.2）；第三方 AI 模型处理（3.2）；安全筛查（隐私政策：自动筛查涉黄/暴力/欺诈信息）；共享内容可被其他用户复用（3.3）",
+      "risk_level": "red",
+      "key_clauses": [
+        "a transferable, perpetual, non-exclusive, sublicensable, royalty-free, fully paid, worldwide license to access, process, publish, reproduce, distribute, publicly display and perform, communicate to the public, make available to the public, analyze, data mine, adapt, modify, create derivative works from, exploit and utilize the User Content, including through AI technologies and models deemed appropriate (which may include third-party AI models), solely for the purposes of operating, improving and providing Service.（SkyReels 条款3.2，2025-09-09 生效）",
+        "you retain your ownership or authorization rights in the User Content. We hereby assign to you all our right, title, and interest in and to Output, when for practical and legal reasons you are not able to acquire direct original ownership of the Output.（SkyReels 条款3.1）",
+        "You further grant us a royalty-free license to use your username, image, voice, and likeness (if applicable) to identify you as the source of any of your Output. Withdrawal of any license granted herein shall not affect the lawfulness of our prior use.（SkyReels 条款3.2）",
+        "some data may be retained as required by law or for legitimate business purposes.（SkyReels 条款1.2）"
+      ],
+      "policy_link": "https://www.skyreels.ai/terms",
+      "last_verified": "2026-08-30"
+    }
+  },
+  "analysis_summary": "SkyReels（昆仑万维 AI 短剧）海外版条款已核实（2025-09-09 生效，Skywork AI Pte. Ltd. 新加坡主体）。3.2 授权通过 AI 技术与模型使用用户内容（运营/改进/提供服务），按实质口径判训练参与且无退出机制，去标识化未载明 → 红色。输出权利归属用户（3.1）。国内版无公开条款；海外站点对本网络有反爬拦截（浏览器/HTTP 均 405）。",
+  "key_findings": [
+    "SkyReels-V4 视频模型",
+    "海外版条款 2025-09-09 生效（Terms + Privacy，新加坡主体）",
+    "3.2 数据挖掘/AI 模型使用授权无退出机制（仅载明撤回不影响此前使用）",
+    "3.1 输出权利转让给用户，但授出永久可再许可全球许可；3.3 其他用户可复用相同输入"
+  ],
+  "recommendations": [
+    "商用授权范围需重点核实（API/企业条款未公开）",
+    "共享作品时注意 3.3：其他用户可用相同输入生成相似/衍生内容"
+  ]
+}

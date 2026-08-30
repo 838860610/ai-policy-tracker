@@ -1,0 +1,44 @@
+{
+  "id": "bailian",
+  "name": "阿里云百炼（Model Studio）",
+  "company": "阿里云",
+  "region": "中国",
+  "icon": "☁️",
+  "description": "阿里云大模型 API 与应用开发平台（Model Studio）。纯开发者产品（个人/企业统一条款，已原文验证），从通义/千问条目拆分独立",
+  "product_url": "https://www.aliyun.com/product/bailian",
+  "policy_url": "https://terms.alicdn.com/legal-agreement/terms/common_platform_service/20230728213935489/20230728213935489.html",
+  "toc_note": "纯开发者产品（API/平台），无消费端条款；本条目为通义/千问条目 ToB 块拆分独立（2026-08-29）",
+  "last_verified": "2026-08-29",
+  "versions": {
+    "tob": {
+      "used_for_training": false,
+      "training_note": "百炼服务协议6.2.5承诺：未经授权不使用对话数据训练模型；AI订阅产品（Token Plan个人版/Coding Plan）例外，可停止服务终止授权",
+      "default_state": "默认关闭",
+      "opt_out": "合同约定",
+      "opt_out_method": "企业合同约定",
+      "deidentified": true,
+      "data_retention": "未明确具体天数（客户信息按\"目的所需期限\"保留；欠费/服务终止后有缓冲期，届满删除所有客户业务数据含缓存与备份，不可恢复）",
+      "copyright": "用户所有",
+      "other_uses": "无",
+      "risk_level": "yellow",
+      "key_clauses": [
+        "我们承诺仅在提供服务所必需的最短时间内保留您的对话数据。我们不会在未获您授权的情况下使用您的对话数据训练我们的模型。（百炼服务协议6.2.5）",
+        "AI订阅产品例外：存储并使用Token Plan个人版（不包括团队版）和/或Coding Plan服务期间因调用模型而输入及输出的内容以实现服务改进与模型优化；可通过停止使用相应服务终止授权，但不溯及已授权内容。（5.2.2）",
+        "我们不会使用您的输入和模型输出数据……进行训练的同类承诺亦见于体验功能说明；三方模型API的数据处理以您与三方服务商的约定为准。（6.2.9）"
+      ],
+      "policy_link": "https://terms.alicdn.com/legal-agreement/terms/common_platform_service/20230728213935489/20230728213935489.html",
+      "last_verified": "2026-08-29",
+      "label": "开发者服务（个人/企业统一条款）"
+    }
+  },
+  "analysis_summary": "百炼服务协议 6.2.5 提供明确的不训练承诺（未经授权不使用对话数据训练模型），例外为 AI 订阅产品（Token Plan 个人版/Coding Plan）。留存为缓冲期后彻底删除模式。",
+  "key_findings": [
+    "6.2.5 未经授权不使用对话数据训练模型（明示承诺）",
+    "例外：Token Plan 个人版/Coding Plan 订阅期间输入输出用于服务改进与模型优化",
+    "欠费/终止后缓冲期届满删除所有客户业务数据（含缓存与备份）"
+  ],
+  "recommendations": [
+    "需要数据不训练承诺的企业可直接引用 6.2.5 条款",
+    "订阅 AI 订阅产品前评估数据授权例外"
+  ]
+}

@@ -1,0 +1,44 @@
+{
+  "id": "autoglm",
+  "name": "AutoGLM（智谱）",
+  "company": "智谱AI",
+  "region": "中国",
+  "icon": "📲",
+  "description": "智谱 AI Agent 产品（超级报告助手/手机自主操作）。训练为加入式'优化提升计划'（初始化阶段自愿加入，去标识化，联系式撤回）；生成内容限非商业、个人研究学习使用",
+  "product_url": "https://autoglm.zhipuai.cn/",
+  "policy_url": "https://autoglm.zhipuai.cn/agreement",
+  "last_verified": "2026-08-29",
+  "versions": {
+    "toc": {
+      "label": "个人版",
+      "used_for_training": false,
+      "training_note": "用户协议：应用初始化阶段自愿加入'优化提升计划'后，去标识化的输入信息、生成内容和使用情况才用于模型训练与优化（加入式 opt-in）；不参与可联系《AutoGLM隐私政策》注明的联系方式撤回",
+      "default_state": "默认关闭（自愿加入'优化提升计划'）",
+      "opt_out": "设置开关（初始化时选择）+ 联系撤回",
+      "opt_out_method": "初始化阶段不加入'优化提升计划'；已加入的可按《AutoGLM隐私政策》联系方式申请撤回授权",
+      "deidentified": true,
+      "data_retention": "未明确说明",
+      "copyright": "生成内容知识产权归属需用户独立判断；仅可以非商业的、个人研究学习的方式使用 AutoGLM 及其生成的内容",
+      "other_uses": "自动化检索公开/授权访问的第三方应用与网页信息；历史对话展示",
+      "risk_level": "yellow",
+      "key_clauses": [
+        "您可在应用初始化阶段自愿加入我们的'优化提升计划'……如您选择加入计划，在采取去标识化技术处理，避免识别到特定个人身份后，我们可能将您已同意参与'优化提升计划'部分的输入信息、生成内容和对产品的使用情况用于模型的训练与优化……如您不希望我们将您的使用您的数据用于模型训练，可通过《AutoGLM隐私政策》中注明的联系方式联系我们申请撤回您的授权。（AutoGLM 用户协议五）",
+        "除非您与智谱另有约定或在AutoGLM上开通了相应服务并支付对价，您仅可以非商业的、个人研究学习的方式使用AutoGLM及其生成的内容。（用户协议六）"
+      ],
+      "policy_link": "https://autoglm.zhipuai.cn/agreement",
+      "last_verified": "2026-08-29"
+    }
+  },
+  "timeline": [],
+  "analysis_summary": "AutoGLM 训练为加入式（初始化自愿加入'优化提升计划'，去标识化处理，联系式撤回）。注意使用限制：生成内容仅限非商业、个人研究学习使用。",
+  "key_findings": [
+    "训练为加入式 opt-in（优化提升计划）",
+    "生成内容限非商业、个人研究学习使用",
+    "不得用 AutoGLM 开发训练竞争模型"
+  ],
+  "recommendations": [
+    "商业用途需另行与智谱约定并支付对价",
+    "不希望训练则初始化时不加入优化提升计划"
+  ],
+  "tob_note": "AutoGLM 为个人 Agent 产品（生成内容限非商业个人研究学习使用），未见独立企业版协议；企业场景由智谱开放平台团队套餐承接（见 glm-coding-plan 条目）"
+}

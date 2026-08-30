@@ -1,0 +1,23 @@
+{
+  "id": "qwenwork",
+  "name": "千问办公（QwenWork）",
+  "company": "阿里巴巴",
+  "region": "中国",
+  "icon": "📄",
+  "description": "阿里 AI Agent 办公产品（2026 年 7-8 月由 QoderWork/MuleRun/悟空整合而来，桌面/云端 Agent，企业协同场景，购买走阿里云席位+积分包模式）。截至 2026-08-30 未检索到公开发布的独立服务协议：产品页脚无专属协议链接，仅有阿里云通用法律声明，条款适用关系待核实",
+  "product_url": "https://www.aliyun.com/product/qwenwork",
+  "policy_url": "https://www.aliyun.com/product/qwenwork",
+  "toc_note": "已搜索，信息未公开：2026-08-30 复核千问办公产品页（aliyun.com/product/qwenwork）页脚仅有阿里云通用'法律声明'（help.aliyun.com/product/67275.html）与 Cookies 政策（terms.alicdn.com platform_service/20220906101446934），无千问办公专属协议；《千问用户服务协议》是否覆盖千问办公未获官方明示",
+  "tob_note": "已搜索，信息未公开：同左（企业购买走阿里云席位+积分包，或适用阿里云通用条款，适用关系待核实）",
+  "last_verified": "2026-08-30",
+  "versions": {},
+  "analysis_summary": "千问办公为 2026 年新整合的 Agent 办公产品，无公开发布的独立条款。已搜索（2026-08-30 复核：产品页页脚仅阿里云通用法律声明），信息未公开。按铁律不推测适用文件，待官方协议公开后补充数据。",
+  "key_findings": [
+    "由 QoderWork/MuleRun/悟空三产品整合",
+    "企业版通过阿里云席位+积分包购买",
+    "产品页脚无专属协议链接，仅阿里云通用法律声明（2026-08-30 复核）"
+  ],
+  "recommendations": [
+    "使用前向阿里云确认适用的服务协议与数据条款"
+  ]
+}

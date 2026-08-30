@@ -1,0 +1,63 @@
+{
+  "id": "kimi",
+  "name": "Kimi",
+  "company": "月之暗面",
+  "region": "中国",
+  "description": "现行协议将输入输出内容用于模型服务优化（默认开启，退出需联系官方）；2025年旧版'全球、永久、可转让'授权表述已移除。开放平台（API）另授予'模型服务优化'授权",
+  "policy_url": "https://platform.kimi.com/docs/agreement/userservice",
+  "last_verified": "2026-08-30",
+  "versions": {
+    "toc": {
+      "used_for_training": true,
+      "training_note": "现行协议授予免费使用权将输入输出用于模型服务优化，默认开启；2025年协议中的'全球、永久、可转让'授权表述已不再出现，退出需联系官方",
+      "default_state": "默认开启",
+      "opt_out": "邮件申请",
+      "opt_out_method": "需发送邮件到指定邮箱通知平台撤销授权",
+      "deidentified": false,
+      "data_retention": "未明确具体期限（注销后依法保留注册数据及行为记录）",
+      "copyright": "用户所有",
+      "other_uses": "模型服务优化（现行协议授权范围；2025年旧版的'品牌宣传与推广'表述已移除）",
+      "risk_level": "red",
+      "key_clauses": [
+        "为了提升您使用本服务的体验，您授予我们一项免费的使用权，以在法律允许的范围内将您输入输出之内容及反馈用于模型服务优化。（用户服务协议第五条第3款）",
+        "如您不希望您的内容被用于模型训练，您可以通过本协议所载的联系方式联系我们。（用户服务协议第五条第3款）"
+      ],
+      "policy_link": "https://platform.kimi.com/docs/agreement/userservice",
+      "last_verified": "2026-08-29",
+      "label": "个人版"
+    },
+    "tob": {
+      "used_for_training": true,
+      "training_note": "开放平台协议授予'模型服务优化'授权（与'客户数据非授权不使用'条款并存，边界待明确）；原'API数据不用于训练'的标注与协议原文存在出入",
+      "default_state": "默认开启（协议未提供退出机制）",
+      "opt_out": "未明确",
+      "opt_out_method": "协议未约定退出/关闭机制",
+      "deidentified": true,
+      "data_retention": "未明确说明（仅注销后依法保留注册数据及行为记录）",
+      "copyright": "用户所有",
+      "other_uses": "无",
+      "risk_level": "yellow",
+      "key_clauses": [
+        "为了提升您使用本服务的体验，您授予我们一项免费的使用权，以在法律允许的范围内将您输入输出之内容及反馈用于模型服务优化。（开放平台服务协议第六条第3款）",
+        "我们不会对客户数据进行任何非授权的使用或披露。（第五条第3款）"
+      ],
+      "policy_link": "https://platform.kimi.com/docs/agreement/modeluse",
+      "last_verified": "2026-08-29",
+      "label": "企业版（API）"
+    }
+  },
+  "timeline": [],
+  "analysis_summary": "Kimi现行协议（更新2026-08-24/生效2026-08-31）授予免费使用权将输入输出用于模型服务优化，默认开启，退出需通过协议所载联系方式（support@moonshot.cn）；旧版'全球、永久、可转让、品牌推广'授权表述已不再出现。开放平台协议同款授权，与'客户数据非授权不使用'条款并存。",
+  "key_findings": [
+    "现行协议授权'模型服务优化'（免费使用权，默认开启）",
+    "2025年旧版'全球、永久、可转让'授权表述已移除（2026-08-30 复核确认）",
+    "退出需通过协议所载联系方式（support@moonshot.cn）",
+    "开放平台（API）同款授权，与客户数据非授权不使用条款并存"
+  ],
+  "recommendations": [
+    "不希望内容用于模型服务优化的用户通过 support@moonshot.cn 联系撤回",
+    "企业用户注意开放平台授权与客户数据条款的边界"
+  ],
+  "icon": "🌙",
+  "product_url": "https://kimi.moonshot.cn"
+}

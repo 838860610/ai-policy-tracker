@@ -1,0 +1,42 @@
+{
+  "id": "xunfei-xinghuo",
+  "name": "讯飞星火",
+  "company": "科大讯飞",
+  "region": "中国",
+  "description": "用户数据可能用于模型训练和服务优化",
+  "policy_url": "https://www.xfyun.cn/doc/spark/ExperienceRules.html",
+  "last_verified": "2026-08-30",
+  "versions": {
+    "toc": {
+      "used_for_training": true,
+      "training_note": "协议4.3授权将去标识化/匿名化的输入输出用于'本协议下产品及服务的优化'（原文未用'训练'字样，训练属该授权的合理涵盖范围）；拒绝需通过邮件或应用内反馈",
+      "default_state": "默认开启",
+      "opt_out": "邮件申请",
+      "opt_out_method": "需通过公示联系方式与官方联系要求撤回",
+      "deidentified": true,
+      "data_retention": "未明确具体期限（协议无期限条款，个人信息规则见《讯飞开放平台隐私政策》）",
+      "copyright": "用户所有",
+      "other_uses": "服务优化（协议4.3：去标识化/匿名化后用于产品及服务优化，原文未明示'训练'字样）",
+      "risk_level": "yellow",
+      "key_clauses": [
+        "4.3 您知悉并授权，为了提升您使用本服务的用户体验，在经安全加密技术处理、去标识化或匿名化处理的前提下，我们及关联公司可能会将本服务所收集的输入及对应输出，用于本协议下产品及服务的优化。如您拒绝提供前述授权，您可以通过本协议第7.2条的约定向我们反馈您的意见，我们将在充分尊重您的意见基础上采取有效措施以保护您的合法权益。（SparkDesk用户协议4.3，更新2025-08-25；原引文为4.3与7.2的拼接转述，2026-08-30 修正）",
+        "如知识产权等权利人认为我们侵犯其合法权益的，可以通过我们的邮箱cbg_open_complaint_ml@iflytek.com 或点击 APP 右上角设置图标-点击'意见反馈'按钮进行举报。（SparkDesk用户协议7.2；原文7.2为知识产权举报条款，其邮箱即拒绝优化授权的反馈渠道）"
+      ],
+      "policy_link": "https://www.xfyun.cn/doc/spark/ExperienceRules.html",
+      "last_verified": "2026-08-30",
+      "label": "个人版"
+    }
+  },
+  "timeline": [],
+  "analysis_summary": "讯飞星火用户数据可能用于模型训练和服务优化。",
+  "key_findings": [
+    "可能用于模型训练和服务优化",
+    "退出需邮件联系官方"
+  ],
+  "recommendations": [
+    "建议进一步核实具体条款。"
+  ],
+  "icon": "⭐",
+  "product_url": "https://xinghuo.xfyun.cn",
+  "tob_note": "开发者服务（开放平台 API）已拆分为独立条目 xunfei-api（2026-08-29）"
+}

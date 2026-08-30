@@ -1,0 +1,44 @@
+{
+  "id": "zhizuo",
+  "name": "讯飞智作",
+  "company": "科大讯飞",
+  "region": "中国",
+  "icon": "🎙️",
+  "description": "讯飞 AI 配音/内容创作产品。内测规则 2.8 明确：输入内容（个人信息除外）与输出内容将用于进一步的优化训练（无去标识化前提表述，未见退出机制）",
+  "product_url": "https://peiyin.xunfei.cn/",
+  "policy_url": "https://peiyin.xunfei.cn/info/betaTestRules.html",
+  "last_verified": "2026-08-29",
+  "versions": {
+    "toc": {
+      "label": "个人版（内测）",
+      "used_for_training": true,
+      "training_note": "内测规则2.8：使用输入内容（个人信息除外）和输出内容进行进一步的优化训练——无去标识化前提表述、未见退出机制条款",
+      "default_state": "默认开启（使用即同意）",
+      "opt_out": "未明示退出机制",
+      "opt_out_method": "内测规则未载明退出路径；个人信息权利见《讯飞开放平台隐私政策》",
+      "deidentified": false,
+      "data_retention": "未明确说明",
+      "copyright": "在法律允许的范围内，你享有所有输入内容的所有权利、所有权和利益（个人信息除外）。（内测规则）",
+      "other_uses": "不断提高大模型的生成能力",
+      "risk_level": "red",
+      "key_clauses": [
+        "2.8 请您理解并同意，为不断改善本服务的服务质量，我们可能会使用您输入内容（个人信息除外）和本服务输出内容，进行进一步的优化训练，不断提高大模型的生成能力，但个人信息除外。（讯飞智作生成式AI服务内测规则2.8）",
+        "在法律允许的范围内，你享有所有输入内容的所有权利、所有权和利益（个人信息除外）。（内测规则）"
+      ],
+      "policy_link": "https://peiyin.xunfei.cn/info/betaTestRules.html",
+      "last_verified": "2026-08-29"
+    }
+  },
+  "timeline": [],
+  "analysis_summary": "讯飞智作内测规则 2.8 明确将输入（个人信息除外）与输出内容用于优化训练，无去标识化前提、未见退出机制，按方法论'训练且无退出机制'评为高风险。服务处于内测阶段。",
+  "key_findings": [
+    "2.8 优化训练条款（个人信息除外，无去标识化前提）",
+    "输入内容权利归用户（个人信息除外）",
+    "服务处于内测阶段"
+  ],
+  "recommendations": [
+    "配音内容敏感的用户谨慎使用",
+    "关注内测转正式后的条款变化"
+  ],
+  "tob_note": "讯飞智作处于内测阶段（配音/内容创作个人产品），未见独立企业版条款；企业场景由讯飞开放平台承接（见 xunfei-api 条目）"
+}

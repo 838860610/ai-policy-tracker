@@ -1,0 +1,65 @@
+{
+  "id": "chatgpt",
+  "name": "ChatGPT",
+  "company": "OpenAI",
+  "region": "美国",
+  "description": "免费用户对话数据默认用于模型训练（可关闭）；Team/Enterprise/Business 版不训练（除非客户明确同意）",
+  "policy_url": "https://openai.com/policies/terms-of-use",
+  "last_verified": "2026-08-30",
+  "versions": {
+    "toc": {
+      "used_for_training": true,
+      "training_note": "免费用户对话数据默认用于模型训练（现行ToS'Our use of content'条款+Opt out条款，2026-08-30 经服务端抓取核验）；可在设置-Data Controls关闭'Improve the model for everyone'，关闭后对话仍在历史记录中但不再用于训练。原'关闭训练后数据保留30天'表述未见于现行文档（仅临时聊天30天删除），已修正；toc 引文为旧措辞，已换为现行原句",
+      "default_state": "默认开启",
+      "opt_out": "设置开关",
+      "opt_out_method": "设置-Data Controls-Improve the model for everyone，关闭即可",
+      "deidentified": false,
+      "data_retention": "未明确具体期限（现行帮助文档仅载明：临时聊天30天后从系统删除；关闭训练后聊天仍显示在历史记录但不再用于训练）",
+      "copyright": "用户所有",
+      "other_uses": "模型训练、服务改进",
+      "risk_level": "red",
+      "key_clauses": [
+        "Our use of content. We may use Content to provide, maintain, develop, and improve our Services, comply with applicable law, enforce our terms and policies, and keep our Services safe.（OpenAI 服务条款，2026-08-30 核验）",
+        "Opt out. If you do not want us to use your Content to train our models, you can opt out by following the instructions in this article.（OpenAI 服务条款·Opt out）",
+        "Turn off \"Improve the model for everyone\". Your conversations will still appear in your chat history but won't be used to train ChatGPT.（OpenAI 帮助中心·Data Controls FAQ，2026-08-30 浏览器核验）"
+      ],
+      "policy_link": "https://openai.com/policies/terms-of-use",
+      "last_verified": "2026-08-30",
+      "label": "免费版"
+    },
+    "tob": {
+      "used_for_training": false,
+      "training_note": "OpenAI Services Agreement（business-terms，Effective 2026-01-01）4.2：仅为提供服务/合规/执行政策/防滥用所必需使用客户内容，'OpenAI will not use Customer Content to develop or improve the Services, unless Customer explicitly agrees'——Team/Enterprise/Business 默认不训练。原 policy_link 误指消费者版 ToS，已修正（消费者ToS明文将商业用途指向 Business Terms）；原引文句为旧措辞，已替换为现行原句（2026-08-30 核验）；原'30天（Team）/自定义（Enterprise）'留存表述未获核验，已按现行文档修正",
+      "default_state": "默认关闭",
+      "opt_out": "无需退出",
+      "opt_out_method": "默认即不训练，无需退出",
+      "deidentified": true,
+      "data_retention": "终止后30天内从系统删除所有客户内容（Services Agreement 11.3）；服务期间留存期未另行约定",
+      "copyright": "用户所有",
+      "other_uses": "无",
+      "risk_level": "green",
+      "key_clauses": [
+        "OpenAI will not use Customer Content to develop or improve the Services, unless Customer explicitly agrees to such use.（OpenAI Services Agreement 4.2，openai.com/policies/business-terms，2026-08-30 核验）",
+        "Our Business Terms govern use of ChatGPT Enterprise, our APIs, and our other services for businesses and developers.（OpenAI 消费者服务条款，指明商业用途适用文件）",
+        "Yes, our Team, Enterprise, and Edu plans offer additional data controls.（OpenAI 帮助中心·Data Controls FAQ，2026-08-30 浏览器核验）"
+      ],
+      "policy_link": "https://openai.com/policies/business-terms/",
+      "last_verified": "2026-08-30",
+      "label": "Team/Enterprise版"
+    }
+  },
+  "timeline": [],
+  "analysis_summary": "ChatGPT免费版默认使用用户数据训练，可在Data Controls关闭（关闭后对话仍在历史记录中但不再用于训练；临时聊天30天后删除）。Team/Enterprise/Business 版：商业条款明文不将客户内容用于开发或改进服务（除非客户明确同意），终止后30天内删除客户内容。",
+  "key_findings": [
+    "免费版默认开启训练（可设置开关关闭）",
+    "关闭训练后对话仍保留在历史记录中，不再用于训练；临时聊天30天后删除",
+    "Team/Enterprise/Business 版默认不训练（商业条款4.2）",
+    "终止后30天内从系统删除所有客户内容（Services Agreement 11.3）"
+  ],
+  "recommendations": [
+    "免费版用户建议在设置-Data Controls关闭'Improve the model for everyone'。",
+    "商业用途使用 Team/Enterprise/Business 版。"
+  ],
+  "icon": "💬",
+  "product_url": "https://chat.openai.com"
+}

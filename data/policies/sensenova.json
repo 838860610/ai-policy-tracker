@@ -1,0 +1,44 @@
+{
+  "id": "sensenova",
+  "name": "商汤日日新（SenseNova）",
+  "company": "商汤科技",
+  "region": "中国",
+  "icon": "👁️",
+  "description": "商汤大模型 API 平台（承载于商汤大装置 SenseCore，16 款全模态 API）。《大装置用户服务协议》对'用户数据用于训练'保持沉默：训练相关表述仅见于平台服务能力描述，个人信息处理由商汤个人信息保护政策另行规范",
+  "product_url": "https://www.sensenova.cn/",
+  "policy_url": "https://signin.sensecore.cn/html/zh-CN/UserAgreement.html",
+  "last_verified": "2026-08-30",
+  "versions": {
+    "toc": {
+      "label": "开发者服务（统一条款）",
+      "used_for_training": false,
+      "training_note": "《商汤大装置用户服务协议》（2024-11-30）对训练保持沉默：检索'训练'仅命中平台 AI 研发服务能力描述，未见将用户数据用于训练的授权或禁止条款——数据使用边界由商汤个人信息保护政策及商务合同约定（2026-08-30 探测：sensetime.com/cn/personal_clause 返回官网导航页而非政策原文，该政策线上原文仍未定位，待核）",
+      "default_state": "未明示（协议对训练沉默）",
+      "opt_out": "未明示",
+      "opt_out_method": "未载明；个人信息权利见商汤个人信息保护政策",
+      "deidentified": false,
+      "data_retention": "未明确说明（欠费超期有权中止资源服务）",
+      "copyright": "未核实",
+      "other_uses": "平台安全及服务优化需要，保留维护、修改、更新平台服务的权利；检测、浏览、记录服务使用行为与数据不安全特征等用户支持数据",
+      "risk_level": "yellow",
+      "key_clauses": [
+        "商汤科技将检测、浏览、记录您的服务使用行为、您数据的不安全特征等用户支持数据。（大装置用户服务协议·用户支持数据条款）",
+        "我们保留随时修改、中断或终止该大模型服务的权利，并可能在不事先通知的情况下对模型进行更新或改进。（大装置用户服务协议）",
+        "本平台提供从训练到推理端到端的全流程AI研发服务——平台自身能力描述，未涉及用户数据训练授权。（大装置用户协议·平台介绍）"
+      ],
+      "policy_link": "https://signin.sensecore.cn/html/zh-CN/UserAgreement.html",
+      "last_verified": "2026-08-29"
+    }
+  },
+  "timeline": [],
+  "analysis_summary": "商汤大装置用户服务协议（2024-11-30）对'用户数据用于训练'保持沉默：既无授权亦无禁止承诺，边界由商汤个人信息保护政策（未抓取，待核）与商务合同约定。MaaS 平台按客户指示处理数据的模式下，训练边界不明确评为中风险。",
+  "key_findings": [
+    "协议对训练沉默（无授权/无禁止条款）",
+    "用户支持数据（使用行为、不安全特征）会被检测记录",
+    "欠费超期有权中止资源、服务"
+  ],
+  "recommendations": [
+    "企业采购前核对商汤个人信息保护政策与商务合同的数据条款"
+  ],
+  "tob_note": "商汤个人信息保护政策（sensetime.com/cn/personal_clause）未抓取，训练边界待核"
+}

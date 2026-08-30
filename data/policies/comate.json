@@ -1,0 +1,63 @@
+{
+  "id": "comate",
+  "name": "文心快码（Baidu Comate）",
+  "company": "百度",
+  "region": "中国",
+  "icon": "📝",
+  "description": "百度 AI 编程助手（个人版/企业版，企业控制台可见数据看板）。隐私协议明确：未获明确授权时不会对代码做任何存储、分析、加工、训练等后续动作",
+  "product_url": "https://comate.baidu.com/zh",
+  "policy_url": "https://comate.baidu.com/zh/privacyPolicy",
+  "last_verified": "2026-08-29",
+  "versions": {
+    "toc": {
+      "label": "个人版（标准/旗舰）",
+      "used_for_training": false,
+      "training_note": "隐私协议：在没有另行获得明确授权的情况下，不会对代码做任何存储、分析、加工、训练等后续动作；收集问答记录、评价与采纳率等统计用于改进输出质量",
+      "default_state": "代码默认不训练（未获授权不做任何后续动作）",
+      "opt_out": "撤回同意 / 企业管理关闭",
+      "opt_out_method": "passport.baidu.com 撤回同意，或通过 Baidu Comate 企业管理关闭部分功能选项；撤回后不再使用相应个人信息",
+      "deidentified": false,
+      "data_retention": "未明确具体期限（隐私协议含'如何保存及保护'章节，细节待补充摘录）",
+      "copyright": "未核实（用户服务协议含知识产权条款，待补充摘录）",
+      "other_uses": "智能问答记录收集；新服务运营活动另行获得同意（敏感信息单独同意）",
+      "risk_level": "yellow",
+      "key_clauses": [
+        "在没有另行获得您的明确授权的情况下，不会将您的代码用于任何您没有授权的场景，我们不会对您的代码做任何存储、分析、加工、训练等后续动作。（Baidu Comate 隐私协议 1.2.3，更新 2024-06-25）",
+        "个人版用户和企业版用户的功能变更……企业用户可在控制台查看数据看板。（用户服务协议）",
+        "当您撤回同意后，我们无法继续为您提供撤回同意所对应的服务，也将不再使用您相应的个人信息。但您撤回同意的决定，不会影响此前基于您的同意而开展的个人信息处理。（隐私协议4）"
+      ],
+      "policy_link": "https://comate.baidu.com/zh/privacyPolicy",
+      "last_verified": "2026-08-29"
+    },
+    "tob": {
+      "label": "企业版（企业控制台）",
+      "used_for_training": false,
+      "training_note": "同个人版：代码未获明确授权不做任何存储/分析/加工/训练；企业用户可在控制台查看数据看板",
+      "default_state": "代码默认不训练",
+      "opt_out": "企业管理关闭",
+      "opt_out_method": "通过 Baidu Comate 企业管理关闭部分功能选项从而撤销部分授权",
+      "deidentified": false,
+      "data_retention": "未明确具体期限",
+      "copyright": "未核实",
+      "other_uses": "企业控制台数据看板",
+      "risk_level": "yellow",
+      "key_clauses": [
+        "在没有另行获得您的明确授权的情况下，不会将您的代码用于任何您没有授权的场景，我们不会对您的代码做任何存储、分析、加工、训练等后续动作。（Baidu Comate 隐私协议 1.2.3）",
+        "1 在您购买使用时长后……包括但不限于在IDE内使用BaiduComate插件、企业用户可在控制台查看数据看板等。（用户服务协议）"
+      ],
+      "policy_link": "https://comate.baidu.com/zh/privacyPolicy",
+      "last_verified": "2026-08-29"
+    }
+  },
+  "timeline": [],
+  "analysis_summary": "文心快码对代码给出强承诺：未获明确授权不对代码做任何存储/分析/加工/训练。个人版/企业版形态均在协议中载明（企业控制台数据看板）。留存期限细节待补充。",
+  "key_findings": [
+    "代码未获授权不做任何存储/分析/加工/训练（隐私协议 1.2.3）",
+    "企业版提供控制台数据看板",
+    "撤回同意后不再使用相应个人信息，但不影响撤回前处理"
+  ],
+  "recommendations": [
+    "代码敏感场景可引用隐私协议 1.2.3 条款",
+    "注意协议更新日期为 2024-06，建议关注新版本"
+  ]
+}

@@ -1,0 +1,42 @@
+{
+  "id": "qianfan",
+  "name": "百度智能云千帆",
+  "company": "百度",
+  "region": "中国",
+  "icon": "⛵",
+  "description": "百度智能云大模型服务与 Agent 开发平台。纯开发者产品（个人/企业统一条款，已原文验证），从文心一言条目拆分独立",
+  "product_url": "https://cloud.baidu.com/product-s/qianfan_home",
+  "policy_url": "https://cloud.baidu.com/doc/qianfan/s/Cmh4stmpy",
+  "toc_note": "纯开发者产品（API/平台），无消费端条款；本条目为文心一言条目 ToB 块拆分独立（2026-08-29）",
+  "last_verified": "2026-08-29",
+  "versions": {
+    "tob": {
+      "used_for_training": false,
+      "training_note": "企业版不用于模型训练",
+      "default_state": "默认关闭",
+      "opt_out": "合同约定",
+      "opt_out_method": "企业合同约定",
+      "deidentified": true,
+      "data_retention": "未明确说明（注销账号时按要求删除，法律另有规定除外）",
+      "copyright": "用户所有",
+      "other_uses": "无",
+      "risk_level": "yellow",
+      "key_clauses": [
+        "我们不会使用您的输入和模型输出数据、上传的知识文档、数据集进行训练，也不会将您的数据集与任何第三方共享。（千帆用户协议5.1(6)）"
+      ],
+      "policy_link": "https://cloud.baidu.com/doc/qianfan/s/Cmh4stmpy",
+      "last_verified": "2026-08-29",
+      "label": "开发者服务（个人/企业统一条款）"
+    }
+  },
+  "analysis_summary": "千帆用户协议 5.1(6) 提供明确不训练承诺：不使用输入/输出数据、知识文档、数据集进行训练，不与第三方共享数据集。无具体留存期限，注销时按要求删除。",
+  "key_findings": [
+    "5.1(6) 不训练承诺（输入/输出/知识文档/数据集）",
+    "仅限账号下服务内使用，未获授权不使用不披露",
+    "注销账号时按要求删除信息（法律另有规定除外）"
+  ],
+  "recommendations": [
+    "可直接引用 5.1(6) 作为不训练依据",
+    "注意 13.2 条服务性能优化用途的额外授权"
+  ]
+}

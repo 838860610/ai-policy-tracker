@@ -1,0 +1,22 @@
+{
+  "id": "zread",
+  "name": "Zread.ai（GitHub 项目解读）",
+  "company": "智谱AI",
+  "region": "中国",
+  "icon": "📖",
+  "description": "智谱旗下 GitHub 开源项目解读工具。截至 2026-08-30 复核未见独立用户协议/隐私政策页面（疑似适用智谱开放平台条款体系，待核实）；注意：zread.ai 对 curl/WebFetch 返回 TLS 连接重置（反爬），需浏览器访问",
+  "product_url": "https://zread.ai/",
+  "policy_url": "https://zread.ai/",
+  "toc_note": "已搜索，信息未公开：2026-08-30 复核——curl/WebFetch 访问 zread.ai 全部 TLS 握手被对端重置（Connection reset，反爬）；浏览器渲染确认首页（Discover/Trending/Subscription/Library 等导航+页脚 Feishu 反馈/X/Discord/Login）无法务链接，/privacy 返回 Page Not Found（/terms /agreement 加载超时未取得结果）",
+  "tob_note": "已搜索，信息未公开：同左；疑似适用智谱开放平台条款体系（未获官方明示，待核实）",
+  "last_verified": "2026-08-30",
+  "versions": {},
+  "analysis_summary": "Zread.ai 为智谱旗下 GitHub 项目解读工具，未见独立公开条款。已搜索（2026-08-30 复核：站点反爬致 curl 不可达，浏览器确认首页无法务链接、/privacy 404）。按铁律不推测适用文件，占位待核实。",
+  "key_findings": [
+    "智谱旗下 GitHub 项目解读工具",
+    "官网页脚无法务链接、/privacy 为 404（2026-08-30 浏览器复核；curl 因 TLS 重置不可达）"
+  ],
+  "recommendations": [
+    "使用前从 zread.ai 页脚定位适用条款，或向智谱确认是否适用开放平台条款体系"
+  ]
+}

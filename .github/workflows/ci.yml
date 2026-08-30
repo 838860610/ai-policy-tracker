@@ -1,0 +1,26 @@
+name: 数据校验
+
+# PR 与主分支推送时自动校验数据结构和 README 汇总表一致性
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: 安装依赖
+        run: pip install -r requirements.txt
+
+      - name: 数据结构校验
+        run: python scripts/validate_data.py
+
+      - name: README 汇总表一致性检查
+        run: python scripts/gen_readme_table.py --check

@@ -1,0 +1,69 @@
+{
+  "id": "zai",
+  "name": "Z.ai（智谱全球 AI 助手）",
+  "company": "智谱AI",
+  "region": "全球",
+  "icon": "🌐",
+  "description": "智谱全球版 AI 助手与 API 平台（GLM 系列，主体 JINGSHENG HENGXING TECHNOLOGY PTE.LTD，新加坡）。条款已定位核实：chat.z.ai/legal-agreement/terms-of-service（2026-04-14 更新）+ 隐私政策（docs.z.ai，2025-09-29 更新）。个人版明示授权将用户内容用于'开发和改进机器学习与人工智能技术'；API 企业版明示'除非明确同意，不将内容用于开发或改进服务'",
+  "product_url": "https://z.ai/",
+  "policy_url": "https://chat.z.ai/legal-agreement/terms-of-service",
+  "toc_note": null,
+  "tob_note": null,
+  "last_verified": "2026-08-30",
+  "versions": {
+    "toc": {
+      "label": "个人版",
+      "used_for_training": true,
+      "training_note": "条款 IV.3.a：个人用户明示授权将'不构成个人数据'的用户内容用于'开发和改进我们的机器学习与人工智能技术'（同意条款即授权，未载明退出机制）；隐私政策第3节：匿名化后用于'训练和改进我们的模型'且承诺不尝试再识别，另可从公开互联网获取公开信息训练模型（第2节）。处理与存储可在用户所在司法辖区之外（IV.3.a(ii)）",
+      "default_state": "默认开启（同意条款即授权；训练使用限'不构成个人数据'的用户内容，匿名化路径另见隐私政策）",
+      "opt_out": "未明示退出机制",
+      "opt_out_method": "条款仅载 'Contact us with any concerns about our use of User Content'（IV.5），无产品内开关或标准退出路径",
+      "deidentified": true,
+      "data_retention": "未明确具体期限（'为提供服务所必需'，隐私政策第7节；删除单条对话后'立即从对话历史移除并从后端自动删除'——隐私政策第5节 Your Rights；原标注'账号存续期间'未见于原文，2026-08-30 修正）",
+      "copyright": "用户保留 Prompts 与 Outputs 的全部权利（IV.4），但授予公司及关联方无条件、不可撤销、非排他、免版税、可完全转让、可再许可、永久的全球许可，并可授权他人（IV.5）；另授予用户名与头像使用许可；放弃精神权利（IV.6，新加坡版权法/Berne 6bis）",
+      "other_uses": "公开互联网信息训练模型（隐私政策第2节）；公共分享功能下接收方可无限制使用内容（IV.3.c）；营销材料相关隐私/公开权放弃（IV.6）",
+      "risk_level": "yellow",
+      "key_clauses": [
+        "Service Improvement and Development. For individual users... You hereby explicitly authorize and consent to our: (i) utilization and storage of User Content that does not constitute personal data for the purpose of developing and improving our machine learning and artificial intelligence technologies.（Z.ai 条款 IV.3.a，2026-04-14 更新）",
+        "You grant us and our affiliates an unconditional, irrevocable, non-exclusive, royalty-free, fully transferable, sub-licensable, perpetual, worldwide license to access, use, host, modify, communicate, reproduce, adapt, create derivative works from, publish, perform, and distribute your User Content, and to authorize others to do so, in any format and on any platform.（Z.ai 条款 IV.5）",
+        "We may also aggregate or anonymize Personal Data in such a way that it no longer identifies you and use this data for the purposes mentioned above, such as analyzing how our Services are being utilized, enhancing and adding new features, and conducting research. We will keep and use the anonymized data in its de-identified form and will not attempt to re-identify it, unless required by law.（Z.ai 隐私政策，2025-09-29 更新；原引文为跨句拼合节选，2026-08-30 换为原文）",
+        "Where necessary for our legitimate interests and those of third parties and broader society, including in developing, improving, or promoting our Services, such as when we train and improve our models.（Z.ai 隐私政策，2025-09-29 更新；2026-08-30 复核逐字命中）",
+        "you retain all rights, title, and interest in the Prompts you submit and the Outputs generated specifically at your request.（Z.ai 条款 IV.4）"
+      ],
+      "policy_link": "https://chat.z.ai/legal-agreement/terms-of-service",
+      "last_verified": "2026-08-30"
+    },
+    "tob": {
+      "label": "企业版（API）",
+      "used_for_training": false,
+      "training_note": "条款 IV.7：企业与开发者使用 API 服务时'除非您明确同意，我们不会将您的用户内容用于开发或改进服务'（加入式 opt-in）；API 附加条款 3.b 同款且方括号强调；DPA 约定内容处理（附加条款 2.a）",
+      "default_state": "默认不用于开发/改进服务（加入式：需明确同意才参与）",
+      "opt_out": "无需退出（默认不使用）",
+      "opt_out_method": "保持默认即不参与；如需参与数据用于改进须明确同意",
+      "deidentified": false,
+      "data_retention": "API 内容不存储（隐私政策·API 数据处理附录 4(b)：'The Company do not store any of the content the Customer or its End Users provide or generate'，实时处理）；其他数据在条款终止后删除（4(c)）",
+      "copyright": "公司不主张对 Input 与 End User Content 的所有权（附加条款 3.a）；输出权利归用户（IV.4）；API 附加条款不授予公司对用户内容的知识产权（4.a）",
+      "other_uses": "提供服务、合规、执行政策与防止滥用所必需的使用（附加条款 3.b）；禁止用平台模型/提示词/生成内容开发训练外部或竞争模型（附加条款 1.f.xii；条款 III.4.f）",
+      "risk_level": "yellow",
+      "key_clauses": [
+        "For enterprises and developers using API Services, we will not use your User Content for developing or improving Services unless you explicitly agree to such use.（Z.ai 条款 IV.7，2026-04-14 更新）",
+        "[We will not use End User Content to develop or improve Services, unless you explicitly agree to such use.]（Z.ai API 附加条款 3.b）",
+        "We won't claim ownership over your Input and End User Content.（Z.ai API 附加条款 3.a）",
+        "The Company do not store any of the content the Customer or its End Users provide or generate.（Z.ai 隐私政策·API 数据处理附录 4(b)，2025-09-29 更新）"
+      ],
+      "policy_link": "https://chat.z.ai/legal-agreement/terms-of-service",
+      "last_verified": "2026-08-30"
+    }
+  },
+  "analysis_summary": "Z.ai 为智谱全球版品牌（GLM 系列，新加坡主体 Jingsheng Hengxing）。个人版明示授权将非个人数据内容用于'开发和改进机器学习与人工智能技术'且无退出机制，匿名化数据用于训练模型；API 企业版为加入式默认不训练且内容不存储。判定黄/黄（同智谱系口径）。",
+  "key_findings": [
+    "条款入口已定位：chat.z.ai/legal-agreement/terms-of-service（/terms 路径 404 为入口变更，2026-08-30 核实）",
+    "个人版默认授权 ML/AI 技术改进（IV.3.a），无退出机制",
+    "API 企业版加入式默认不训练 + 内容不存储（IV.7、附加条款 3.b、DPA 4b）",
+    "个人版授予不可撤销、可再许可、永久全球许可且可授权他人（IV.5）"
+  ],
+  "recommendations": [
+    "个人用户如不接受内容用于模型改进，注意同意条款即授权、无产品内开关",
+    "企业/开发者走 API 附加条款：默认不训练、内容不存储，竞品训练被明文禁止"
+  ]
+}

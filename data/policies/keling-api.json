@@ -1,0 +1,42 @@
+{
+  "id": "keling-api",
+  "name": "可灵 AI 开放平台",
+  "company": "快手",
+  "region": "中国",
+  "icon": "🎬",
+  "description": "可灵 AI 开放平台 API 服务（视频/图像生成）。纯开发者产品，从可灵条目 ToB 块拆分独立",
+  "product_url": "https://www.klingai.com/",
+  "policy_url": "https://www.klingai.com/document-api/guides/protocols/paid-service",
+  "toc_note": "纯开发者产品（API），无消费端条款；本条目为可灵条目 ToB 块拆分独立（2026-08-29）",
+  "last_verified": "2026-08-30",
+  "versions": {
+    "tob": {
+      "used_for_training": false,
+      "training_note": "《可灵AI API付费服务协议》（发布/更新2025-12-18）5.1：'我们不会使用或授权任何个人或实体使用我们的数据来进行机器学习、人工智能或算法开发、模型训练'；5.5：不将提示词/响应用于改进产品，且'我们会将提示词和响应记录留存三十(30)天'。官方企业会员页（klingai.com/dev/enterprise-membership）权益清单亦明示'不使用企业数据进行算法训练'。原记录留存'未明确说明'、去标识化'是'与原文不符，2026-08-30 复核修正",
+      "default_state": "默认不用于训练（协议明示禁止）",
+      "opt_out": "无需退出（默认不训练）",
+      "opt_out_method": "付费服务协议5.1明示不用于机器学习/AI/算法开发/模型训练、5.5明示不将提示词与响应用于改进产品——默认即不训练，无需退出；原'企业合同约定'无原文依据，已修正",
+      "deidentified": false,
+      "data_retention": "30天（付费服务协议5.5：'我们会将提示词和响应记录留存三十(30)天'）",
+      "copyright": "用户所有",
+      "other_uses": "5.6：为检测违反禁止用途行为及必要的法律/监管披露，可在有限时间内存储提示词、上下文及生成内容",
+      "risk_level": "yellow",
+      "key_clauses": [
+        "5.1对于您使用我们服务过程中，我们所收集的您的输入及对应生成内容，我们不会使用或授权任何个人或实体使用我们的数据来进行机器学习、人工智能或算法开发、模型训练。（可灵AI API付费服务协议5.1，2025-12-18）",
+        "5.5……我们不会使用您的提示词（包括相关的系统指令、缓存内容以及图像、视频或文档等文件）或响应来改进我们的产品，并将作为数据处理者处理您的提示词和响应。我们会将提示词和响应记录留存三十(30)天。（可灵AI API付费服务协议5.5）",
+        "企业会员权益明确承诺：不使用企业数据进行算法训练。（官方企业会员页 klingai.com/dev/enterprise-membership，2026-08-30 定位核实）"
+      ],
+      "policy_link": "https://www.klingai.com/document-api/guides/protocols/paid-service",
+      "last_verified": "2026-08-30",
+      "label": "开发者服务（个人/企业统一条款）"
+    }
+  },
+  "analysis_summary": "API 付费服务协议为《可灵AI用户服务协议》《可灵AI隐私政策》的补充协议；企业会员页承诺不使用企业数据进行算法训练（产品页声明，非协议原文）。",
+  "key_findings": [
+    "企业会员页承诺不使用企业数据训练（产品页声明）",
+    "API 协议为用户服务协议与隐私政策的补充"
+  ],
+  "recommendations": [
+    "企业使用前核实《数据授权使用协议》签署状态"
+  ]
+}

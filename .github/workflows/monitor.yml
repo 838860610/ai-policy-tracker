@@ -1,0 +1,35 @@
+name: 政策更新监控
+
+# 每周一北京时间 09:00（UTC 01:00）自动检查各产品政策页面变化，
+# 结果写入 data/update_status.json 并提交——首页会读取展示监控状态。
+on:
+  schedule:
+    - cron: "0 1 * * 1" # 每周一 09:00 北京时间
+  workflow_dispatch: {} # 支持在 Actions 页面手动触发
+
+permissions:
+  contents: write
+
+jobs:
+  check-updates:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: 安装依赖
+        run: pip install -r requirements.txt
+
+      - name: 运行政策更新检查
+        run: python scripts/check_updates.py
+
+      - name: 提交监控状态
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          # -f：data/update_status.json 在 .gitignore 中（本地不跟踪），普通 add 会报错
+          git add -f data/update_status.json
+          git diff --cached --quiet || (git commit -m "monitor: 政策更新检查 $(date -u +%F)" && git push)

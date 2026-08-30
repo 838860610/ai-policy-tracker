@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="AI 产品用户政策详情：训练开关、退出机制、数据留存、关键条款摘录与变更时间线。">
+  <title>产品详情 - AI 用户政策追踪器</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%9B%A1%EF%B8%8F%3C/text%3E%3C/svg%3E">
+  <link rel="stylesheet" href="css/style.css?v=20260829-2">
+</head>
+<body>
+  <div class="detail-header">
+    <div class="container">
+      <a href="index.html" class="back-btn">&larr; 返回首页</a>
+      <h1 id="productName">加载中...</h1>
+      <div class="meta" id="productMeta"></div>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="loading" id="loading">正在加载详情...</div>
+    <div id="detailContent" style="display:none">
+      <div class="detail-card" id="descCard">
+        <h2>产品简介</h2>
+        <p id="productDesc" style="color:var(--text-secondary);line-height:1.8"></p>
+      </div>
+
+      <div class="detail-card">
+        <div class="tabs">
+          <button class="tab active" data-tab="toc" id="tabToc">个人版 (ToC)</button>
+          <button class="tab" data-tab="tob" id="tabTob">企业版 (ToB)</button>
+        </div>
+        <div class="tab-content active" id="contentToc"></div>
+        <div class="tab-content" id="contentTob"></div>
+      </div>
+
+      <div class="detail-card" id="timelineCard" style="display:none">
+        <h2>政策变更时间线</h2>
+        <div class="timeline" id="timeline"></div>
+      </div>
+
+      <div class="detail-card">
+        <h2>分析摘要</h2>
+        <div class="summary-box" id="analysisSummary"></div>
+      </div>
+
+      <div class="detail-card">
+        <h2>关键发现</h2>
+        <ul class="findings-list" id="keyFindings"></ul>
+      </div>
+
+      <div class="detail-card">
+        <h2>使用建议</h2>
+        <ul class="recommendations-list" id="recommendations"></ul>
+      </div>
+
+      <div class="detail-card">
+        <h2>核实信息</h2>
+        <div class="info-grid">
+          <div class="info-item">
+            <div class="label">最后核实日期</div>
+            <div class="value" id="lastVerified"></div>
+          </div>
+          <div class="info-item">
+            <div class="label">政策链接</div>
+            <div class="value"><a href="#" id="policyLink" target="_blank" rel="noopener noreferrer">查看官方政策</a></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <p>AI 用户政策追踪器 | <a href="index.html">返回首页</a></p>
+    <p>免责声明：本数据仅供参考，不构成法律建议。请以官方最新政策为准。</p>
+  </div>
+
+  <script src="js/common.js?v=20260829-2"></script>
+  <script src="js/detail.js?v=20260829-2"></script>
+</body>
+</html>

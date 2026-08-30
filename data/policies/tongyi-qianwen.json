@@ -1,0 +1,43 @@
+{
+  "id": "tongyi-qianwen",
+  "name": "千问 App（原通义千问）",
+  "company": "阿里云",
+  "region": "中国",
+  "description": "阿里官方 AI 助手（2025-11 由通义 App 更名千问，C 端月活 3 亿+）。训练为去标识化抽取评测优化（默认），退出走隐私政策第九条联系方式；音视频通话有独立开关；知识库内容单独授权不训练",
+  "policy_url": "https://terms.alicdn.com/legal-agreement/terms/c_end_product_protocol/20231011201348415/20231011201348415.html",
+  "last_verified": "2026-08-30",
+  "versions": {
+    "toc": {
+      "used_for_training": true,
+      "training_note": "在去标识化后用于服务改进，使用范围较严格",
+      "default_state": "默认开启",
+      "opt_out": "邮件申请",
+      "opt_out_method": "需通过公示联系方式与官方联系要求撤回",
+      "deidentified": true,
+      "data_retention": "未明确具体期限（\"目的所需期限\"原则；届满后删除或匿名化，备份延迟清除）",
+      "copyright": "用户所有",
+      "other_uses": "服务改进",
+      "risk_level": "yellow",
+      "key_clauses": [
+        "您知悉并授权，在经安全加密技术处理、严格去标识化且无法重新识别特定个人的前提下，我们可能会使用内容来提供、维护、开发和改进我们的服务。（千问用户服务协议12.3，'内容'指输入和输出的统称）",
+        "千问产品致力于为您提供更为优质的服务，在对输入内容进行去标识化处理且确保无法重新识别特定个人的前提下，我们可能会随机抽取少部分输入内容、对话上下文进行产品分析、模型评测和功能优化，以更好改善模型回答效果，如提高对话质量和响应速度。如果您不希望您的输入内容用于模型优化，请参照本政策第九条联系我们。（千问产品隐私政策，更新2026-07-14/生效2026-07-21，terms.alicdn.com/legal-agreement/terms/privacy_policy_full/20231011201849846/20231011201849846.html；原引文为旧版措辞，2026-08-30 更新）"
+      ],
+      "policy_link": "https://terms.alicdn.com/legal-agreement/terms/c_end_product_protocol/20231011201348415/20231011201348415.html",
+      "last_verified": "2026-08-30",
+      "label": "个人版"
+    }
+  },
+  "timeline": [],
+  "analysis_summary": "通义千问在去标识化后用于服务改进，退出需邮件联系官方。",
+  "key_findings": [
+    "去标识化后用于服务改进",
+    "退出需邮件联系，不够便捷",
+    "用户保留所有权"
+  ],
+  "recommendations": [
+    "如不希望数据被使用，需主动联系官方。"
+  ],
+  "icon": "🌐",
+  "product_url": "https://tongyi.aliyun.com",
+  "tob_note": "企业/API 服务（阿里云百炼）已拆分为独立条目 bailian（2026-08-29）。千问 App 本身未见独立企业版/组织账号条款，待核实"
+}

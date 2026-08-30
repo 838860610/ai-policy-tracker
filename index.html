@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="主流 AI 产品是否使用用户数据进行模型训练：对比 50 款 AI 产品的隐私政策、训练开关、退出机制与风险等级。">
+  <title>AI 用户政策追踪器</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%9B%A1%EF%B8%8F%3C/text%3E%3C/svg%3E">
+  <link rel="stylesheet" href="css/style.css?v=20260830-4">
+</head>
+<body>
+  <div class="header">
+    <h1>AI 用户政策追踪器</h1>
+    <p class="subtitle">主流 AI 产品是否使用用户数据进行模型训练</p>
+  </div>
+
+  <div class="container">
+    <div id="monitorStatus" style="display:none"></div>
+
+    <div class="controls">
+      <div class="controls-left">
+        <div class="filter-group" id="regionFilter" role="group" aria-label="按地区筛选">
+          <button class="filter-btn active" data-region="all">全部地区</button>
+          <button class="filter-btn" data-region="cn">国内</button>
+          <button class="filter-btn" data-region="overseas">海外</button>
+        </div>
+        <div class="filter-group" id="trainingFilter" role="group" aria-label="按是否使用用户数据训练筛选">
+          <button class="filter-btn active" data-training="all">用数据训练: 全部</button>
+          <button class="filter-btn" data-training="yes">会</button>
+          <button class="filter-btn" data-training="no">不会</button>
+        </div>
+        <div class="filter-group" id="riskFilter" role="group" aria-label="按风险筛选">
+          <button class="filter-btn active" data-risk="all">风险: 全部</button>
+          <button class="filter-btn" data-risk="green">低</button>
+          <button class="filter-btn" data-risk="yellow">中</button>
+          <button class="filter-btn" data-risk="red">高</button>
+        </div>
+      </div>
+      <input type="text" class="search-box" id="searchBox" placeholder="搜索产品、公司或厂商..." aria-label="搜索产品、公司或厂商">
+    </div>
+
+    <div class="risk-legend">
+      <div class="risk-legend-title">风险等级判定标准</div>
+      <div class="risk-legend-items">
+        <div class="risk-legend-item item-green"><strong class="legend-title">🟢 低风险</strong><p>以下四项<strong>全部满足</strong>：默认不用于训练 · 数据去标识化 · 留存期限明确且合理（≤30天）· 用户保留内容版权</p></div>
+        <div class="risk-legend-item item-yellow"><strong class="legend-title">🟡 中风险</strong><p>满足<strong>任一</strong>：训练但提供明确退出机制 · 留存较长但可配置 · 去标识化或使用边界不明确</p></div>
+        <div class="risk-legend-item item-red"><strong class="legend-title">🔴 高风险</strong><p>满足<strong>任一</strong>：训练且无退出机制或退出困难 · 长期留存无明确删除机制 · 未去标识化 · 条款模糊边界不清</p></div>
+      </div>
+    </div>
+
+    <div class="table-wrapper">
+      <div class="scroll-hint">⇆ 左右滑动查看训练与风险</div>
+      <div class="loading" id="loading">正在加载数据...</div>
+      <table id="compareTable" style="display:none">
+        <thead>
+          <tr>
+            <th>产品</th>
+            <th>个人版训练</th>
+            <th>企业版训练</th>
+            <th>个人版风险</th>
+            <th>企业版风险</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+    </div>
+
+    <div class="footer">
+      <p class="update-date" id="updateDate"></p>
+      <div class="disclaimer">
+        免责声明：本数据仅供参考，不构成法律建议。各产品政策可能随时变更，请以官方最新政策为准。数据核实日期见各产品详情。
+      </div>
+      <p>AI 用户政策追踪器 | 数据来源：各产品官方隐私政策</p>
+    </div>
+  </div>
+
+  <script src="js/common.js?v=20260830-4"></script>
+  <script src="js/app.js?v=20260830-4"></script>
+</body>
+</html>

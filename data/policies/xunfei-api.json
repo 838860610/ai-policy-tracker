@@ -1,0 +1,43 @@
+{
+  "id": "xunfei-api",
+  "name": "讯飞开放平台（星火大模型 API）",
+  "company": "科大讯飞",
+  "region": "中国",
+  "icon": "📡",
+  "description": "讯飞开放平台大语言模型 API 服务。纯开发者产品（个人/企业统一条款，已原文验证），从讯飞星火条目拆分独立",
+  "product_url": "https://www.xfyun.cn/",
+  "policy_url": "https://www.xfyun.cn/doc/policy/SparkInterfacePolicy.html",
+  "toc_note": "纯开发者产品（API），无消费端条款；本条目为讯飞星火条目 ToB 块拆分独立（2026-08-29）",
+  "last_verified": "2026-08-30",
+  "versions": {
+    "tob": {
+      "used_for_training": true,
+      "training_note": "接口服务协议4.3与个人版一致：去标识化/匿名化后输入输出用于'本协议下产品及服务的优化'（原文未用'训练'字样）；可邮件拒绝",
+      "default_state": "默认开启（使用即授权，可邮件拒绝）",
+      "opt_out": "合同约定",
+      "opt_out_method": "邮件 cbg_open_complaint_ml@iflytek.com（接口服务协议8.2）",
+      "deidentified": true,
+      "data_retention": "未明确说明（注销后保留注册数据及行为记录，个人信息除外）",
+      "copyright": "用户所有",
+      "other_uses": "无",
+      "risk_level": "yellow",
+      "key_clauses": [
+        "4.3 您知悉并授权，为了提升您使用本服务的用户体验，在经安全加密技术处理、去标识化或匿名化处理的前提下，我们及关联公司可能会将本服务所收集的输入内容及对应输出内容，用于本协议下产品及服务的优化。如您拒绝提供前述授权，您可以通过本协议第8.2条的约定向我们反馈您的意见。（大语言模型接口服务协议4.3，更新2025-08-25；原引文语序有重排，2026-08-30 修正）",
+        "8.2 ……如知识产权等权利人认为我们侵犯其合法权益的，可以通过我们的邮箱cbg_open_complaint_ml@iflytek.com进行举报，向我们进行如实反馈，并提供相应的证明材料。（接口服务协议8.2；原引文'拒绝渠道：'为自拟标签，2026-08-30 修正）"
+      ],
+      "policy_link": "https://www.xfyun.cn/doc/policy/SparkInterfacePolicy.html",
+      "last_verified": "2026-08-30",
+      "label": "开发者服务（个人/企业统一条款）"
+    }
+  },
+  "analysis_summary": "接口服务协议 4.3 与个人版一致：去标识化/匿名化前提下输入输出用于'本协议下产品及服务的优化'（原文未用'训练'字样），可邮件拒绝。无具体留存期限。",
+  "key_findings": [
+    "4.3 去标识化/匿名化后用于产品及服务优化（默认授权，可拒）",
+    "输入输出内容权利'均仅归您或原权利人所有'（4.2）",
+    "注销后保留注册数据及行为记录（个人信息除外）"
+  ],
+  "recommendations": [
+    "拒绝优化授权需主动通过邮件或 8.2 条渠道反馈",
+    "关注《讯飞开放平台隐私政策》的留存细节"
+  ]
+}

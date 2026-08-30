@@ -1,0 +1,46 @@
+{
+  "id": "autoclaw",
+  "name": "AutoClaw（智谱本地智能体，澳龙）",
+  "company": "智谱AI",
+  "region": "中国",
+  "icon": "🦞",
+  "description": "智谱本地版 OpenClaw 智能体（国内首个一键安装，2026-03-10 协议生效，积分制计费）。用户协议授予'不可撤销的、免费的、全球范围内的、可分许可使用权'用于模型服务优化与产品推广——为本库已核实条款中最严苛授权",
+  "product_url": "https://autoglm.aminer.cn/",
+  "policy_url": "https://autoglm.aminer.cn/web/md2html/index.html?md=autoclaw_agreement&favicon=autoglm",
+  "last_verified": "2026-08-30",
+  "versions": {
+    "toc": {
+      "label": "个人版（积分制）",
+      "used_for_training": true,
+      "training_note": "用户协议：不可撤销的、免费的、全球范围内的、可分许可使用权，用于'模型服务优化、产品内容推广与宣传'——不可撤销+推广用途为本库已核实条款中最严苛；未见退出机制条款。支持自行填入第三方大模型 API（该模式下 AutoClaw 仅作本地执行通道，费用与数据按第三方协议）",
+      "default_state": "默认开启（同意协议即授予不可撤销许可）",
+      "opt_out": "未明示退出机制（授权不可撤销）",
+      "opt_out_method": "用户协议未载明退出路径；可选用自行配置第三方 API 模式（该模式下按第三方协议处理）",
+      "deidentified": false,
+      "data_retention": "未明确说明（含删除措施滞后性表述：'由于人工智能的训练需要一定时间，我们的删除和禁用措施可能具有滞后性'）",
+      "copyright": "输入/输出包含第三方权利内容不改变权属；包含智谱权益内容的部分权利仍由智谱享有",
+      "other_uses": "产品内容推广与宣传；第三方插件/API 服务接入",
+      "risk_level": "red",
+      "key_clauses": [
+        "您授予智谱和/或其关联方一项不可撤销的、免费的、全球范围内的、可分许可的使用权，在法律允许的范围内使用您的内容，例如用于模型服务优化、产品内容推广与宣传。（AutoClaw用户协议，2026-03-10 生效）",
+        "请您理解，由于人工智能的训练需要一定时间，我们的删除和禁用措施可能具有滞后性。（用户协议）",
+        "为满足您的个性化需求，AutoClaw支持您自行填入并调用第三方大模型 API。当您使用此模式时，AutoClaw仅作为本地执行通道。该模式下所产生的所有 API 调用费用、Token 消耗及相关算力成本，均由您所配置的第三方服务商直接向您收取，其计费规则及扣费行为完全受您与第三方之间的服务协议约束。（AutoClaw用户协议四.8；原标注'付费条款'有误且为缩写，2026-08-30 修正）"
+      ],
+      "policy_link": "https://autoglm.aminer.cn/web/md2html/index.html?md=autoclaw_agreement&favicon=autoglm",
+      "last_verified": "2026-08-30"
+    }
+  },
+  "timeline": [],
+  "analysis_summary": "AutoClaw（澳龙）为智谱本地版 OpenClaw 智能体（积分制计费、可自备第三方 API）。用户协议含本库已核实条款中最严苛的内容授权：不可撤销、免费、全球、可分许可，用于模型服务优化与产品推广，未见退出机制——评为高风险。",
+  "key_findings": [
+    "不可撤销的全球可分许可授权（模型服务优化+推广宣传）",
+    "删除措施因 AI 训练'可能具有滞后性'",
+    "积分制计费；支持自备第三方 API 模式",
+    "账号与 AutoGLM 系列产品通用"
+  ],
+  "recommendations": [
+    "敏感场景谨慎使用：授权不可撤销且含推广用途",
+    "可改用自备第三方 API 模式（数据按第三方协议处理）"
+  ],
+  "tob_note": "未设 ToB 块：AutoClaw 为个人桌面智能体（积分制，账号与 AutoGLM 系列通用），未见独立企业版条款；企业智能体场景由智谱开放平台/HiAgent 类产品承接，待核实"
+}

@@ -1,0 +1,67 @@
+{
+  "id": "claude",
+  "name": "Claude",
+  "company": "Anthropic",
+  "region": "美国",
+  "description": "消费版自2025-09-28起默认将对话用于模型训练（可关闭'Help improve Claude'）；商业版不训练",
+  "policy_url": "https://www.anthropic.com/legal/consumer-terms",
+  "last_verified": "2026-08-30",
+  "versions": {
+    "toc": {
+      "used_for_training": true,
+      "training_note": "2025-09-28起消费版（Free/Pro/Max）改为退出式：对话默认用于模型训练，可在Settings-Privacy关闭'Help improve Claude'；参与训练的数据保留最长5年（欧洲经济区/英国/瑞士等地区默认不同）",
+      "default_state": "默认开启（可关闭）",
+      "opt_out": "设置开关",
+      "opt_out_method": "Settings → Privacy → 关闭'Help improve Claude'；关闭仅对后续数据生效",
+      "deidentified": false,
+      "data_retention": "参与训练的数据最长保留5年；关闭后未来数据不再用于训练",
+      "copyright": "用户所有",
+      "other_uses": "无",
+      "risk_level": "red",
+      "key_clauses": [
+        "Help improve Claude. Allow the use of your chats and coding sessions to train and improve Anthropic AI models.（模型改进隐私设置项，2025-09-28起消费版默认开启）",
+        "参与训练的数据将保留最长5年；关闭设置或删除账号仅使数据不再用于未来的模型训练。（Anthropic消费者条款与隐私政策更新，2025-09-28生效）"
+      ],
+      "policy_link": "https://privacy.claude.com/en/articles/12109829-how-do-i-change-my-model-improvement-privacy-settings",
+      "last_verified": "2026-08-29",
+      "label": "个人版"
+    },
+    "tob": {
+      "used_for_training": false,
+      "training_note": "企业/商业客户内容默认不用于训练：商业条款明文 'Anthropic may not train models on Customer Content from Services.'（Customer Content 定义 inputs/outputs）。2026-08-30 原文复核：原引文句 'We do not train our models on data submitted by commercial customers' 在商业条款与AUP中均不存在（旧措辞），已替换为现行原句；policy_link 由 AUP 修正为商业条款。原'30天或按合同约定'留存表述在商业条款中无依据，已修正。风险等级 yellow：默认不训练/去标识化/版权归用户三项满足，但商业条款与AUP均未载明留存期限，绿色标准第③项（留存明确且≤30天）无法确认——按方法论需四项全满足方可标绿（2026-08-30 校准，与 DeepSeek/ima 同口径）",
+      "default_state": "默认关闭",
+      "opt_out": "无需退出",
+      "opt_out_method": "默认即不训练",
+      "deidentified": true,
+      "data_retention": "按合同约定（商业条款与AUP均无留存期限条款，2026-08-30 原文复核）",
+      "copyright": "用户所有",
+      "other_uses": "无",
+      "risk_level": "yellow",
+      "key_clauses": [
+        "Anthropic may not train models on Customer Content from Services.（Anthropic 商业条款·Customer Content，2026-08-30 复核；页面 Effective June 17, 2025）"
+      ],
+      "policy_link": "https://www.anthropic.com/legal/commercial-terms",
+      "last_verified": "2026-08-30",
+      "label": "Claude for Work"
+    }
+  },
+  "timeline": [
+    {
+      "date": "2025-09-28",
+      "event": "消费者条款与隐私政策更新：Free/Pro/Max对话默认用于模型训练（退出式），参与训练数据保留最长5年；商业版不受影响"
+    }
+  ],
+  "analysis_summary": "Claude消费版（Free/Pro/Max）自2025年9月28日起采用退出式训练：默认使用对话训练模型，可在Settings-Privacy关闭'Help improve Claude'，参与训练的数据保留最长5年。商业版（Team/Enterprise/API）默认不训练。关闭仅对后续数据生效。",
+  "key_findings": [
+    "2025-09-28起消费版改为退出式：默认训练，需手动关闭",
+    "参与训练的数据最长保留5年",
+    "商业版（Team/Enterprise/API）默认不训练",
+    "隐身聊天（Incognito）不用于训练"
+  ],
+  "recommendations": [
+    "消费版用户建议在Settings-Privacy关闭'Help improve Claude'",
+    "商业用途使用Team/Enterprise/API版本"
+  ],
+  "icon": "🧠",
+  "product_url": "https://claude.ai"
+}

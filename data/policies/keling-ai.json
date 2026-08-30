@@ -1,0 +1,43 @@
+{
+  "id": "keling-ai",
+  "name": "可灵AI",
+  "company": "快手",
+  "region": "中国",
+  "description": "用户数据可能用于模型训练，面部像素信息不用于其他用途或共享给第三方",
+  "policy_url": "https://klingai.com/docs/privacy-policy",
+  "last_verified": "2026-08-30",
+  "versions": {
+    "toc": {
+      "used_for_training": true,
+      "training_note": "隐私政策1.2.2：去标识化前提下将所收集数据及模型生成内容'用于模型优化'（原文未用'训练'字样，全文'训练'0命中——按训练/优化同口径计为是）；撤销授权/注销联系邮箱 support.cn@klingai.com；面部像素信息不用于其他用途或共享给第三方。隐私政策发布/生效2025-12-16",
+      "default_state": "默认开启",
+      "opt_out": "邮件申请",
+      "opt_out_method": "发送邮件至 support.cn@klingai.com 撤销授权（隐私政策1.2.2）或注销账号（7.3）",
+      "deidentified": true,
+      "data_retention": "未明确具体期限（\"目的所必需时间+法定保存期限\"原则；注销/删除后删除或匿名化）",
+      "copyright": "用户所有",
+      "other_uses": "模型优化（原文措辞，未用'训练'字样）",
+      "risk_level": "yellow",
+      "key_clauses": [
+        "模型优化：在经安全加密技术处理、严格去标识化且无法重新识别特定个人的前提下，我们可能会将上述所收集的数据以及模型生成的对应内容用于模型优化，以不断调整优化模型的效果。（隐私政策1.2.2）",
+        "除非另有明确说明并征得您的同意，我们不会将您的面部像素信息用于其他任何用途或共享给第三方。（隐私政策1.2.1）",
+        "一般而言，我们仅在为实现目的所必需的时间及法律法规所规定的保存期限内保留您的个人信息。（隐私政策4.2）"
+      ],
+      "policy_link": "https://klingai.com/docs/privacy-policy",
+      "last_verified": "2026-08-30",
+      "label": "个人版"
+    }
+  },
+  "timeline": [],
+  "analysis_summary": "可灵AI用户数据可能用于模型训练，面部像素信息不用于其他用途。",
+  "key_findings": [
+    "面部像素信息不用于其他用途",
+    "退出需发送邮件"
+  ],
+  "recommendations": [
+    "建议谨慎上传含人脸的内容。"
+  ],
+  "icon": "🎬",
+  "product_url": "https://www.klingai.com",
+  "tob_note": "开发者服务（开放平台 API）已拆分为独立条目 keling-api（2026-08-29）。可灵企业会员'不使用企业数据训练'承诺的产品页声明随条目迁移"
+}
