@@ -1,0 +1,457 @@
+Generative AI in Google Workspace Privacy Hub | Google Workspace Help
+Skip to main content
+Generative AI
+Documentation
+Administrators
+Getting started
+Set up and manage services
+Apps and integrations
+Billing and subscriptions
+Data migration
+Data synchronization
+Device management
+Domain management
+Generative AI
+Reports and monitoring
+Security and data protection
+User management
+Legal and compliance
+Support and troubleshooting
+Users
+Calendar
+Chat
+Cloud Search
+Gmail
+Groups
+Docs, Forms, Sheets, and Slides
+Drive
+Keep
+Marketplace
+Meet
+Meet Hardware
+Sites
+Vault
+Vids
+Developers
+Apps Script
+Marketplace
+Workspace APIs
+Training & business user guides
+Workspace Learning Center
+Google Skills
+Community
+Communities
+Workspace Admin Community
+Workspace Developers Community
+Support
+/
+English
+Deutsch
+Español – América Latina
+Français
+Indonesia
+Italiano
+Nederlands
+Polski
+Português – Brasil
+Svenska
+Türkçe
+Русский
+עברית
+العربيّة
+ภาษาไทย
+中文 – 简体
+中文 – 繁體
+日本語
+한국어
+Sign in
+Administrators
+Generative AI
+Admin console
+Contact us
+Overview
+Guides
+Generative AI
+Overview
+Guides
+Documentation
+More
+Community
+More
+Support
+Get started
+Google Workspace with Gemini
+Getting the most from generative AI in your organization
+OverviewPhase 1: Prepare for AI adoptionPhase 2: Get people to start using AIPhase 3: Measure impact and promote new featuresReview Gemini usage in your organization
+Language support
+Frequently asked questions
+FAQ for BusinessFAQ for Education
+Manage generative AI features
+Gemini in Workspace apps
+About AI usage limitsManage access to Gemini features in Workspace servicesManage Gemini in Workspace conversation history settingsTurn access to Beta features on or offLet users participate in surveys and user experience studies
+Gemini App
+Turn the Gemini App on or offControl Gemini App access to Workspace servicesTurn Gem sharing on or offTurn conversation sharing on or offControl temporary chats and chat deletionGemini App firewall settings
+Gemini Notebook
+Turn Gemini Notebook on or off for users
+Gemini Enterprise
+Add & set up Gemini Enterprise - Business editionTurn Gemini Enterprise on or off for usersAdd & assign Gemini Enterprise - Business edition licenses to usersManage your Gemini Enterprise - Business edition subscriptionControl access to Gemini Enterprise agentsManage Gemini Enterprise agents for Workspace usersSet up Agent Gateway for Workspace MCP ingressCancel your Gemini Enterprise - Business edition subscriptionGet support
+Workspace Intelligence
+Control Workspace Intelligence for generative AI features
+Add-ons & billing
+AI Expanded Access
+AI Pro for Education
+Manage add-on licenses
+Purchase AI add-onsChoose who uses AI add-onsHow Google Workspace with Gemini billing worksCancel a Gemini add-on subscription
+Privacy & compliance
+Generative AI in Google Workspace Privacy Hub
+Explore the AI control center
+Support access to Workspace Integrations
+Administrators
+Getting started
+Set up and manage services
+Apps and integrations
+Billing and subscriptions
+Data migration
+Data synchronization
+Device management
+Domain management
+Generative AI
+Reports and monitoring
+Security and data protection
+User management
+Legal and compliance
+Support and troubleshooting
+Users
+Calendar
+Chat
+Cloud Search
+Gmail
+Groups
+Docs, Forms, Sheets, and Slides
+Drive
+Keep
+Marketplace
+Meet
+Meet Hardware
+Sites
+Vault
+Vids
+Developers
+Apps Script
+Marketplace
+Workspace APIs
+Training & business user guides
+Workspace Learning Center
+Google Skills
+Communities
+Workspace Admin Community
+Workspace Developers Community
+Google Workspace Help
+Administrators
+Generative AI
+Guides
+Send feedback
+Generative AI in Google Workspace Privacy Hub
+Stay organized with collections
+Save and categorize content based on your preferences.
+Last updated: August 14, 2026
+Google Workspace has long shared robust privacy commitments to protect user data and prioritize privacy. Generative AI doesn't change these commitments — it reaffirms their importance. This article is intended to help our business, education, and public sector customers understand how we use their data and keep it secure when using Google Workspace with Gemini.
+What does this Privacy Hub cover?
+This Generative AI for Google Workspace Privacy Hub covers:
+Gemini in Workspace—including apps like Gmail, Docs, Drive, and Meet
+Gemini app—Including
+gemini.google.com, Gemini in mobile
+apps, and Gemini in Chrome
+Gemini Notebook (formerly known as NotebookLM)
+Throughout this Privacy Hub, we'll refer to Gemini in Workspace and the
+Gemini app as Gemini. Any differences between the two will be clearly
+identified. For clarity this Privacy Hub only applies when you are using Gemini
+and Gemini Notebook with a
+qualifying edition
+of Google Workspace; Gemini for Education—a version of the Gemini app built for
+education institutions—or Gemini Notebook with Google Workspace for Education.
+Your privacy is our priority
+We want to be completely clear that generative AI does not change our foundational privacy protections that give you choice and control over your data:
+Your interactions with Gemini stay within your organization. Gemini does not share your content outside your organization without your permission.
+Your existing Google Workspace protections are automatically applied. Gemini brings the same enterprise-grade security as the rest of Google Workspace.
+Your content is not used for any other customers. Your content is not human reviewed or otherwise used for Generative AI model training outside your domain without permission.
+Summary of Gemini Privacy & Security Controls
+Gemini DOES NOT
+Gemini DOES
+Data access
+✖ Access Workspace content that you don't have permission to access
+✅ Access relevant Workspace content based on your prompt and that you have permission to access
+Data use
+✖ Use your prompt, Workspace content, webpage context, or generated responses to train generative AI models without your permission
+✅ Use your prompt, relevant Workspace content, and webpage context to generate a response
+Data protection
+✖ Share your prompt or the generated response with other users or organizations
+✅ Automatically apply your existing data protection controls when you insert the generated response into your email or document
+Gemini data retention
+Product
+Data type
+Retention period
+User controls
+Gemini in Workspace
+Prompts and responses
+90 days to indefinite, as determined by admins
+Users can manually delete conversations unless prohibited by Admins
+Inserted or generated content in Docs, Gmail, etc.
+Follows the Cloud Data Processing Addendum, Section 6. Data Deletion
+Admins can manage retention for Workspace data using Vault. Learn more about supported services and data types
+Users can manually delete data within Workspace apps
+Gemini app
+Prompts and responses
+Up to 36 months, as determined by admins
+Admins can control whether conversations with Gemini are saved and for how long before they are automatically deleted
+Gemini Notebook
+Prompts and responses
+Not retained after session ends
+None
+Uploaded files and user-created notebooks
+Follows the Cloud Data Processing Addendum, Section 6. Data Deletion
+Users can manually delete uploaded files and Notebooks or export them using Google Takeout
+Questions
+We understand that you may have questions about Gemini and how your data is
+processed. Below are the most frequently asked questions we receive from our
+customers. If you have a question that isn't answered below, send us feedback
+using the link at the top of this page.
+Data access and privacy
+Does Gemini have access to my customer data?
+Gemini abides by your organization's existing controls and data handling practices. Gemini accesses customer data in order to provide personalized responses, such as summarizing a document in Google Docs or analyzing data in a Google Sheet.
+Data stored by the customer through use of Google Workspace services is considered customer data as defined by the Cloud Data Processing Addendum (CDPA) and, as such, is governed by the data processing terms set out in the CDPA. Google only accesses and processes customer data in accordance with customer instruction as set out in the CDPA.
+How does Gemini process user prompts?
+You can find more information about how we process user prompts in The life of a prompt: Demystifying Gemini. Below is a depiction of the workflow of a user prompt.
+How long are prompts saved?
+Gemini in Workspace provides a continuous, secure experience in the side panel across Docs, Sheets, Slides, Drive, Gmail, and Meet.
+Gemini in Workspace maintains a conversation history in the side panel, allowing you to resume previous discussions and access past prompts across sessions.
+History is contained within the specific app where the interaction occurred. For example, your Gemini history in Google Docs is separate from your history in Gmail.
+Your conversations are visible only to you. Even in shared files or folders, other collaborators cannot see your prompts or Gemini's responses.
+Flexible retention: Admins have control over conversation history for their organization. Administrators can choose to:
+Allow users to delete individual conversations (manual deletion by users is enabled by default)
+Set automated retention periods based on inactive conversations (such as 3 months, 18 months, or 3 years), or retain conversations indefinitely for the organization
+The Gemini app enables admins to manage whether Gemini conversations are saved and for how long before they're automatically deleted. When Gemini conversation history is off, new chats are saved in user accounts for up to 72 hours so Google can provide the service and process any user feedback. This activity doesn't appear in Gemini Apps Activity. When conversation history is on, new chats are saved in user accounts until they are auto-deleted according to the auto delete control. Admins can choose to automatically delete conversations after 3, 18, or 36 months. The default is 18 months.
+How will Gemini handle and protect my sensitive data and information?
+When Google Workspace business, education, and public sector customers use Gemini features, they get the same robust data protection and security standards that come with all Google Workspace services:
+Your interactions with Gemini stay within your organization. Gemini does not share your data outside your organization without your permission.
+Gemini brings the same enterprise-grade security as the rest of Google Workspace, automatically applying your organization's existing controls and data handling practices.
+Your content is not used for any other customers. None of your content is used for generative AI model training outside of your domain without permission.
+You can learn more here:
+How we're protecting your Google Workspace data in the era of generative AI
+Boosting productivity and creativity with Duet AI in Google Workspace while keeping your organization's data private
+How is Gemini able to personalize answers while keeping my organization's data private?
+Learn more about how Workspace Intelligence provides contextual AI in a secure, governed, and compliant manner.
+How does Google ensure confidential information is not leaked across different practices in my organization?
+The strict data access control model for Gemini does not allow for inputs or session content to leak across user boundaries. The model is structured to only present data from a session to that individual user. Thus, information is not only kept private within an organization, it is also kept private between users within an organization subject to the built-in Workspace access control for shared files. Client-side encryption (CSE) can restrict Gemini's access to sensitive data, because no Google system or Google employee have the technical means to access CSE content, so it can be leveraged to accomplish the same goal.
+How is confidential information entered in prompts prevented from resurfacing outside my organization and to my competitors?
+The prompts that a user enters when interacting with features available in Gemini are not used beyond the context of the user trust boundary. Prompt content is not used for training generative AI models outside of your domain without your permission.
+How can I prevent sensitive data entered into prompts from being leaked outside my organization? Do Workspace Data Loss Prevention (DLP) capabilities apply to interactions with Gemini?
+The content entered in Gemini prompts stays within your organization. Additionally, for supported Workspace editions, existing DLP control will continue to apply to generated output from Gemini that is inserted into Workspace services covered by DLP (for example emails, shared Drive files, and Docs). Ultimately no content is shared unless a user in your organization explicitly does so.
+How can I restrict Gemini from accessing sensitive data such as HR or financial documents in Google Drive?
+Gemini only retrieves relevant content in Workspace that the user has access to in order to contextualize the prompt and ground responses. If the user doesn't have access to a document or email, Gemini will not retrieve that content. Content restrictions, such as Information Rights Management (disable download, copy, or print) and Client-side encryption, can also help restrict Gemini's access to sensitive data.
+You can leverage built-in AI classification or DLP capabilities in Workspace to identify sensitive data, automatically apply classification labels, and enforce Information Rights Management (IRM) controls based on the classification labels to restrict Gemini from accessing sensitive data for the users under the IRM restriction. For example, if a user isn't allowed to download, print, or copy files based on the IRM policy, Gemini will not retrieve those files or their content on the user's behalf. In addition, generated output inserted into emails in Gmail or documents in Drive are automatically evaluated against in-scope DLP policies set by domain administrators.
+Model training and data usage
+Does Google use my data (including prompts) to train generative AI models?
+No. User prompts are considered customer data under the Cloud Data Processing Addendum. Workspace does not use customer data for training models without customer's prior permission or instruction. This commitment is outlined in the 'Training Restriction' section of the Google Workspace Service Specific Terms.
+At Google, we take our contractual commitments to customers very seriously. Customers can count on Google to handle customer data in line with the agreement, including our commitments (1) to process customer data according to customer instructions under the agreement, and (2) not to use customer data to train or fine-tune any of Google's generative artificial intelligence models supporting the Google Workspace Generative AI Services without our customer's prior permission or instruction.
+But they aren't just words. To ensure we continually meet these high standards, independent auditors validate our practices against international standards and best practices. We've attained some of the most comprehensive set of safety, privacy and security certifications and attestations for Gemini from internationally recognized regulatory and compliance bodies, such as SOC 1/2/3, ISO 9001, ISO/IEC 27001, 27701, 27017, 27018, and 42001 - the world's first international standard for Artificial Intelligence Management Systems (AIMS). Gemini has FedRAMP High authorization and can also help you meet HIPAA compliance.
+Where does the data used to train Google's foundational language models come from?
+Google's foundational language models are trained primarily on publicly available, crawlable data from the internet. We give publishers control over how their sites are used with Google-Extended, which web publishers can use to manage whether their sites help improve Gemini Apps and Vertex AI generative APIs.
+Features and functionality
+Is Personal Intelligence available for Google Workspace Business, Enterprise, or Education accounts?
+No. Personal Intelligence is a beta feature which enables eligible personal Google accounts to connect the Gemini app and Search services to Google apps, like Workspace and Photos, to provide more personalized suggestions. We'll notify you if the feature becomes available for your organization.
+What models does Gemini use?
+Gemini uses a collection of models from Google's rich repository. With these models, Gemini can help you write, visualize, organize, and connect more meaningfully. Read more about it on the Keyword Blog.
+What controls do users have over Gemini?
+As mentioned above generative AI does not change our foundational privacy protections for giving users choice and control over their data.
+To that end we launched updated smart feature settings that govern the degree of personalization a user wants, specifically how a user's Workspace data is used to personalize other Google products. Turning on these features gives users a richer experience, allowing them to do everything from using Gemini in Workspace to allowing the Gemini app to access Workspace data via the Workspace extension. You can learn more about these user controls at Turn Google Workspace smart features on or off.
+Admins also have access to these settings in the Admin Console and have the ability to set the default settings for your users. You can learn more about these admin controls at Turn Google Workspace smart features on or off.
+As an admin, can I turn Gemini on and off for users?
+Yes. Access to the Gemini app as a core service is turned on by default. Admins manage access to the Gemini app and can choose to disable the service. Learn how to turn the Gemini app on or off for users.
+Additionally, for supported Workspace editions, admins can enable or disable Gemini features and the side panel in the following Workspace services:
+Gmail
+Drive
+Docs
+Meet
+Chat
+Learn how to manage access to Gemini features in Workspace services
+How does Google use in-product feedback from Gemini users?
+Providing in-product feedback is entirely voluntary. If users choose to submit feedback while using Gemini features, they can provide the following data:
+The user's rating for Gemini suggestions (thumbs up / thumbs down)
+The issue found by the user, selected from a set of pre-defined options such as "offensive / unsafe" or "not factually correct" (Gemini in Workspace only)
+Any additional feedback the user may want to provide via the open text box (Gemini in Workspace only)
+The user's prompt, contextual sources (such as documents or email messages), and the generated output; only if the checkboxes to share the prompt and output remain selected by the user (Gemini in Workspace only)
+Feedback is used to improve generative AI products and services in accordance with the Google Cloud Privacy Notice, but it is not used to train any of the generative AI models that support Google Workspace Generative AI Services. The feedback may be used in the following ways:
+Aggregate analysis: To track overall user satisfaction and identify trends to inform future improvements and prioritization
+Fix bugs: To identify and resolve issues quickly
+Fight policy violations: To improve Gemini safety features that are designed to help prevent the generation of harmful or offensive content
+Feedback data may be retained for up to 18 months.
+What is Workspace Intelligence?
+Workspace Intelligence is the secure, underlying engine that powers context-aware generative AI features across Google Workspace. It finds and retrieves content across your active Workspace apps (Gmail, Drive, Calendar, and Chat) to give Gemini the deep context needed to provide highly relevant, personalized assistance.
+When Workspace Intelligence accesses your organization's information to generate responses, it adheres to strict enterprise privacy standards:
+No Model Training: Your content is not reviewed by humans or otherwise used for Gemini model training outside your domain without permission.
+Built-in Security: The AI follows your existing Google Workspace permissions. If you don't have permission to see a file, the AI can't see it or use it either. The system only retrieves, ranks, and generates context from files, emails, and data that the user already has explicit permission to access.
+Administrators maintain full control over Workspace Intelligence. You can enable or disable specific Workspace services (Gmail, Drive, Calendar, or Chat) from being actively searched by Gemini.
+When a source is turned off: Gemini will no longer actively search that specific app for background context (which may limit certain features like Gmail AI Overviews or calendar scheduling).
+Active context remains available: Even if a source like Drive is disabled globally, users can still securely ask Gemini about a specific file they explicitly link in their prompt, or use Gemini to analyze a document they currently have open.
+Learn more about how Workspace Intelligence provides contextual AI in a secure, governed, and compliant manner.
+Security and compliance
+What privacy, security, data governance, and compliance controls are available for Gemini for Workspace?
+We want our customers to feel confident that their data is private and secure when using Gemini. We've built robust safeguards into Gemini by default. We also provide a number of data access and security controls to give you control over your data. Learn more in our privacy, security, and compliance white paper.
+Are audit logs available for Gemini?
+Google Workspace provides admins with a robust set of audit logs to track user activity and interactions with Gemini in the Gemini app and Workspace apps (Chat, Classroom, Docs, Drive, Gmail, Keep, Meet, Sheets, Slides, and Vids). Learn more about Workspace audit logs at Access Gemini Audit logs using the Reporting API, the security and audit investigation tools.
+How does Gemini protect users from threats, like malicious content and prompt injections?
+When users prompt Gemini to perform an action in Gemini in Workspace or the Gemini app, Gemini checks for threats before performing the action. If Gemini identifies malicious content or detects suspicious activity, it notifies the user and excludes the content, or blocks the action. Learn more about how we are protecting gen AI users from threats and mitigating prompt injection attacks with a layered defense strategy.
+What is the scope of agreements that govern the use of generative AI?
+Refer to our Cloud Data Processing Addendum, Workspace Services Summary, Service Specific Terms, and Generative AI Prohibited Use Policy.
+Does using Gemini impact any existing compliance certifications (e.g. ISO, SOC, etc.)?
+Google has a long-standing commitment to global privacy compliance, and generative AI services are no different.
+Gemini has attained SOC 1/2/3, ISO 9001, ISO/IEC 27001, 27701, 27017, 27018, and 42001 certifications. Gemini has FedRAMP High authorization. Additionally, Gemini supports compliance with COPPA and FERPA.
+With these certifications, Gemini has one of the most comprehensive set of safety, privacy and security certifications internationally recognized by regulatory and compliance bodies.
+The achievement of ISO/IEC 42001, the world's first international standard for Artificial Intelligence Management Systems (AIMS), certifies that Gemini has been developed, deployed, and maintained responsibly with appropriate ethical considerations, data governance, and transparency. No other generative AI offering for productivity and collaboration has met this level of recognition, showing that Gemini is the first in the industry ready to support businesses and public sector organizations while benefiting all users.
+Does using Gemini comply with HIPAA?
+Gemini can support HIPAA workloads. The HIPAA Included Functionality and the Google Workspace and Cloud Identity HIPAA implementation guide have been updated to reflect the inclusion of Gemini.
+Does Gemini meet FedRAMP?
+Gemini in Workspace apps and the Gemini app have FedRAMP High authorization. Learn more on the Google Cloud Blog.
+Does Gemini Notebook support ISO, SOC, HIPAA, or FedRAMP compliance?
+No. At this stage Gemini Notebook does not support ISO, SOC, or FedRAMP compliance and is not covered by the Google Business Associate Agreement (BAA) for HIPAA compliance. We plan to work toward these compliance certifications and will share more updates soon.
+Does Gemini in Chrome support ISO, SOC, HIPAA, or FedRAMP compliance?
+No. At this stage Gemini in Chrome does not support ISO, SOC, or FedRAMP compliance and is not covered by the Google Business Associate Agreement (BAA) for HIPAA compliance. We plan to work toward these compliance certifications and will share more updates in 2025. See Turn the Gemini app on or off for information about disabling Gemini in Chrome.
+How does Google Workspace plan to comply with the EU AI Act?
+We believe that AI is too important not to regulate. Google is committed to compliance with all applicable laws. Google is signing the European Union's General Purpose AI Code of Practice. Learn more on our Keyword blog post.
+In the months ahead, as detailed requirements are developed, we will continue to thoroughly analyze and integrate them into our existing policies and practices. Our focus is on ensuring our products and services align with the Act's requirements while continuing to deliver the innovative solutions our customers expect. Learn more about Google Cloud's commitment to EU AI Act support.
+How does Gemini comply with the EU's General Data Protection Regulation (GDPR)?
+Gemini follows the same privacy and security principles across all of the Workspace applications. You can find the details in our privacy and security support pages.
+My organization is in the public sector and is required to conduct a DPIA of Gemini. How do I do that?
+In addition to this Privacy Hub, we announced and published a DPIA support guide to provide our customers, especially those in the public and education sectors, with Gemini specific content for their required assessments. Refer to our DPIA Resource Center for guidance around the DPIA process itself.
+Does using Gemini in Workspace involve "direct internet access"?
+No. When users interact with Gemini in Workspace, their queries remain within the Google internal environment. The service does not establish a direct connection between the user's local network and the public internet. Instead, all processing occurs within Google's secure infrastructure, maintaining the same enterprise-grade protections as other Google Workspace core services.
+How does Gemini retrieve real-time information (e.g., weather, exchange rates) if it doesn't use the public internet access?
+Gemini uses an internal “Search grounding" mechanism to provide up-to-date information. Rather than crawling the live web directly from your organization's environment, Gemini performs lookups against Google's internal web index. This allows the model to access relevant, real-time data while ensuring that your prompts and data remain protected within the Google Workspace security boundary.
+Gemini app
+How do Google Workspace apps in the Gemini app work?
+Gemini allows you to connect to the Google Workspace app to improve your productivity and streamline your workflows. When you turn on the Google Workspace app in Gemini, you can ask Gemini to:
+Find information from Gmail or summarize documents from Drive
+Add and show your tasks from Google Tasks
+Create and show your notes and lists in Google Keep
+Create, find, and edit your events in Google Calendar
+Your use of Gemini with the Workspace app is governed by your organization's Workspace agreement, including the Cloud Data Processing Addendum. Your chats and uploaded files in Gemini app won't be reviewed by human reviewers or otherwise used to train generative AI models without your permission.
+Important: Using third party apps with Gemini is governed by different terms and is not subject to this article.
+Can I control access to the Workspace app in Gemini?
+Yes. Admins have the ability to control whether users in your organization can access the Workspace app in Gemini. You can find more details at Turn Google apps in Gemini on or off.
+Users have the ability to enable and disable the Workspace app in Gemini settings. You can find more details at Use apps connected to Gemini with a work or school Google Account. Also, as mentioned above, users have control over their smart feature settings, including allowing the Gemini app to access Workspace data via the Workspace app. You can learn more about these user controls at Turn on Google Workspace smart features in Gmail.
+What is Gemini App with enterprise-grade data protections?
+The Gemini app is now a core Workspace service for most Google Workplace editions subject to your organization's Workspace agreement, including the Cloud Data Processing Addendum. When Google Workspace business, education, and public sector customers use the Gemini app, they get the same robust data protection and security standards that come with all Google Workspace services. Your chats and uploaded files won't be reviewed by human reviewers or otherwise used to train generative AI models outside of your domain without your permission.
+Are there age restrictions for Gemini for Education?
+If you turn on Gemini with added data protection, Google Workspace for Education users of any age can access the Gemini app. Certain features of the Gemini app are restricted by default for Google Workspace for Education users designated as under 18.
+How is my organization's data processed by Gemini in Chrome?
+Gemini in Chrome can use the context of browser tabs selected by your users to help provide relevant responses. When sharing is turned on, the tab the user is viewing is shared by default. The user can also select additional tabs to share. When you enable Gemini in Chrome, Gemini collects and processes the URLs and page content of the selected browser tabs in chat or live mode. This data is not human reviewed or otherwise used for Generative AI model training outside your domain without permission.
+Users can stop sharing their current tab or any selected tabs at any time by clicking the X icon next to the tab name.
+When Google Search is used as a grounding source in the Gemini App, are prompts stored or logged in Google Search servers?
+No. When Google Search is used for grounding, any data shared is encrypted and processed ephemerally; these interaction logs are flagged and redacted from any Search logs. This is to ensure that any Search grounding for Workspace customers is conducted under our Cloud Data Processing Addendum, ensuring your prompts remain private and are never used to train our Generative AI models.
+Gemini Notebook
+Gemini Notebook is now Google Workspace core services. What does this mean?
+As a core Workspace service, Gemini Notebook is subject to your organization's Workspace agreement, including the Cloud Data Processing Addendum and gets the same robust data protection and security standards that come with all Google Workspace services. In addition, your uploads, queries and the model's responses in Gemini Notebook will not be reviewed by human reviewers, and will not otherwise be used to train generative AI models.
+Where is Gemini Notebook data processed and stored?
+When users upload sources from Drive, Gemini Notebook creates a new copy of each file. This new file is stored with the user's Gemini Notebook data, not in their Drive. Your organization's file sharing and data region settings do not apply to data in Gemini Notebook.
+Can I turn Gemini Notebook ON or OFF for my organization?
+Yes, admins can turn Gemini Notebook on or off. This setting also allows Admins to turn Gemini Notebook ON for their entire organization or only for a subset of users in a specific organization unit or group.
+Do Workspace Data Loss Prevention (DLP) capabilities apply to interactions with Gemini Notebook?
+Gemini Notebook is currently not integrated with Workspace DLP. However you can use Information Rights Management (disable download, copy, or print) to prevent Drive files from being uploaded into Gemini Notebook.
+Is Gemini Notebook covered by Context Aware Access (CAA)?
+Yes, admins can use CAA with Gemini Notebook to help protect resources from unauthorized access by restricting access to only those users who are in the appropriate context (such as user's device posture, network traits).
+Can I export Gemini Notebook data via Google Takeout or Data Export?
+Yes, Admins can export Gemini Notebook data using the Data Export tool. Gemini Notebook also supports end-user Takeout. Users can initiate a Takeout request to export their data at takeout.google.com.
+Updates
+The table below lists updates to this page:
+Date
+Update
+July 1, 2026
+Updated question about how Google uses in-product feedback for new feedback and data donation flows
+May 26, 2026
+Added question:
+When Google Search is used as a grounding source in the Gemini App, are prompts stored or logged in Google Search servers?
+April 22, 2026
+Added questions:
+What is Workspace Intelligence?
+Does using Gemini in Workspace involve "direct internet access"?
+How does Gemini retrieve real-time information (e.g., weather, exchange rates) if it doesn't use the public internet access"?
+March 13, 2026
+Updated questions about Gemini in Workspace data retention and user controls
+January 14, 2026
+Added question about Personal Intelligence
+November 4, 2025
+Updated question about how Google uses in-product feedback from Gemini users
+September 15, 2025
+Gemini for Education updates
+August 29, 2025
+Added question:
+Does Gemini in Chrome support ISO, SOC, HIPAA, or FedRAMP compliance?
+Updates to the following questions:
+How is my organization's data processed by Gemini in Chrome?
+My organization is in the public sector and is required to conduct a DPIA of Gemini. How do I do that?
+August 7, 2025
+Updates to questions about audit log availability and EU AI Act compliance under Security and compliance
+June 27, 2025
+Added Gemini data retention table
+Added question:
+What privacy, security, data governance, and compliance controls are available for Gemini for Workspace?
+Updates to the following questions:
+Where is my organization's data processed and stored for Gemini?
+How long are prompts saved?
+How does Gemini protect users from threats, like malicious content and prompt injections?
+May 20, 2025
+Updates throughout for Chrome in Gemini feature
+May 2, 2025
+Added question about protecting users from threats under Security and compliance
+March 20, 2025
+Added Gemini Notebook questions
+Updated FedRAMP High authorization for Gemini in Workspace and Gemini app
+January 14, 2025
+Added Gemini app questions
+December 17, 2024
+Generative AI in Google Workspace Privacy Hub published
+Send feedback
+Except as otherwise noted, the content of this page is licensed under the Creative Commons Attribution 4.0 License, and code samples are licensed under the Apache 2.0 License. For details, see the Google Developers Site Policies. Java is a registered trademark of Oracle and/or its affiliates.
+Last updated 2026-08-26 UTC.
+Try Google Workspace
+Boost your productivity with AI at no cost
+Admin Community
+Get answers from industry peers and experts
+Customer Care
+Learn about support options and services
+Documentation & training
+Help Centers
+Developer guides
+Learning Center
+Google Skills
+Tools
+Admin console
+Apps Script Dashboard
+Google Cloud console
+Support
+Admin Community
+Developers Community
+Customer Care
+Terms
+Privacy
+Manage cookies
+English
+Deutsch
+Español – América Latina
+Français
+Indonesia
+Italiano
+Nederlands
+Polski
+Português – Brasil
+Svenska
+Türkçe
+Русский
+עברית
+العربيّة
+ภาษาไทย
+中文 – 简体
+中文 – 繁體
+日本語
+한국어

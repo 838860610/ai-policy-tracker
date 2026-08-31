@@ -1,0 +1,1124 @@
+{
+  "meta": {
+    "last_run": "2026-08-31T06:43:45.077672",
+    "hash_scheme": "text-v1",
+    "total_products": 50,
+    "total_targets": 65,
+    "changed": 0,
+    "failed": 2,
+    "skipped": 0
+  },
+  "products": {
+    "tencent-yuanbao": {
+      "status": "ok",
+      "url": "https://rule.tencent.com/rule/202403110001",
+      "message": "内容未变化",
+      "last_checked": "2026-08-31T06:40:45.761886",
+      "targets": {
+        "main": {
+          "url": "https://rule.tencent.com/rule/202403110001",
+          "hash_scheme": "text-v1",
+          "last_checked": "2026-08-31T06:40:45.761305",
+          "last_changed_date": null,
+          "current_hash": "e5e7812526f8c9422a8039042899d725358debba337843726bc4361b1650a8bc",
+          "status": "ok",
+          "message": "首次检查，已记录基线 hash",
+          "content_etag": "\"689c633f-66b\"",
+          "content_last_modified": "Wed, 13 Aug 2025 10:04:47 GMT"
+        }
+      }
+    },
+    "ima": {
+      "status": "ok",
+      "url": "https://privacy.qq.com/document/preview/aca5ed13893d47cfa31697704c2dd366",
+      "message": "内容未变化",
+      "last_checked": "2026-08-31T06:40:48.385756",
+      "targets": {
+        "main": {
+          "url": "https://privacy.qq.com/document/preview/aca5ed13893d47cfa31697704c2dd366",
+          "hash_scheme": "text-v1",
+          "last_checked": "2026-08-31T06:40:48.385086",
+          "last_changed_date": null,
+          "current_hash": "df935f158a6d35464e5168487dc506ee5a907a4086a876192fb59726edcffde3",
+          "status": "ok",
+          "message": "首次检查，已记录基线 hash",
+          "content_etag": "\"689dc4dd-c28\"",
+          "content_last_modified": "Thu, 14 Aug 2025 11:13:33 GMT"
+        }
+      }
+    },
+    "yuanqi": {
+      "status": "ok",
+      "url": "https://rule.tencent.com/rule/202405160001",
+      "message": "内容未变化",
+      "last_checked": "2026-08-31T06:40:51.273428",
+      "targets": {
+        "main": {
+          "url": "https://rule.tencent.com/rule/202405160001",
+          "hash_scheme": "text-v1",
+          "last_checked": "2026-08-31T06:40:51.272764",
+          "last_changed_date": null,
+          "current_hash": "e5e7812526f8c9422a8039042899d725358debba337843726bc4361b1650a8bc",
+          "status": "ok",
+          "message": "首次检查，已记录基线 hash",
+          "content_etag": "\"689c633f-66b\"",
+          "content_last_modified": "Wed, 13 Aug 2025 10:04:47 GMT"
+        }
+      }
+    },
+    "workbuddy": {
+      "status": "ok",
+      "url": "https://rule.tencent.com/rule/202603180001",
+      "message": "内容未变化",
+      "last_checked": "2026-08-31T06:40:56.144191",
+      "targets": {
+        "main": {
+          "url": "https://rule.tencent.com/rule/202603180001",
+          "hash_scheme": "text-v1",
+          "last_checked": "2026-08-31T06:40:54.035103",
+          "last_changed_date": null,
+          "current_hash": "e5e7812526f8c9422a8039042899d725358debba337843726bc4361b1650a8bc",
+          "status": "ok",
+          "message": "首次检查，已记录基线 hash",
+          "content_etag": "\"689c633f-66b\"",
+          "content_last_modified": "Wed, 13 Aug 2025 10:04:47 GMT"
+        },
+        "toc": {
+          "url": "https://privacy.qq.com/document/preview/771d9a58551449e9a7e7445ebfe04966",
+          "hash_scheme": "text-v1",
+          "last_checked": "2026-08-31T06:40:56.143527",
+          "last_changed_date": null,
+          "current_hash": "df935f158a6d35464e5168487dc506ee5a907a4086a876192fb59726edcffde3",
+          "status": "ok",
+          "message": "首次检查，已记录基线 hash",
+          "content_etag": "\"689dc4dd-c28\"",
+          "content_last_modified": "Thu, 14 Aug 2025 11:13:33 GMT"
+        }
+      }
+    },
+    "codebuddy": {
+      "status": "ok",
+      "url": "https://privacy.qq.com/document/preview/284d799a07164d09bfc7cedd0ec3e089",
+      "message": "内容未变化",
+      "last_checked": "2026-08-31T06:40:58.173418",
+      "targets": {
+        "main": {
+          "url": "https://privacy.qq.com/document/preview/284d799a07164d09bfc7cedd0ec3e089",
+          "hash_scheme": "text-v1",
+          "last_checked": "2026-08-31T06:40:58.172748",
+          "last_changed_date": null,
+          "current_hash": "df935f158a6d35464e5168487dc506ee5a907a4086a876192fb59726edcffde3",
+          "status": "ok",
+          "message": "首次检查，已记录基线 hash",
+          "content_etag": "\"689dc4dd-c28\"",
+          "content_last_modified": "Thu, 14 Aug 2025 11:13:33 GMT"
+        }
+      }
+    },
+    "doubao": {
+      "status": "ok",
+      "url": "https://www.doubao.com/legal/terms",
+      "message": "内容未变化",
+      "last_checked": "2026-08-31T06:41:02.719702",
+      "targets": {
+        "main": {
+          "url": "https://www.doubao.com/legal/terms",
+          "hash_scheme": "text-v1",
+          "last_checked": "2026-08-31T06:41:00.524449",
+          "last_changed_date": null,
+          "current_hash": "b5aa469a26bd1df1d0f6c003b03a13357c238bd932ecc0320ca267be89436a35",
+          "status": "ok",
+          "message": "首次检查，已记录基线 hash",
+          "content_etag": "W/\"4085661d1f98f331386ba482c74cee28\"",
+          "content_last_modified": "Mon, 24 Aug 2026 08:22:58 GMT"
+        },
+        "tob": {
+          "url": "https://www.doubao.com/legal/privacy",
+          "hash_scheme": "text-v1",
+          "last_checked": "2026-08-31T06:41:02.718790",
+          "last_changed_date": null,
+          "current_hash": "5e867ade9580060166ceba3e9809150a3d44d9f51d8055e3ec44eb0bd7dbcb24",
+          "status": "ok",
+          "message": "首次检查，已记录基线 hash",
+          "content_etag": "W/\"0de20ef9c676a3c8964bdf7743106b3d\"",
+          "content_last_modified": "Mon, 31 Aug 2026 03:09:28 GMT"
+        }
+      }
+    },
+    "doubao-api": {
+      "status": "ok",
+      "url": "https://docs.volcengine.com/docs/82379/1142195",
+      "message": "内容未变化",
+      "last_checked": "2026-08-31T06:41:07.665562",
+      "targets": {
+        "main": {
+          "url": "https://docs.volcengine.com/docs/82379/1142195",
+          "hash_scheme": "text-v1",
+          "last_checked": "2026-08-31T06:41:07.664880",
+          "last_changed_date": null,
+          "current_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "status": "ok",
+          "message": "首次检查，已记录基线 hash",
+          "content_etag": null,
+          "content_last_modified": null
+        }
+      }
+    },
+    "trae": {
+      "status": "failed",
+      "url": "https://www.trae.cn/privacy-policy",
+      "message": "部分目标检查失败（主监控页），其余未变化",
+      "last_checked": "2026-08-31T06:41:12.858245",
+      "targets": {
+        "main": {
+          "url": "https://www.trae.cn/privacy-policy",
+          "hash_scheme": "text-v1",
+          "last_checked": "2026-08-31T06:41:10.223511",
+          "last_changed_date": null,
+          "current_hash": null,
+          "status": "failed",
+          "message": "检查失败：HTTP 错误 - 403 Client Error: Forbidden for url: https://www.trae.cn/privacy-policy"
+        },
+        "tob": {
+          "url": "https://docs.trae.cn/enterprise_privacy-policy-for-trae-enterprise",
+          "hash_scheme": "text-v1",
+          "last_checked": "2026-08-31T06:41:12.857388",
+          "last_changed_date": null,
+          "current_hash": "bbbf8d7929895dc9f65e7bd8312bbf83e4712c9a41b62be9c0389e47efda684a",
+          "status": "ok",
+          "message": "首次检查，已记录基线 hash",
+          "content_etag": null,
+          "content_last_modified": null
+        }
+      }
+    },
+    "jimeng": {
+      "status": "ok",
+      "url": "https://lf9-cdn-tos.draftstatic.com/obj/ies-hotsoon-draft/vco/17620dba-f821-4a18-85f9-b8b11f73304a.html",
+      "message": "内容未变化",
+      "last_checked": "2026-08-31T06:41:17.672413",
+      "targets": {
+        "main": {
+          "url": "https://lf9-cdn-tos.draftstatic.com/obj/ies-hotsoon-draft/vco/17620dba-f821-4a18-85f9-b8b11f73304a.html",
+          "hash_scheme": "text-v1",
+          "last_checked": "2026-08-31T06:41:15.290709",
+          "last_changed_date": null,
+          "current_hash": "d27d0e50cb24b8e93ef6253e95e7ef9f5e6097f75ae8ad925e0d48d25895fba3",
+          "status": "ok",
+          "message": "首次检查，已记录基线 hash",
+          "content_etag": "W/\"06314fa5260c125c117feacd7bbcba8e\"",
+          "content_last_modified": "Tue, 26 Aug 2025 07:25:02 GMT"
+        },
+        "tob": {
+          "url": "https://lf3-cdn-tos.draftstatic.com/obj/ies-hotsoon-draft/dreamina/b966ce40-d931-4397-8def-38fe5d03c729.html",
+          "hash_scheme": "text-v1",
+          "last_checked": "2026-08-31T06:41:17.671572",
+          "last_changed_date": null,
+          "current_hash": "5adeef2feccabdff1daffed9f1a0e0ba395225389c72ce0bcb0c6ce096c82416",
+          "status": "ok",
+          "message": "首次检查，已记录基线 hash",
+          "content_etag": "W/\"276292f8e1738c61fd0381e9e3a8a9f9\"",
+          "content_last_modified": "Mon, 03 Aug 2026 07:42:26 GMT"
+        }
+      }
+    },
+    "coze": {
+      "status": "ok",
+      "url": "https://docs.coze.cn/guides_terms-of-service",
+      "message": "内容未变化",
+      "last_checked": "2026-08-31T06:41:20.321596",
+      "targets": {
+        "main": {
+          "url": "https://docs.coze.cn/guides_terms-of-service",
+          "hash_scheme": "text-v1",
+          "last_checked": "2026-08-31T06:41:20.320755",
+          "last_changed_date": null,
+          "current_hash": "4df703740f44ecde75cce7ebbbe042a46e83362016da3672e3317ebcea4f89a8",
+          "status": "ok",
+          "message": "首次检查，已记录基线 hash",
+          "content_etag": null,
+          "content_last_modified": null
+        }
+      }
+    },
+    "tongyi-qianwen": {
+      "status": "ok",
+      "url": "https://terms.alicdn.com/legal-agreement/terms/c_end_product_protocol/20231011201348415/20231011201348415.html",
+      "message": "内容未变化",
+      "last_checked": "2026-08-31T06:41:22.660415",
+      "targets": {
+        "main": {
+          "url": "https://terms.alicdn.com/legal-agreement/terms/c_end_product_protocol/20231011201348415/20231011201348415.html",
+          "hash_scheme": "text-v1",
+          "last_checked": "2026-08-31T06:41:22.659558",
+          "last_changed_date": null,
+          "current_hash": "fd48cccf93460773e3e5fe58b9e517987ebd52284a2ee1b1597b7e093876fb18",
+          "status": "ok",
+          "message": "首次检查，已记录基线 hash",
+          "content_etag": null,
+          "content_last_modified": "Thu, 30 Jul 2026 01:55:01 GMT"
+        }
+      }
+    },
+    "qoder-cn": {
+      "status": "ok",
+      "url": "https://terms.alicdn.com/legal-agreement/terms/privacy_policy_full/20231023213159724/20231023213159724.html",
+      "message": "内容未变化",
+      "last_checked": "2026-08-31T06:41:27.014795",
+      "targets": {
+        "main": {
+          "url": "https://terms.alicdn.com/legal-agreement/terms/privacy_policy_full/20231023213159724/20231023213159724.html",
+          "hash_scheme": "text-v1",
+          "last_checked": "2026-08-31T06:41:24.824054",
+          "last_changed_date": null,
+          "current_hash": "c6770b6cc653f9c9938472d6ade9881e361649633e6cc581c517e3ed21c1fb90",
+          "status": "ok",
+          "message": "首次检查，已记录基线 hash",
+          "content_etag": null,
+          "content_last_modified": "Wed, 03 Jun 2026 02:56:01 GMT"
+        },
+        "tob": {
+          "url": "https://terms.alicdn.com/legal-agreement/terms/c_platform_service_agreement/20231023213402278/20231023213402278.html",
+          "hash_scheme": "text-v1",
+          "last_checked": "2026-08-31T06:41:27.014009",
+          "last_changed_date": null,
+          "current_hash": "8c3cdf305471f2577f5f99595a881970ca34b318f70c9a46e5176ce0a705c11a",
+          "status": "ok",
+          "message": "首次检查，已记录基线 hash",
+          "content_etag": null,
+          "content_last_modified": "Tue, 02 Jun 2026 01:58:02 GMT"
+        }
+      }
+    },
+    "qwenwork": {
+      "status": "ok",
+      "url": "https://www.aliyun.com/product/qwenwork",
+      "message": "内容未变化",
+      "last_checked": "2026-08-31T06:41:31.547855",
+      "targets": {
+        "main": {
+          "url": "https://www.aliyun.com/product/qwenwork",
+          "hash_scheme": "text-v1",
+          "last_checked": "2026-08-31T06:41:31.546376",
+          "last_changed_date": null,
+          "current_hash": "d2bd8c2570650e16134ea3db9b916ac330ebeec1acbb2cb6164ccbfc8326a5c9",
+          "status": "ok",
+          "message": "首次检查，已记录基线 hash",
+          "content_etag": null,
+          "content_last_modified": null
+        }
+      }
+    },
+    "bailian": {
+      "status": "ok",
+      "url": "https://terms.alicdn.com/legal-agreement/terms/common_platform_service/20230728213935489/20230728213935489.html",
+      "message": "内容未变化",
+      "last_checked": "2026-08-31T06:41:33.682960",
+      "targets": {
+        "main": {
+          "url": "https://terms.alicdn.com/legal-agreement/terms/common_platform_service/20230728213935489/20230728213935489.html",
+          "hash_scheme": "text-v1",
+          "last_checked": "2026-08-31T06:41:33.682112",
+          "last_changed_date": null,
+          "current_hash": "5c4460be0487c39504f7489d2b786dfe80b20ff6251c4a36e29db61e6bcb8058",
+          "status": "ok",
+          "message": "首次检查，已记录基线 hash",
+          "content_etag": null,
+          "content_last_modified": "Fri, 17 Jul 2026 06:48:51 GMT"
+        }
+      }
+    },
+    "deepseek": {
+      "status": "ok",
+      "url": "https://cdn.deepseek.com/policies/zh-CN/deepseek-privacy-policy.html",
+      "message": "内容未变化",
+      "last_checked": "2026-08-31T06:41:38.657563",
+      "targets": {
+        "main": {
+          "url": "https://cdn.deepseek.com/policies/zh-CN/deepseek-privacy-policy.html",
+          "hash_scheme": "text-v1",
+          "last_checked": "2026-08-31T06:41:36.474652",
+          "last_changed_date": null,
+          "current_hash": "0b29764005b069e98317891b47a7b986ab34bae84415bf4ccb665aa484f0ff98",
+          "status": "ok",
+          "message": "首次检查，已记录基线 hash",
+          "content_etag": "W/\"36d02cdc543b43d177bce4946c109392\"",
+          "content_last_modified": "Wed, 15 Jul 2026 07:30:02 GMT"
+        },
+        "tob": {
+          "url": "https://cdn.deepseek.com/policies/zh-CN/deepseek-terms-of-use.html",
+          "hash_scheme": "text-v1",
+          "last_checked": "2026-08-31T06:41:38.656884",
+          "last_changed_date": null,
+          "current_hash": "4bc59cd38c53a05db8626d962cf5f1ab29eca3a4d58ef92324ab50f346ae5cbe",
+          "status": "ok",
+          "message": "首次检查，已记录基线 hash",
+          "content_etag": "W/\"8c11ed86ab9a36d914b9ab4ffc769dc0\"",
+          "content_last_modified": "Wed, 15 Jul 2026 07:30:02 GMT"
+        }
+      }
+    },
+    "chatgpt": {
+      "status": "ok",
+      "url": "https://openai.com/policies/terms-of-use",
+      "message": "内容未变化",
+      "last_checked": "2026-08-31T06:41:42.251436",
+      "targets": {
+        "main": {
+          "url": "https://openai.com/policies/terms-of-use",
+          "hash_scheme": "text-v1",
+          "last_checked": "2026-08-31T06:41:40.362035",
+          "last_changed_date": null,
+          "current_hash": "809a3ebc9aff18f7e2410f9233e80147da8f977f75ee3e75fedaf31717416761",
+          "status": "ok",
+          "message": "首次检查，已记录基线 hash",
+          "content_etag": null,
+          "content_last_modified": null
+        },
+        "tob": {
+          "url": "https://openai.com/policies/business-terms/",
+          "hash_scheme": "text-v1",
+          "last_checked": "2026-08-31T06:41:42.250581",
+          "last_changed_date": null,
+          "current_hash": "4505b9b68bb0c79dcde7932b3e8b21e6eb27c9f9cd063ef68979de1cc42379f5",
+          "status": "ok",
+          "message": "首次检查，已记录基线 hash",
+          "content_etag": null,
+          "content_last_modified": null
+        }
+      }
+    },
+    "claude": {
+      "status": "ok",
+      "url": "https://www.anthropic.com/legal/consumer-terms",
+      "message": "内容未变化",
+      "last_checked": "2026-08-31T06:41:47.967612",
+      "targets": {
+        "main": {
+          "url": "https://www.anthropic.com/legal/consumer-terms",
+          "hash_scheme": "text-v1",
+          "last_checked": "2026-08-31T06:41:44.259004",
+          "last_changed_date": null,
+          "current_hash": "49e6f1308e1b4a80f89a1dea8a99635f1aa85232e0885f7655bba548730491d8",
+          "status": "ok",
+          "message": "首次检查，已记录基线 hash",
+          "content_etag": null,
+          "content_last_modified": null
+        },
+        "toc": {
+          "url": "https://privacy.claude.com/en/articles/12109829-how-do-i-change-my-model-improvement-privacy-settings",
+          "hash_scheme": "text-v1",
+          "last_checked": "2026-08-31T06:41:46.277334",
+          "last_changed_date": null,
+          "current_hash": "87cf8c2becb3ead9ed5f6592759f8cb972bbaa2d9f5e7e82214bf423ec0b0b32",
+          "status": "ok",
+          "message": "首次检查，已记录基线 hash",
+          "content_etag": null,
+          "content_last_modified": null
+        },
+        "tob": {
+          "url": "https://www.anthropic.com/legal/commercial-terms",
+          "hash_scheme": "text-v1",
+          "last_checked": "2026-08-31T06:41:47.966776",
+          "last_changed_date": null,
+          "current_hash": "b0cb654435d78afed9ac3ad49363489129579a837da9169ddf43e7b3738c323d",
+          "status": "ok",
+          "message": "首次检查，已记录基线 hash",
+          "content_etag": null,
+          "content_last_modified": null
+        }
+      }
+    },
+    "gemini": {
+      "status": "ok",
+      "url": "https://policies.google.com/terms",
+      "message": "内容未变化",
+      "last_checked": "2026-08-31T06:41:51.846311",
+      "targets": {
+        "main": {
+          "url": "https://policies.google.com/terms",
+          "hash_scheme": "text-v1",
+          "last_checked": "2026-08-31T06:41:50.013036",
+          "last_changed_date": null,
+          "current_hash": "8453d8495d5e66622932dd00f6eb802c4b530509d48b9ad5a7720eb2c6cfb13c",
+          "status": "ok",
+          "message": "首次检查，已记录基线 hash",
+          "content_etag": null,
+          "content_last_modified": null
+        },
+        "tob": {
+          "url": "https://knowledge.workspace.google.com/admin/generative-ai/generative-ai-in-google-workspace-privacy-hub",
+          "hash_scheme": "text-v1",
+          "last_checked": "2026-08-31T06:41:51.845453",
+          "last_changed_date": null,
+          "current_hash": "8eac92381adcf2440f97980652bb3065330ab75aa607fb6d1683d132caa17be8",
+          "status": "ok",
+          "message": "首次检查，已记录基线 hash",
+          "content_etag": null,
+          "content_last_modified": "Wed, 26 Aug 2026 23:31:34 GMT"
+        }
+      }
+    },
+    "wenxin-yiyan": {
+      "status": "ok",
+      "url": "https://yiyanapp.baidu.com/app/protectionrule/android",
+      "message": "内容未变化",
+      "last_checked": "2026-08-31T06:41:56.505044",
+      "targets": {
+        "main": {
+          "url": "https://yiyanapp.baidu.com/app/protectionrule/android",
+          "hash_scheme": "text-v1",
+          "last_checked": "2026-08-31T06:41:56.504268",
+          "last_changed_date": null,
+          "current_hash": "9ced279216aaca370df451adb249a1fb2476adddb09b991c25caf6d5119de877",
+          "status": "ok",
+          "message": "首次检查，已记录基线 hash",
+          "content_etag": "W/\"eb90fbcbf3973d461e5551503ca6371d\"",
+          "content_last_modified": "Wed, 12 Aug 2026 08:05:10 GMT"
+        }
+      }
+    },
+    "qianfan": {
+      "status": "ok",
+      "url": "https://cloud.baidu.com/doc/qianfan/s/Cmh4stmpy",
+      "message": "内容未变化",
+      "last_checked": "2026-08-31T06:42:01.943492",
+      "targets": {
+        "main": {
+          "url": "https://cloud.baidu.com/doc/qianfan/s/Cmh4stmpy",
+          "hash_scheme": "text-v1",
+          "last_checked": "2026-08-31T06:42:01.942500",
+          "last_changed_date": null,
+          "current_hash": "966ba2452456ef4fb58ea6308c07acf6e93df3d1ba3faf0ad09349088f2c14e4",
+          "status": "ok",
+          "message": "首次检查，已记录基线 hash",
+          "content_etag": null,
+          "content_last_modified": null
+        }
+      }
+    },
+    "comate": {
+      "status": "ok",
+      "url": "https://comate.baidu.com/zh/privacyPolicy",
+      "message": "内容未变化",
+      "last_checked": "2026-08-31T06:42:04.929280",
+      "targets": {
+        "main": {
+          "url": "https://comate.baidu.com/zh/privacyPolicy",
+          "hash_scheme": "text-v1",
+          "last_checked": "2026-08-31T06:42:04.928532",
+          "last_changed_date": null,
+          "current_hash": "5ad2a3f8636ea1bc3a41e4d088d72f5f968ece5bb2df376a900e23680ecf4cf2",
+          "status": "ok",
+          "message": "首次检查，已记录基线 hash",
+          "content_etag": "W/\"6012f98902b0326f52fca82832315d9b\"",
+          "content_last_modified": "Fri, 28 Aug 2026 08:18:11 GMT"
+        }
+      }
+    },
+    "zhipu-qingyan": {
+      "status": "ok",
+      "url": "https://chatglm.cn/legal/privacyPolicySingle",
+      "message": "内容未变化",
+      "last_checked": "2026-08-31T06:42:08.055579",
+      "targets": {
+        "main": {
+          "url": "https://chatglm.cn/legal/privacyPolicySingle",
+          "hash_scheme": "text-v1",
+          "last_checked": "2026-08-31T06:42:08.054841",
+          "last_changed_date": null,
+          "current_hash": "5696711e329f44137a026ab807ed950cb930b3d7b5951a327f0c5b66f6ce522e",
+          "status": "ok",
+          "message": "首次检查，已记录基线 hash",
+          "content_etag": "W/\"6a72db40-ec1\"",
+          "content_last_modified": "Wed, 05 Aug 2026 06:42:08 GMT"
+        }
+      }
+    },
+    "autoglm": {
+      "status": "ok",
+      "url": "https://autoglm.zhipuai.cn/agreement",
+      "message": "内容未变化",
+      "last_checked": "2026-08-31T06:42:10.713868",
+      "targets": {
+        "main": {
+          "url": "https://autoglm.zhipuai.cn/agreement",
+          "hash_scheme": "text-v1",
+          "last_checked": "2026-08-31T06:42:10.713194",
+          "last_changed_date": null,
+          "current_hash": "2833d2b372d4461dd34ce4c2a5e045ba2270ad8741f504f3ce4c61af1f20415b",
+          "status": "ok",
+          "message": "首次检查，已记录基线 hash",
+          "content_etag": "W/\"6a902597-5e59\"",
+          "content_last_modified": "Thu, 27 Aug 2026 11:55:03 GMT"
+        }
+      }
+    },
+    "glm-coding-plan": {
+      "status": "ok",
+      "url": "https://docs.bigmodel.cn/cn/terms/subscription-agreement",
+      "message": "内容未变化",
+      "last_checked": "2026-08-31T06:42:16.136376",
+      "targets": {
+        "main": {
+          "url": "https://docs.bigmodel.cn/cn/terms/subscription-agreement",
+          "hash_scheme": "text-v1",
+          "last_checked": "2026-08-31T06:42:13.466491",
+          "last_changed_date": null,
+          "current_hash": "57417d1343081d8569ddf159861d49fc4e7a7217c78f7c01c56f2b515a279b6f",
+          "status": "ok",
+          "message": "首次检查，已记录基线 hash",
+          "content_etag": null,
+          "content_last_modified": null
+        },
+        "tob": {
+          "url": "https://docs.bigmodel.cn/cn/terms/subscription-agreement-team",
+          "hash_scheme": "text-v1",
+          "last_checked": "2026-08-31T06:42:16.135622",
+          "last_changed_date": null,
+          "current_hash": "c9bf1357c3c3855ef7532536a37decfb29ae61cb8b6ac10c9bf18386d66e3603",
+          "status": "ok",
+          "message": "首次检查，已记录基线 hash",
+          "content_etag": null,
+          "content_last_modified": null
+        }
+      }
+    },
+    "bigmodel": {
+      "status": "ok",
+      "url": "https://docs.bigmodel.cn/cn/terms/user-agreement",
+      "message": "内容未变化",
+      "last_checked": "2026-08-31T06:42:18.844961",
+      "targets": {
+        "main": {
+          "url": "https://docs.bigmodel.cn/cn/terms/user-agreement",
+          "hash_scheme": "text-v1",
+          "last_checked": "2026-08-31T06:42:18.844300",
+          "last_changed_date": null,
+          "current_hash": "d638aafeb5d3385f7a1c2f139c4ba9e68f664bc96a66a7e75a6a9083340e2c29",
+          "status": "ok",
+          "message": "首次检查，已记录基线 hash",
+          "content_etag": null,
+          "content_last_modified": null
+        }
+      }
+    },
+    "autoclaw": {
+      "status": "ok",
+      "url": "https://autoglm.aminer.cn/web/md2html/index.html?md=autoclaw_agreement&favicon=autoglm",
+      "message": "内容未变化",
+      "last_checked": "2026-08-31T06:42:21.625732",
+      "targets": {
+        "main": {
+          "url": "https://autoglm.aminer.cn/web/md2html/index.html?md=autoclaw_agreement&favicon=autoglm",
+          "hash_scheme": "text-v1",
+          "last_checked": "2026-08-31T06:42:21.625061",
+          "last_changed_date": null,
+          "current_hash": "cf3a8d8c422e8a44493782713a0fb931335d29f69c9f048360339cc4d156fac6",
+          "status": "ok",
+          "message": "首次检查，已记录基线 hash",
+          "content_etag": null,
+          "content_last_modified": "Thu, 08 Jan 2026 08:35:35 GMT"
+        }
+      }
+    },
+    "aminer": {
+      "status": "ok",
+      "url": "https://docs.aminer.cn/terms/user-agreement/",
+      "message": "内容未变化",
+      "last_checked": "2026-08-31T06:42:26.686344",
+      "targets": {
+        "main": {
+          "url": "https://docs.aminer.cn/terms/user-agreement/",
+          "hash_scheme": "text-v1",
+          "last_checked": "2026-08-31T06:42:24.271083",
+          "last_changed_date": null,
+          "current_hash": "05a8156d86c8d552bde6ff939a332d5ac0a9cb3f1043b98234d43d9035952da2",
+          "status": "ok",
+          "message": "首次检查，已记录基线 hash",
+          "content_etag": "W/\"6a8587d0-edcf\"",
+          "content_last_modified": "Wed, 19 Aug 2026 10:39:12 GMT"
+        },
+        "toc": {
+          "url": "https://docs.aminer.cn/terms/privacy-policy/",
+          "hash_scheme": "text-v1",
+          "last_checked": "2026-08-31T06:42:26.685546",
+          "last_changed_date": null,
+          "current_hash": "ca1b99dc42f8add18f4a384310fcec58ee808e82de0cdc3017899113dbc3ca88",
+          "status": "ok",
+          "message": "首次检查，已记录基线 hash",
+          "content_etag": "W/\"6a8587d0-e0cf\"",
+          "content_last_modified": "Wed, 19 Aug 2026 10:39:12 GMT"
+        }
+      }
+    },
+    "zai": {
+      "status": "ok",
+      "url": "https://chat.z.ai/legal-agreement/terms-of-service",
+      "message": "内容未变化",
+      "last_checked": "2026-08-31T06:42:29.394400",
+      "targets": {
+        "main": {
+          "url": "https://chat.z.ai/legal-agreement/terms-of-service",
+          "hash_scheme": "text-v1",
+          "last_checked": "2026-08-31T06:42:29.393555",
+          "last_changed_date": null,
+          "current_hash": "040e621e36239006eb87869476a195a7c8dccab54da5a5a2ab62e625e0f00808",
+          "status": "ok",
+          "message": "首次检查，已记录基线 hash",
+          "content_etag": null,
+          "content_last_modified": "Tue, 14 Apr 2026 08:01:29 GMT"
+        }
+      }
+    },
+    "zcode": {
+      "status": "ok",
+      "url": "https://zcode.z.ai/cn/terms",
+      "message": "内容未变化",
+      "last_checked": "2026-08-31T06:42:31.768945",
+      "targets": {
+        "main": {
+          "url": "https://zcode.z.ai/cn/terms",
+          "hash_scheme": "text-v1",
+          "last_checked": "2026-08-31T06:42:31.768228",
+          "last_changed_date": null,
+          "current_hash": "45fac16bf7cc86aa12bb22af8ca2d5536644d4dfb289ea0fec791a7b34b4b5d1",
+          "status": "ok",
+          "message": "首次检查，已记录基线 hash",
+          "content_etag": null,
+          "content_last_modified": null
+        }
+      }
+    },
+    "zread": {
+      "status": "failed",
+      "url": "https://zread.ai/",
+      "message": "部分目标检查失败（主监控页），其余未变化",
+      "last_checked": "2026-08-31T06:42:33.594876",
+      "targets": {
+        "main": {
+          "url": "https://zread.ai/",
+          "hash_scheme": "text-v1",
+          "last_checked": "2026-08-31T06:42:33.594335",
+          "last_changed_date": null,
+          "current_hash": null,
+          "status": "failed",
+          "message": "检查失败：HTTP 错误 - 403 Client Error: Forbidden for url: https://zread.ai/"
+        }
+      }
+    },
+    "kimi": {
+      "status": "ok",
+      "url": "https://platform.kimi.com/docs/agreement/userservice",
+      "message": "内容未变化",
+      "last_checked": "2026-08-31T06:42:39.989709",
+      "targets": {
+        "main": {
+          "url": "https://platform.kimi.com/docs/agreement/userservice",
+          "hash_scheme": "text-v1",
+          "last_checked": "2026-08-31T06:42:36.873780",
+          "last_changed_date": null,
+          "current_hash": "1da6d793f4a54f3e591ca4380f326ed46529c58aad47446a5dbf0ae34e1d88f9",
+          "status": "ok",
+          "message": "首次检查，已记录基线 hash",
+          "content_etag": "W/\"vwcsnuh9ge5zvi\"",
+          "content_last_modified": null
+        },
+        "tob": {
+          "url": "https://platform.kimi.com/docs/agreement/modeluse",
+          "hash_scheme": "text-v1",
+          "last_checked": "2026-08-31T06:42:39.989042",
+          "last_changed_date": null,
+          "current_hash": "57342e2753d2b8b9d7860988a0e0feae31af4bb3cbd7bfffabf3701000f787da",
+          "status": "ok",
+          "message": "首次检查，已记录基线 hash",
+          "content_etag": "W/\"kvmu7mkrvo5xhq\"",
+          "content_last_modified": null
+        }
+      }
+    },
+    "xunfei-xinghuo": {
+      "status": "ok",
+      "url": "https://www.xfyun.cn/doc/spark/ExperienceRules.html",
+      "message": "内容未变化",
+      "last_checked": "2026-08-31T06:42:43.066836",
+      "targets": {
+        "main": {
+          "url": "https://www.xfyun.cn/doc/spark/ExperienceRules.html",
+          "hash_scheme": "text-v1",
+          "last_checked": "2026-08-31T06:42:43.066146",
+          "last_changed_date": null,
+          "current_hash": "4817c22bc23d21eaf3f7280531b7eb521217b79f87eb020bcdc38f5d1654874f",
+          "status": "ok",
+          "message": "首次检查，已记录基线 hash",
+          "content_etag": "W/\"6a8bfe10-16da4\"",
+          "content_last_modified": "Mon, 24 Aug 2026 08:17:20 GMT"
+        }
+      }
+    },
+    "zhizuo": {
+      "status": "ok",
+      "url": "https://peiyin.xunfei.cn/info/betaTestRules.html",
+      "message": "内容未变化",
+      "last_checked": "2026-08-31T06:42:45.287883",
+      "targets": {
+        "main": {
+          "url": "https://peiyin.xunfei.cn/info/betaTestRules.html",
+          "hash_scheme": "text-v1",
+          "last_checked": "2026-08-31T06:42:45.287183",
+          "last_changed_date": null,
+          "current_hash": "546620d757ef59f2ba8fa64811498904c14ec70fce5a18cf73957a4755079119",
+          "status": "ok",
+          "message": "首次检查，已记录基线 hash",
+          "content_etag": "W/\"64edac69-45e44\"",
+          "content_last_modified": "Tue, 29 Aug 2023 08:29:29 GMT"
+        }
+      }
+    },
+    "xunfei-api": {
+      "status": "ok",
+      "url": "https://www.xfyun.cn/doc/policy/SparkInterfacePolicy.html",
+      "message": "内容未变化",
+      "last_checked": "2026-08-31T06:42:47.995132",
+      "targets": {
+        "main": {
+          "url": "https://www.xfyun.cn/doc/policy/SparkInterfacePolicy.html",
+          "hash_scheme": "text-v1",
+          "last_checked": "2026-08-31T06:42:47.994271",
+          "last_changed_date": null,
+          "current_hash": "ee8a97e75c369c76a9f0d9d16ee5a80b845529a380c152a855b2ab39fc90002e",
+          "status": "ok",
+          "message": "首次检查，已记录基线 hash",
+          "content_etag": "W/\"6a8bfe10-1713c\"",
+          "content_last_modified": "Mon, 24 Aug 2026 08:17:20 GMT"
+        }
+      }
+    },
+    "keling-ai": {
+      "status": "ok",
+      "url": "https://klingai.com/docs/privacy-policy",
+      "message": "内容未变化",
+      "last_checked": "2026-08-31T06:42:51.397431",
+      "targets": {
+        "main": {
+          "url": "https://klingai.com/docs/privacy-policy",
+          "hash_scheme": "text-v1",
+          "last_checked": "2026-08-31T06:42:51.396706",
+          "last_changed_date": null,
+          "current_hash": "178ea828efa577df3f32f7aeba0950952a4e7a59e2837d6f448652c6241ccdbd",
+          "status": "ok",
+          "message": "首次检查，已记录基线 hash",
+          "content_etag": null,
+          "content_last_modified": null
+        }
+      }
+    },
+    "keling-api": {
+      "status": "ok",
+      "url": "https://www.klingai.com/document-api/guides/protocols/paid-service",
+      "message": "内容未变化",
+      "last_checked": "2026-08-31T06:42:53.876957",
+      "targets": {
+        "main": {
+          "url": "https://www.klingai.com/document-api/guides/protocols/paid-service",
+          "hash_scheme": "text-v1",
+          "last_checked": "2026-08-31T06:42:53.876273",
+          "last_changed_date": null,
+          "current_hash": "b299c7348ea43603d8f57b6878027b9520c4d3481ddaa91c3a7082b7da234d11",
+          "status": "ok",
+          "message": "首次检查，已记录基线 hash",
+          "content_etag": "W/\"129ae-15989a75ce0_&kling-web:58\"",
+          "content_last_modified": null
+        }
+      }
+    },
+    "minimax": {
+      "status": "ok",
+      "url": "https://hailuoai.com/doc/zh/privacy-policy.html",
+      "message": "内容未变化",
+      "last_checked": "2026-08-31T06:42:59.301268",
+      "targets": {
+        "main": {
+          "url": "https://hailuoai.com/doc/zh/privacy-policy.html",
+          "hash_scheme": "text-v1",
+          "last_checked": "2026-08-31T06:42:56.523959",
+          "last_changed_date": null,
+          "current_hash": "8fc4c4427ef7f0cb6db96ed58c230e94469d09c98df5b9971d2227b378769867",
+          "status": "ok",
+          "message": "首次检查，已记录基线 hash",
+          "content_etag": "W/\"db10-1a0236bced8\"",
+          "content_last_modified": "Fri, 21 Aug 2026 08:24:23 GMT"
+        },
+        "tob": {
+          "url": "https://platform.minimaxi.com/protocol/user-agreement",
+          "hash_scheme": "text-v1",
+          "last_checked": "2026-08-31T06:42:59.300505",
+          "last_changed_date": null,
+          "current_hash": "ec224f88004544662626360df5373a4b3741dd542e88b45593506300aad1e579",
+          "status": "ok",
+          "message": "首次检查，已记录基线 hash",
+          "content_etag": "\"18bhggfp0fn1d1l\"",
+          "content_last_modified": null
+        }
+      }
+    },
+    "yuewen": {
+      "status": "ok",
+      "url": "https://chat.stepfun.com/legal/terms",
+      "message": "内容未变化",
+      "last_checked": "2026-08-31T06:43:03.461317",
+      "targets": {
+        "main": {
+          "url": "https://chat.stepfun.com/legal/terms",
+          "hash_scheme": "text-v1",
+          "last_checked": "2026-08-31T06:43:03.460557",
+          "last_changed_date": null,
+          "current_hash": "682b82ae6c2bfded6cfa899df19b44e3dc8d58408294e55008b4985883ec3a09",
+          "status": "ok",
+          "message": "首次检查，已记录基线 hash",
+          "content_etag": null,
+          "content_last_modified": null
+        }
+      }
+    },
+    "stepfun-api": {
+      "status": "ok",
+      "url": "https://platform.stepfun.com/docs/zh/agreement/userservice.md",
+      "message": "内容未变化",
+      "last_checked": "2026-08-31T06:43:06.594143",
+      "targets": {
+        "main": {
+          "url": "https://platform.stepfun.com/docs/zh/agreement/userservice.md",
+          "hash_scheme": "text-v1",
+          "last_checked": "2026-08-31T06:43:06.593469",
+          "last_changed_date": null,
+          "current_hash": "e7679c53f9923a78d42f08595d8bfb479beb1a296bffe4b0cc6b0fbaf98d9bd5",
+          "status": "ok",
+          "message": "首次检查，已记录基线 hash",
+          "content_etag": null,
+          "content_last_modified": null
+        }
+      }
+    },
+    "tiangong": {
+      "status": "ok",
+      "url": "https://static.tiangong.cn/fe/skywork-site-assets/html/agreement/web-20250814/privacy.html",
+      "message": "内容未变化",
+      "last_checked": "2026-08-31T06:43:09.415827",
+      "targets": {
+        "main": {
+          "url": "https://static.tiangong.cn/fe/skywork-site-assets/html/agreement/web-20250814/privacy.html",
+          "hash_scheme": "text-v1",
+          "last_checked": "2026-08-31T06:43:09.415019",
+          "last_changed_date": null,
+          "current_hash": "e41c59a590055b6f5a1c88b73b06b2230274455cdae2e04281822750cab88ab2",
+          "status": "ok",
+          "message": "首次检查，已记录基线 hash",
+          "content_etag": null,
+          "content_last_modified": "Fri, 27 Feb 2026 08:47:00 GMT"
+        }
+      }
+    },
+    "mureka": {
+      "status": "ok",
+      "url": "https://www.mureka.cn/static/terms-cn-20250829.pdf",
+      "message": "内容未变化",
+      "last_checked": "2026-08-31T06:43:13.815397",
+      "targets": {
+        "main": {
+          "url": "https://www.mureka.cn/static/terms-cn-20250829.pdf",
+          "hash_scheme": "text-v1",
+          "last_checked": "2026-08-31T06:43:13.814529",
+          "last_changed_date": null,
+          "current_hash": "cc95e25c5dd77c86e2f08330ef5d457bbca19e6812d36559eeee3e0e284a16db",
+          "status": "ok",
+          "message": "首次检查，已记录基线 hash",
+          "content_etag": "\"6a8ec4ff-4241f\"",
+          "content_last_modified": "Wed, 26 Aug 2026 10:50:39 GMT"
+        }
+      }
+    },
+    "skyreels": {
+      "status": "ok",
+      "url": "https://www.skyreels.ai/terms",
+      "message": "内容未变化",
+      "last_checked": "2026-08-31T06:43:16.136674",
+      "targets": {
+        "main": {
+          "url": "https://www.skyreels.ai/terms",
+          "hash_scheme": "text-v1",
+          "last_checked": "2026-08-31T06:43:16.135929",
+          "last_changed_date": null,
+          "current_hash": "04238022fa3bc4de6e173976384e406d3b5b9f18e0995e6e997173021dc388fa",
+          "status": "ok",
+          "message": "首次检查，已记录基线 hash",
+          "content_etag": null,
+          "content_last_modified": "Tue, 30 Jun 2026 06:49:42 GMT"
+        }
+      }
+    },
+    "skyproduction": {
+      "status": "ok",
+      "url": "https://www.skyproduction.cn/terms",
+      "message": "内容未变化",
+      "last_checked": "2026-08-31T06:43:18.969231",
+      "targets": {
+        "main": {
+          "url": "https://www.skyproduction.cn/terms",
+          "hash_scheme": "text-v1",
+          "last_checked": "2026-08-31T06:43:18.968487",
+          "last_changed_date": null,
+          "current_hash": "0f029fa0ddf34dfc00c5b3f8b6e110ff6f0fd8fb68f71157358bd29fc40e0b4a",
+          "status": "ok",
+          "message": "首次检查，已记录基线 hash",
+          "content_etag": "W/\"6a950dc4-dcb\"",
+          "content_last_modified": "Mon, 31 Aug 2026 05:14:44 GMT"
+        }
+      }
+    },
+    "sensenova": {
+      "status": "ok",
+      "url": "https://signin.sensecore.cn/html/zh-CN/UserAgreement.html",
+      "message": "内容未变化",
+      "last_checked": "2026-08-31T06:43:21.756743",
+      "targets": {
+        "main": {
+          "url": "https://signin.sensecore.cn/html/zh-CN/UserAgreement.html",
+          "hash_scheme": "text-v1",
+          "last_checked": "2026-08-31T06:43:21.755873",
+          "last_changed_date": null,
+          "current_hash": "08042287da7d1f70d047b2e6938ddc9475d970aa8ab0bed1c0259beee929fd4b",
+          "status": "ok",
+          "message": "首次检查，已记录基线 hash",
+          "content_etag": "W/\"6a7c1d7e-13a87\"",
+          "content_last_modified": "Wed, 12 Aug 2026 07:15:10 GMT"
+        }
+      }
+    },
+    "baichuan": {
+      "status": "ok",
+      "url": "https://www.baichuan-ai.com/article/user-agreement",
+      "message": "内容未变化",
+      "last_checked": "2026-08-31T06:43:24.555228",
+      "targets": {
+        "main": {
+          "url": "https://www.baichuan-ai.com/article/user-agreement",
+          "hash_scheme": "text-v1",
+          "last_checked": "2026-08-31T06:43:24.554454",
+          "last_changed_date": null,
+          "current_hash": "9c543bfb47e404d84a2645b7348be6688cfa33cc3420319276e532191fff85bf",
+          "status": "ok",
+          "message": "首次检查，已记录基线 hash",
+          "content_etag": "\"179ayhv20ybacb\"",
+          "content_last_modified": null
+        }
+      }
+    },
+    "lingyi": {
+      "status": "ok",
+      "url": "https://www.lingyiwanwu.com/",
+      "message": "内容未变化",
+      "last_checked": "2026-08-31T06:43:27.248006",
+      "targets": {
+        "main": {
+          "url": "https://www.lingyiwanwu.com/",
+          "hash_scheme": "text-v1",
+          "last_checked": "2026-08-31T06:43:27.247278",
+          "last_changed_date": null,
+          "current_hash": "8008f242fb1d99250da1eee7034372dddf841e81199af1a93bfaa5d3efe889ad",
+          "status": "ok",
+          "message": "首次检查，已记录基线 hash",
+          "content_etag": null,
+          "content_last_modified": "Mon, 10 Aug 2026 08:44:08 GMT"
+        }
+      }
+    },
+    "nano-ai": {
+      "status": "ok",
+      "url": "https://www.n.cn/agreement/protocol",
+      "message": "内容未变化",
+      "last_checked": "2026-08-31T06:43:30.133663",
+      "targets": {
+        "main": {
+          "url": "https://www.n.cn/agreement/protocol",
+          "hash_scheme": "text-v1",
+          "last_checked": "2026-08-31T06:43:30.132953",
+          "last_changed_date": null,
+          "current_hash": "9358ba5dfc5f72d84692c5442dc441e2ef27eaac9d823a393a4371d5f37bc08d",
+          "status": "ok",
+          "message": "首次检查，已记录基线 hash",
+          "content_etag": "W/\"6a86c206-19f0\"",
+          "content_last_modified": "Thu, 20 Aug 2026 08:59:50 GMT"
+        }
+      }
+    },
+    "qihoo-zhinao": {
+      "status": "ok",
+      "url": "https://ai.360.com/open/zh/terms",
+      "message": "内容未变化",
+      "last_checked": "2026-08-31T06:43:39.833628",
+      "targets": {
+        "main": {
+          "url": "https://ai.360.com/open/zh/terms",
+          "hash_scheme": "text-v1",
+          "last_checked": "2026-08-31T06:43:35.126912",
+          "last_changed_date": null,
+          "current_hash": "c321963871cad04e1874d171975216fdd1c10f24a3c25bb05565fe26bf300b1b",
+          "status": "ok",
+          "message": "首次检查，已记录基线 hash",
+          "content_etag": null,
+          "content_last_modified": null
+        },
+        "toc": {
+          "url": "https://browser.360.cn/se/ai/agreement/privacy.html",
+          "hash_scheme": "text-v1",
+          "last_checked": "2026-08-31T06:43:39.832762",
+          "last_changed_date": null,
+          "current_hash": "6434e6d536e1475cbf2a1757aaf1dcb368c0ddc6321e421fda00d33f13cb5b74",
+          "status": "ok",
+          "message": "首次检查，已记录基线 hash",
+          "content_etag": "W/\"66543e8e-4b77\"",
+          "content_last_modified": "Mon, 27 May 2024 08:04:30 GMT"
+        }
+      }
+    },
+    "pangu": {
+      "status": "ok",
+      "url": "https://www.huaweicloud.com/declaration/tsa-pglm.html",
+      "message": "内容未变化",
+      "last_checked": "2026-08-31T06:43:41.516655",
+      "targets": {
+        "main": {
+          "url": "https://www.huaweicloud.com/declaration/tsa-pglm.html",
+          "hash_scheme": "text-v1",
+          "last_checked": "2026-08-31T06:43:41.515850",
+          "last_changed_date": null,
+          "current_hash": "49c027e8ba6df5756a380b18eabf0c6921e7e0aaad24ebc816232d9591e53e64",
+          "status": "ok",
+          "message": "首次检查，已记录基线 hash",
+          "content_etag": null,
+          "content_last_modified": null
+        }
+      }
+    },
+    "xiaoyi": {
+      "status": "ok",
+      "url": "https://privacy-drcn.dbankcdn.cn/agreement/scope/huawei/ai-voice/terms/cn_b10_20251225_1/default/terms-zh-cn.htm",
+      "message": "内容未变化",
+      "last_checked": "2026-08-31T06:43:45.077665",
+      "targets": {
+        "main": {
+          "url": "https://privacy-drcn.dbankcdn.cn/agreement/scope/huawei/ai-voice/terms/cn_b10_20251225_1/default/terms-zh-cn.htm",
+          "hash_scheme": "text-v1",
+          "last_checked": "2026-08-31T06:43:45.076747",
+          "last_changed_date": null,
+          "current_hash": "4e4457be3c8c0df3d980209e4ca919cc736d61394d5b45d17afda769a5be752f",
+          "status": "ok",
+          "message": "首次检查，已记录基线 hash",
+          "content_etag": "\"9b3647799f141919d5524f8fd1f4401b\"",
+          "content_last_modified": "Tue, 13 Jan 2026 01:25:45 GMT"
+        }
+      }
+    }
+  }
+}
