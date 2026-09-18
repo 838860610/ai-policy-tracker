@@ -1,16 +1,24 @@
 name: 数据校验
 
-# PR 与主分支推送时自动校验数据结构和 README 汇总表一致性
+# PR 与主分支推送时自动运行回归测试、数据结构校验和 README 汇总表一致性检查，
+# 并在 main 推送后重新生成 data/bundle.json 与社交分享卡片。
 on:
   pull_request:
   push:
     branches: [main]
 
+# 同一分支的多次推送只保留最新一次运行，避免并发任务重复提交
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+# 最小权限：默认只读，写权限仅在 publish job 中单独授予
 permissions:
-  contents: write # 推送到 main 时需提交自动生成的 data/bundle.json
+  contents: read
 
 jobs:
   validate:
+    name: 校验与测试
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -18,9 +26,13 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+          cache: pip
 
       - name: 安装依赖
         run: pip install -r requirements.txt
+
+      - name: 回归测试
+        run: python -m unittest discover -s tests -v
 
       - name: 数据结构校验
         run: python scripts/validate_data.py
@@ -28,14 +40,35 @@ jobs:
       - name: README 汇总表一致性检查
         run: python scripts/gen_readme_table.py --check
 
-      - name: 生成数据 bundle（首页加载加速）
-        run: python scripts/gen_data_bundle.py
+  publish:
+    name: 生成并提交产物
+    needs: validate
+    # 仅 main 分支推送时提交自动生成物；PR（含 fork）无权写入
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
 
-      - name: 提交 bundle（仅 main 推送且有变化时）
-        if: github.event_name == 'push'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: 安装依赖
+        run: |
+          pip install -r requirements.txt
+          pip install --quiet pillow
+
+      - name: 生成数据 bundle 与社交分享卡片
+        run: |
+          python scripts/gen_data_bundle.py
+          python scripts/gen_og_image.py
+
+      - name: 提交 bundle 和 OG 图片（有变化时）
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          # -f：data/bundle.json 在 .gitignore 中（自动生成），普通 add 会报错
-          git add -f data/bundle.json
-          git diff --cached --quiet || (git commit -m "chore: CI 重新生成 data/bundle.json" && git push)
+          git add data/bundle.json assets/og-card.png
+          git diff --cached --quiet || (git commit -m "chore: CI 重新生成 data/bundle.json 和 OG 图片" && git push)

@@ -1,0 +1,17 @@
+version: 2
+updates:
+  # GitHub Actions（checkout / setup-python 等）版本更新
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+    labels:
+      - dependencies
+
+  # requirements.txt（requests / beautifulsoup4）
+  - package-ecosystem: pip
+    directory: "/"
+    schedule:
+      interval: weekly
+    labels:
+      - dependencies

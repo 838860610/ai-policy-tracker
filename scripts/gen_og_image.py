@@ -31,14 +31,29 @@ YELLOW = (250, 173, 20)
 GREEN = (82, 196, 26)
 
 FONT_PATH = "/System/Library/Fonts/Hiragino Sans GB.ttc"
+# 跨平台字体回退：macOS → Linux → Windows
+FONT_FALLBACKS = [
+    "/System/Library/Fonts/Hiragino Sans GB.ttc",      # macOS
+    "/usr/share/fonts/truetype/noto/NotoSansCJK-Regular.ttc",  # Linux (Noto CJK)
+    "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",  # Linux (Noto CJK alt)
+    "/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc",    # Linux (文泉驿)
+    "C:/Windows/Fonts/msyh.ttc",                        # Windows (微软雅黑)
+]
 
 
 def font(size, bold=False):
     # TTC 内含多字重：1=W6（粗），0=W3（常规）；加载失败退化为常规字重 + 描边加粗
-    try:
-        return ImageFont.truetype(FONT_PATH, size, index=1 if bold else 0)
-    except OSError:
-        return ImageFont.truetype(FONT_PATH, size)
+    # 跨平台：依次尝试 FONT_FALLBACKS 中的字体路径
+    for path in FONT_FALLBACKS:
+        try:
+            return ImageFont.truetype(path, size, index=1 if bold else 0)
+        except OSError:
+            try:
+                return ImageFont.truetype(path, size)
+            except OSError:
+                continue
+    # 全部失败时用 Pillow 默认字体
+    return ImageFont.load_default()
 
 
 def load_stats():

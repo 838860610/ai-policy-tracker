@@ -73,6 +73,7 @@ VENDOR_SORT = {
     "腾讯": "tengxun",
     "月之暗面（Moonshot AI）": "yue",
     "智谱AI": "zhipu",
+    "字节跳动": "zijiedong",
     "Anthropic": "anthropic",
     "Google": "google",
     "OpenAI": "openai",

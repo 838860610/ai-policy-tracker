@@ -2,6 +2,10 @@
 
 > 主流 AI 产品是否使用用户数据进行模型训练 — 一个纯前端的 AI 产品隐私政策对比追踪工具。
 
+[![数据校验](https://github.com/838860610/ai-policy-tracker/actions/workflows/ci.yml/badge.svg)](https://github.com/838860610/ai-policy-tracker/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Python 3.9+](https://img.shields.io/badge/python-3.9%2B-blue.svg)](https://www.python.org/downloads/)
+
 [English](README.en.md) | 简体中文
 
 ## 功能特性
@@ -12,6 +16,7 @@
 - **搜索**：支持按产品名称或公司搜索
 - **详情页面**：每个产品提供详细的政策分析、关键条款摘录、时间线
 - **更新监控**：Python 脚本自动检测政策页面变化（正文归一化哈希 + 条件请求，避免动态内容误报），检测结果直接展示在首页
+- **AI 辅助分析**：检测到政策变更后，自动对比新旧快照并调用 LLM 提取关键变化点（训练政策/退出机制/留存期限等），生成结构化报告嵌入 Issue
 - **可访问性**：表格行支持键盘导航（Tab + Enter）
 - **纯前端**：无需后端、无需构建工具，开箱即用
 
@@ -46,6 +51,7 @@ cd ai-policy-tracker
 ai-policy-tracker/
 ├── index.html              # 首页 - 对比表格
 ├── detail.html             # 产品详情页
+├── 404.html                # GitHub Pages 404 页面
 ├── css/
 │   └── style.css           # 样式文件
 ├── js/
@@ -54,19 +60,39 @@ ai-policy-tracker/
 │   └── detail.js           # 详情页逻辑
 ├── data/
 │   ├── products.json       # 产品 ID 索引（定义列表顺序）
+│   ├── bundle.json         # 合并数据包（CI 自动生成，首页加速用）
 │   ├── policies/           # 各产品全部数据（唯一数据源）
 │   │   ├── chatgpt.json
 │   │   ├── claude.json
 │   │   └── ...
-│   └── update_status.json  # 监控状态（脚本自动生成，首页读取展示）
+│   ├── update_status.json  # 监控状态（脚本自动生成，首页读取展示）
+│   ├── snapshots/          # 政策正文快照（监控脚本自动生成）
+│   └── change_reports/     # AI 变更分析报告（analyze_changes.py 生成）
 ├── scripts/
-│   ├── check_updates.py    # 政策更新监控脚本
+│   ├── check_updates.py    # 政策更新监控脚本（第一层：hash 变化检测）
+│   ├── analyze_changes.py  # AI 辅助变更分析（第二层：LLM 对比新旧快照）
 │   ├── validate_data.py    # 数据校验脚本
-│   └── gen_readme_table.py # README 汇总表生成脚本
+│   ├── gen_readme_table.py # README 汇总表生成脚本
+│   ├── gen_data_bundle.py  # 数据合并包生成脚本（首页加速）
+│   ├── gen_og_image.py     # 社交分享卡片生成脚本
+│   └── extract_clauses.py  # 条款提取工具
+├── assets/
+│   └── og-card.png         # Open Graph 分享卡片
+├── docs/                   # 对外发布文档（methodology / update-monitoring）
+│   │                       #   注意：站点与 sitemap 直接引用这些页面，必须入库
+│   └── internal/           # 内部工作底稿（核实报告、优化清单，.gitignore 忽略）
+├── tests/                  # 回归测试（unittest，无第三方依赖）
+├── .github/
+│   ├── workflows/          # CI/CD 工作流
+│   ├── ISSUE_TEMPLATE/     # Issue 模板
+│   └── dependabot.yml      # 依赖自动更新
 ├── requirements.txt
 ├── start.sh                # 一键启动（venv + 依赖 + 本地服务）
 ├── README.md
-├── CONTRIBUTING.md
+├── CONTRIBUTING.md         # 贡献指南
+├── CODE_OF_CONDUCT.md      # 行为准则
+├── SECURITY.md             # 安全政策
+├── CHANGELOG.md            # 变更日志
 └── LICENSE
 ```
 
@@ -169,42 +195,31 @@ python3 -m venv .venv
 ```bash
 .venv/bin/python scripts/validate_data.py    # 校验数据结构完整性（提交前运行）
 .venv/bin/python scripts/gen_readme_table.py # 从数据重新生成 README 汇总表
+python3 -m unittest discover -s tests -v     # 回归测试（无需第三方依赖，装了 pytest 也可用 pytest tests/）
 ```
 
 仓库内置 GitHub Actions 工作流：
 
-- `.github/workflows/monitor.yml`——每周一北京时间 09:00 自动运行监控脚本并提交 `data/update_status.json`（推送到 GitHub 后生效，也可在 Actions 页手动触发）
-- `.github/workflows/ci.yml`——PR 与主分支推送时自动运行数据校验和汇总表一致性检查
+- `.github/workflows/monitor.yml`——每周一北京时间 09:00 自动运行监控脚本，检测到变更时运行 AI 辅助分析并提交状态、快照、分析报告，创建/评论 Issue 告警（推送到 GitHub 后生效，也可在 Actions 页手动触发）
+- `.github/workflows/ci.yml`——PR 与主分支推送时自动运行回归测试、数据校验和汇总表一致性检查；main 推送后重新生成 `data/bundle.json` 和 OG 图片（写权限仅授予该发布 job）
+- `.github/dependabot.yml`——每周检查 GitHub Actions 与 pip 依赖更新
 
 ## 更新日志
 
-### v1.1.0 (2026-08-29)
+完整变更记录见 [CHANGELOG.md](CHANGELOG.md)，以下为最近版本摘要：
 
-- 数据单源化：产品详情数据只保留在 `data/policies/{id}.json`，`products.json` 改为 ID 索引
-- 新增 `scripts/validate_data.py` 数据校验脚本（schema、ID 一致性、占位文字检测）
-- README 汇总表改为从数据自动生成（`scripts/gen_readme_table.py`），修复表格与数据的多处不一致
-- 监控脚本改为正文文本归一化哈希 + ETag/If-Modified-Since 条件请求，大幅减少动态页面误报
-- 监控脚本支持请求间隔（`--delay`）、失败重试、哈希算法版本化（升级时自动重建基线）
-- 首页展示监控状态：检测到政策变更时显示告警横幅并在产品名旁标注 ⚠️
-- 前端重构：抽取 `js/common.js` 共享工具；ToC/ToB 与筛选状态写入 URL 可分享；表格行支持键盘导航
-- 徽章类名语义化（`badge-good`/`badge-bad`）；筛选按钮改用"低/中/高风险"文案
-- 新增 favicon、页面 meta 描述
-- 新增 `start.sh` 一键启动；全部 Python 脚本统一走 `.venv` 虚拟环境
-- 全量数据核实（AI 辅助 + 人工确认）：8 个产品的留存期限/条款摘录按官方政策原文更新，修复 8 条失效政策链接，修正 4 个企业版风险等级
+### v1.3.0 (2026-09-18)
 
-### v1.0.0 (2025-01-15)
-
-- 初始版本发布
-- 包含 12 款主流 AI 产品的政策对比数据
-- 支持个人版 (ToC) 和企业版 (ToB) 切换
-- 支持风险等级筛选和产品搜索
-- 产品详情页包含时间线、关键条款摘录、分析摘要
-- 政策更新监控脚本 (check_updates.py)
-- 方法论和监控说明文档
+- **修复线上死链**：`docs/` 曾被 `.gitignore` 整体忽略，首页方法论与 sitemap 中的 `docs/*.html` 线上 404；现拆分为发布页面（入库）+ `docs/internal/`（忽略）
+- **社区文档**：新增 `CODE_OF_CONDUCT.md`（行为准则）、`SECURITY.md`（安全政策）、`CHANGELOG.md`（变更日志）
+- **回归测试**：新增 `tests/test_scripts.py`（数据完整性、汇总表生成、发布文档链接有效性），CI 已接入
+- **工程**：CI 拆分为只读校验 job 与 main 发布 job（最小权限）、工作流并发控制、dependabot、贡献指南英文快速上手
 
 ## 贡献指南
 
-欢迎贡献政策更新和新产品数据！请阅读 [贡献指南](CONTRIBUTING.md) 了解如何参与。提交 PR 前请运行 `.venv/bin/python scripts/validate_data.py` 和 `.venv/bin/python scripts/gen_readme_table.py --check`。
+欢迎贡献政策更新和新产品数据！请阅读 [贡献指南](CONTRIBUTING.md) 了解如何参与。提交 PR 前请运行 `.venv/bin/python scripts/validate_data.py`、`.venv/bin/python scripts/gen_readme_table.py --check` 与 `python3 -m unittest discover -s tests`。
+
+参与本项目即表示你同意遵守 [行为准则](CODE_OF_CONDUCT.md)；如发现安全相关问题，请按 [安全政策](SECURITY.md) 私密报告。完整版本历史见 [CHANGELOG.md](CHANGELOG.md)。
 
 ## 许可证
 

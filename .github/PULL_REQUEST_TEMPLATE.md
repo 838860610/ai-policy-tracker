@@ -14,5 +14,6 @@
 
 - [ ] `scripts/validate_data.py` 0 错误
 - [ ] `scripts/gen_readme_table.py --check` 通过（改了产品数据时已重新生成表格）
+- [ ] `python3 -m unittest discover -s tests` 全绿（改动了脚本或新增 docs 链接时尤其注意）
 - [ ] 条款摘录为官方原文并注明出处（非评述/占位文字）
 - [ ] `last_verified` 已更新为实际核实日期

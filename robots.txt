@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://838860610.github.io/ai-policy-tracker/sitemap.xml

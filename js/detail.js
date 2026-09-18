@@ -142,12 +142,27 @@
       .join("");
   }
 
-  /** 产品若没有某个版本的数据，隐藏对应标签页，避免点击后看到空内容 */
-  function syncTabs(versions) {
+  /** 产品若没有某个版本的数据，隐藏对应标签页，避免点击后看到空内容。
+   *  若两个版本都没有（占位条目），在内容区展示 toc_note/tob_note 说明文字。 */
+  function syncTabs(versions, data) {
+    var hasToc = !!versions.toc;
+    var hasTob = !!versions.tob;
     [["tabToc", "toc"], ["tabTob", "tob"]].forEach(function (pair) {
       var tab = document.getElementById(pair[0]);
       if (tab) tab.style.display = versions[pair[1]] ? "" : "none";
     });
+    if (!hasToc && !hasTob) {
+      var notes = [];
+      if (data.toc_note) notes.push("个人版：" + data.toc_note);
+      if (data.tob_note) notes.push("企业版：" + data.tob_note);
+      var html = notes.map(function (n) {
+        return '<div class="quote-block"><p>' + PT.escapeHtml(n) + "</p></div>";
+      }).join("");
+      if (html) {
+        document.getElementById("contentToc").innerHTML =
+          '<p style="color:var(--text-secondary);line-height:1.8">该产品暂无完整条款数据，以下为维护说明：</p>' + html;
+      }
+    }
   }
 
   function initTabs() {
@@ -184,7 +199,16 @@
           "<span>地区：" + PT.escapeHtml(data.region) + "</span>";
         document.getElementById("productDesc").textContent = data.description || "";
 
-        syncTabs(data.versions || {});
+        /* 动态更新 OG 标签，使分享详情页链接时社交卡片显示产品名 */
+        var ogUrl = "https://838860610.github.io/ai-policy-tracker/detail.html?id=" + encodeURIComponent(data.id);
+        var ogTitle = data.name + "——AI 用户政策追踪器";
+        var ogDesc = (data.analysis_summary || data.description || "").slice(0, 100);
+        [["og:title", ogTitle], ["og:description", ogDesc], ["og:url", ogUrl]].forEach(function (pair) {
+          var el = document.querySelector('meta[property="' + pair[0] + '"]');
+          if (el) el.setAttribute("content", pair[1]);
+        });
+
+        syncTabs(data.versions || {}, data);
         if (data.versions && data.versions.toc) {
           document.getElementById("tabToc").textContent =
             data.versions.toc.label || "个人版 (ToC)";

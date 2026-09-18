@@ -21,7 +21,7 @@
     "阶跃星辰": "jieyue", "科大讯飞": "kedaxunfei", "快手": "kuaishou",
     "昆仑万维": "kunlun", "零一万物": "lingyi", "MiniMax": "minimax",
     "商汤科技": "shangtang", "DeepSeek（深度求索）": "shendu", "腾讯": "tengxun",
-    "月之暗面（Moonshot AI）": "yue", "智谱AI": "zhipu",
+    "月之暗面（Moonshot AI）": "yue", "智谱AI": "zhipu", "字节跳动": "zijiedong",
     "Anthropic": "anthropic", "Google": "google", "OpenAI": "openai", "360": "360"
   };
   function vendorOf(company) {
@@ -163,6 +163,12 @@
     var changed = {};
     changedProductIds().forEach(function (id) { changed[id] = true; });
 
+    /* 记录当前分组折叠状态，筛选后恢复 */
+    var collapsedVendors = {};
+    tbody.querySelectorAll('tr.group-row[data-open="false"]').forEach(function (r) {
+      collapsedVendors[r.getAttribute("data-vendor")] = true;
+    });
+
     var filtered = allProducts.filter(matchesFilters);
     if (filtered.length === 0) {
       tbody.innerHTML = '<tr><td colspan="5" class="no-data">没有符合条件的产品</td></tr>';
@@ -184,7 +190,8 @@
     var html = "";
     vendors.forEach(function (v) {
       var list = groups[v];
-      html += '<tr class="group-row" data-open="true" data-vendor="' + PT.escapeHtml(v) + '">' +
+      html += '<tr class="group-row" data-open="' + (collapsedVendors[v] ? "false" : "true") +
+        '" data-vendor="' + PT.escapeHtml(v) + '">' +
         '<td colspan="5"><div class="row-pin"><span class="tri">▾</span> ' + PT.escapeHtml(v) +
         '<span class="group-count">' + list.length + ' 款产品</span></div></td></tr>';
       list.forEach(function (p, idx) {
@@ -194,8 +201,9 @@
           ? '<span class="monitor-flag" title="政策监控检测到该产品政策可能已更新，待核实">⚠️</span>'
           : "";
         var lastCls = idx === list.length - 1 ? " last-in-group" : "";
+        var rowHidden = collapsedVendors[v] ? ' hidden' : '';
         html += '<tr class="product-row' + lastCls + '" data-id="' + PT.escapeHtml(p.id) +
-          '" tabindex="0" role="button" aria-expanded="false">' +
+          '" tabindex="0" role="button" aria-expanded="false"' + rowHidden + '>' +
           '<td class="cell-name"><strong>' + PT.escapeHtml(p.name) + "</strong>" + flag + "</td>" +
           "<td>" + trainCell(toc && toc.used_for_training) + "</td>" +
           "<td>" + trainCell(tob && tob.used_for_training) + "</td>" +
@@ -299,11 +307,44 @@
   function initSearch() {
     var box = document.getElementById("searchBox");
     box.value = state.q;
+    var timer = null;
     box.addEventListener("input", function () {
       state.q = this.value.trim();
       writeStateToUrl();
-      render();
+      /* 防抖：快速输入时只在停顿 200ms 后渲染 */
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(render, 200);
     });
+    /* "/" 快捷键聚焦搜索框（GitHub/Linear 习惯） */
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "/" && document.activeElement !== box) {
+        e.preventDefault();
+        box.focus();
+      }
+    });
+  }
+
+  /* ---------- Hero 统计 ---------- */
+
+  function renderHeroStats(meta) {
+    var total = allProducts.length;
+    var trainCount = 0, highCount = 0;
+    allProducts.forEach(function (p) {
+      var toc = (p.versions && p.versions.toc) || null;
+      var tob = (p.versions && p.versions.tob) || null;
+      if ((toc && toc.used_for_training === true) || (tob && tob.used_for_training === true)) trainCount++;
+      if ((toc && toc.risk_level === "red") || (tob && tob.risk_level === "red")) highCount++;
+    });
+    var setNum = function (id, v) {
+      var el = document.getElementById(id);
+      if (el) el.textContent = v;
+    };
+    setNum("statTotal", total);
+    setNum("statTrain", trainCount);
+    setNum("statHigh", highCount);
+    setNum("statUpdated", meta && meta.last_updated ? meta.last_updated.slice(5) : "—");
+    var hs = document.getElementById("heroStats");
+    if (hs) hs.removeAttribute("aria-hidden");
   }
 
   /* ---------- 监控状态 ---------- */
@@ -362,6 +403,7 @@
         if (result.meta && result.meta.last_updated) {
           el.textContent = "数据最后更新日期：" + result.meta.last_updated;
         }
+        renderHeroStats(result.meta);
         renderMonitorStatus();
         render();
         document.getElementById("loading").style.display = "none";

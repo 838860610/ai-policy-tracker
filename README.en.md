@@ -2,6 +2,10 @@
 
 > Do mainstream AI products train their models on your data? A pure front-end tracker comparing the training-data policies of 50 AI products.
 
+[![CI](https://github.com/838860610/ai-policy-tracker/actions/workflows/ci.yml/badge.svg)](https://github.com/838860610/ai-policy-tracker/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Python 3.9+](https://img.shields.io/badge/python-3.9%2B-blue.svg)](https://www.python.org/downloads/)
+
 [English](README.en.md) | [简体中文](README.md)
 
 ## Live Demo
@@ -50,7 +54,9 @@ python3 -m http.server 8080
 
 ## Contributing
 
-Policy updates and new products are very welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) (Chinese). In short: every claim needs an official source URL and a verification date; run the validators before submitting a PR. Found a mistake? [Open an issue](https://github.com/838860610/ai-policy-tracker/issues/new?template=data-correction.yml) with the official policy link.
+Policy updates and new products are very welcome! The full guide ([CONTRIBUTING.md](CONTRIBUTING.md)) is in Chinese, but it contains an **English quick start** section — in short: every claim needs an official source URL and a verification date; run the validators before submitting a PR. Found a mistake? [Open an issue](https://github.com/838860610/ai-policy-tracker/issues/new?template=data-correction.yml) with the official policy link.
+
+Everyone participating in this project is expected to follow the [Code of Conduct](CODE_OF_CONDUCT.md). To report a security issue, please use a private channel as described in [SECURITY.md](SECURITY.md). Release history lives in [CHANGELOG.md](CHANGELOG.md).
 
 ## License
 

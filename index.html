@@ -11,20 +11,79 @@
   <meta property="og:url" content="https://838860610.github.io/ai-policy-tracker/">
   <meta property="og:image" content="https://838860610.github.io/ai-policy-tracker/assets/og-card.png">
   <meta name="twitter:card" content="summary_large_image">
+  <link rel="canonical" href="https://838860610.github.io/ai-policy-tracker/">
   <title>AI 用户政策追踪器</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%9B%A1%EF%B8%8F%3C/text%3E%3C/svg%3E">
-  <link rel="stylesheet" href="css/style.css?v=20260830-4">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css?v=20260916-1">
 </head>
 <body>
-  <div class="header">
-    <h1>AI 用户政策追踪器</h1>
-    <p class="subtitle">主流 AI 产品是否使用用户数据进行模型训练</p>
+  <noscript>
+    <div style="padding:40px;text-align:center;font-size:16px;color:#a1a1aa">
+      本项目需要启用 JavaScript 才能加载和展示数据。请在浏览器设置中启用 JavaScript 后刷新页面。
+    </div>
+  </noscript>
+
+  <!-- 环境光晕：固定在视口角落，营造深空氛围 -->
+  <div class="ambient-glow" aria-hidden="true">
+    <span class="glow glow-a"></span>
+    <span class="glow glow-b"></span>
+    <span class="glow glow-c"></span>
   </div>
 
-  <div class="container">
+  <!-- 顶部导航条：玻璃态、微边框 -->
+  <header class="topbar">
+    <div class="topbar-inner">
+      <a class="brand" href="./">
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 3l7 3v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3z"/>
+            <path d="M9 12l2 2 4-4"/>
+          </svg>
+        </span>
+        <span class="brand-text">
+          <strong>PolicyTracker</strong>
+          <em>AI 用户政策追踪器</em>
+        </span>
+      </a>
+      <nav class="topbar-nav" aria-label="主导航">
+        <a href="docs/methodology.html">方法论</a>
+        <a href="https://github.com/838860610/ai-policy-tracker" target="_blank" rel="noopener">GitHub</a>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Hero：标题 + 副标题 + 关键指标 -->
+  <section class="hero">
+    <div class="hero-inner">
+      <div class="hero-eyebrow">
+        <span class="pulse-dot"></span>
+        <span>实时监控 · 50+ AI 产品 · 隐私政策对比</span>
+      </div>
+      <h1 class="hero-title">
+        你的数据，<br>
+        <span class="hero-title-accent">正在训练谁的模型？</span>
+      </h1>
+      <p class="hero-subtitle">
+        逐一对比主流 AI 产品的隐私政策：是否使用用户数据训练、退出机制、去标识化、留存期限与风险等级。政策变更自动监控。
+      </p>
+      <div class="hero-stats" id="heroStats" aria-hidden="true">
+        <div class="stat"><span class="stat-num" id="statTotal">—</span><span class="stat-label">产品总数</span></div>
+        <div class="stat"><span class="stat-num" id="statTrain">—</span><span class="stat-label">使用数据训练</span></div>
+        <div class="stat"><span class="stat-num" id="statHigh">—</span><span class="stat-label">高风险产品</span></div>
+        <div class="stat"><span class="stat-num" id="statUpdated">—</span><span class="stat-label">数据更新</span></div>
+      </div>
+    </div>
+    <div class="hero-grid" aria-hidden="true"></div>
+  </section>
+
+  <main class="container">
     <div id="monitorStatus" style="display:none"></div>
 
-    <div class="controls">
+    <!-- 控制台：筛选 + 搜索 -->
+    <section class="controls" aria-label="筛选与搜索">
       <div class="controls-left">
         <div class="filter-group" id="regionFilter" role="group" aria-label="按地区筛选">
           <button class="filter-btn active" data-region="all">全部地区</button>
@@ -43,21 +102,53 @@
           <button class="filter-btn" data-risk="red">高</button>
         </div>
       </div>
-      <input type="text" class="search-box" id="searchBox" placeholder="搜索产品、公司或厂商..." aria-label="搜索产品、公司或厂商">
-    </div>
-
-    <div class="risk-legend">
-      <div class="risk-legend-title">风险等级判定标准</div>
-      <div class="risk-legend-items">
-        <div class="risk-legend-item item-green"><strong class="legend-title">🟢 低风险</strong><p>以下四项<strong>全部满足</strong>：默认不用于训练 · 数据去标识化 · 留存期限明确且合理（≤30天）· 用户保留内容版权</p></div>
-        <div class="risk-legend-item item-yellow"><strong class="legend-title">🟡 中风险</strong><p>满足<strong>任一</strong>：训练但提供明确退出机制 · 留存较长但可配置 · 去标识化或使用边界不明确</p></div>
-        <div class="risk-legend-item item-red"><strong class="legend-title">🔴 高风险</strong><p>满足<strong>任一</strong>：训练且无退出机制或退出困难 · 长期留存无明确删除机制 · 未去标识化 · 条款模糊边界不清</p></div>
+      <div class="search-wrap">
+        <svg class="search-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/>
+        </svg>
+        <input type="text" class="search-box" id="searchBox" placeholder="搜索产品、公司或厂商..." aria-label="搜索产品、公司或厂商">
+        <kbd class="search-kbd">/</kbd>
       </div>
-    </div>
+    </section>
 
-    <div class="table-wrapper">
+    <!-- 风险图例 -->
+    <section class="risk-legend" aria-label="风险等级判定标准">
+      <div class="risk-legend-head">
+        <div class="risk-legend-title">风险等级判定标准</div>
+        <a class="risk-legend-link" href="docs/methodology.html">查看完整方法论 →</a>
+      </div>
+      <div class="risk-legend-items">
+        <article class="risk-legend-item item-green">
+          <header class="legend-head">
+            <span class="legend-dot dot-green"></span>
+            <strong class="legend-title">低风险</strong>
+          </header>
+          <p>以下四项<strong>全部满足</strong>：默认不用于训练 · 数据去标识化 · 留存期限明确且合理（≤30天）· 用户保留内容版权</p>
+        </article>
+        <article class="risk-legend-item item-yellow">
+          <header class="legend-head">
+            <span class="legend-dot dot-yellow"></span>
+            <strong class="legend-title">中风险</strong>
+          </header>
+          <p>满足<strong>任一</strong>：训练但提供明确退出机制 · 留存较长但可配置 · 去标识化或使用边界不明确</p>
+        </article>
+        <article class="risk-legend-item item-red">
+          <header class="legend-head">
+            <span class="legend-dot dot-red"></span>
+            <strong class="legend-title">高风险</strong>
+          </header>
+          <p>满足<strong>任一</strong>：训练且无退出机制或退出困难 · 长期留存无明确删除机制 · 未去标识化 · 条款模糊边界不清</p>
+        </article>
+      </div>
+    </section>
+
+    <!-- 对比表格 -->
+    <section class="table-wrapper" aria-label="产品政策对比表">
       <div class="scroll-hint">⇆ 左右滑动查看训练与风险</div>
-      <div class="loading" id="loading">正在加载数据...</div>
+      <div class="loading" id="loading">
+        <span class="loading-spinner"></span>
+        <span>正在加载数据...</span>
+      </div>
       <table id="compareTable" style="display:none">
         <thead>
           <tr>
@@ -70,18 +161,22 @@
         </thead>
         <tbody id="tableBody"></tbody>
       </table>
-    </div>
+    </section>
 
-    <div class="footer">
+    <footer class="footer">
       <p class="update-date" id="updateDate"></p>
       <div class="disclaimer">
-        免责声明：本数据仅供参考，不构成法律建议。各产品政策可能随时变更，请以官方最新政策为准。数据核实日期见各产品详情。
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+          <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+        </svg>
+        <span>免责声明：本数据仅供参考，不构成法律建议。各产品政策可能随时变更，请以官方最新政策为准。数据核实日期见各产品详情。</span>
       </div>
-      <p>AI 用户政策追踪器 | 数据来源：各产品官方隐私政策</p>
-    </div>
-  </div>
+      <p class="footer-meta">AI 用户政策追踪器 · 数据来源：各产品官方隐私政策</p>
+    </footer>
+  </main>
 
-  <script src="js/common.js?v=20260830-4"></script>
-  <script src="js/app.js?v=20260830-4"></script>
+  <script src="js/common.js?v=20260916-1"></script>
+  <script src="js/app.js?v=20260916-1"></script>
 </body>
 </html>

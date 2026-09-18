@@ -8,15 +8,12 @@ __pycache__/
 .venv/
 venv/
 
-# 监控脚本自动生成（部署流水线会重新生成并提交）
-data/update_status.json
+# 政策正文快照（监控脚本生成：体积大、每次运行都可能变动，不入库）
 data/snapshots/
 
-# 首页加速用的数据合并文件（CI 推送到 main 后自动重新生成并提交）
-data/bundle.json
-
-# 本地文档（维护用途，不入库）
-docs/
+# 内部工作底稿（核实报告、优化清单等维护用文档，不对外发布）
+# 注意：docs/ 下的 methodology / update-monitoring 是线上站点引用页面，必须入库，勿整体忽略
+docs/internal/
 
 # 本地日志
 logs/

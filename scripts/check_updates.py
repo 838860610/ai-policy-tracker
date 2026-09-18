@@ -131,13 +131,23 @@ def snapshot_text(text):
 
 
 def save_snapshot(pid, key, raw_text, archived):
-    """写入最新快照；archived=True 时额外写日期存档（首次基线或检测到变更）。"""
+    """写入最新快照；archived=True 时额外写日期存档（首次基线或检测到变更）。
+    变更时先把旧 latest.txt 保存为 prev.txt，供 analyze_changes.py 对比。"""
     target_dir = os.path.join(SNAPSHOTS_DIR, pid, key)
     os.makedirs(target_dir, exist_ok=True)
     body = snapshot_text(raw_text)
     if not body:
         return
-    with open(os.path.join(target_dir, "latest.txt"), "w", encoding="utf-8") as f:
+    latest_path = os.path.join(target_dir, "latest.txt")
+    # 变更时先备份旧快照
+    if archived and os.path.exists(latest_path):
+        prev_path = os.path.join(target_dir, "prev.txt")
+        with open(latest_path, encoding="utf-8") as old_f:
+            old_body = old_f.read()
+        if old_body.strip() and old_body.strip() != body.strip():
+            with open(prev_path, "w", encoding="utf-8") as f:
+                f.write(old_body)
+    with open(latest_path, "w", encoding="utf-8") as f:
         f.write(body + "\n")
     if archived:
         dated = os.path.join(target_dir, datetime.date.today().isoformat() + ".txt")
@@ -164,7 +174,8 @@ def fetch_url(url, etag=None, last_modified=None, timeout=30):
 
 
 def fetch_with_retry(url, etag, last_modified, timeout):
-    """网络类错误（超时/连接失败）按指数退避重试；HTTP 4xx/5xx 不重试直接抛出。"""
+    """网络类错误（超时/连接失败）按指数退避重试；HTTP 4xx/5xx 不重试直接抛出。
+    429 Too Many Requests：等待 Retry-After 或退避后重试。"""
     last_exc = None
     for attempt in range(RETRY_TIMES + 1):
         try:
@@ -175,6 +186,14 @@ def fetch_with_retry(url, etag, last_modified, timeout):
                 wait = RETRY_BACKOFF * (attempt + 1)
                 print(f"         请求失败（{e.__class__.__name__}），{wait}s 后重试…")
                 time.sleep(wait)
+        except requests.exceptions.HTTPError as e:
+            if e.response is not None and e.response.status_code == 429 and attempt < RETRY_TIMES:
+                retry_after = e.response.headers.get("Retry-After")
+                wait = int(retry_after) if retry_after and retry_after.isdigit() else RETRY_BACKOFF * (attempt + 2)
+                print(f"         被限流（429），{wait}s 后重试…")
+                time.sleep(wait)
+                continue
+            raise
     raise last_exc
 
 
@@ -257,12 +276,15 @@ def check_target(pid, name, key, url, prev_target, timeout):
 
     except (requests.exceptions.Timeout, requests.exceptions.ConnectionError) as e:
         print(f"  [失败] {name} ({pid}·{label}): 请求失败（重试后仍超时/连接失败）- {e.__class__.__name__}")
+        print(f"         URL: {url}")
         return base_target_result(url, prev_target, current_hash=prev_hash, status="failed",
                                   message=f"检查失败：请求异常 - {e.__class__.__name__}")
     except requests.exceptions.HTTPError as e:
-        print(f"  [失败] {name} ({pid}·{label}): HTTP 错误 - {e}")
+        status_code = e.response.status_code if e.response is not None else "?"
+        print(f"  [失败] {name} ({pid}·{label}): HTTP {status_code} 错误")
+        print(f"         URL: {url}")
         return base_target_result(url, prev_target, current_hash=prev_hash, status="failed",
-                                  message=f"检查失败：HTTP 错误 - {e}")
+                                  message=f"检查失败：HTTP {status_code} 错误 - {e}")
     except requests.exceptions.RequestException as e:
         print(f"  [失败] {name} ({pid}·{label}): 请求异常 - {e}")
         return base_target_result(url, prev_target, current_hash=prev_hash, status="failed",
@@ -402,6 +424,29 @@ def main():
                 for key, t in (info.get("targets") or {}).items():
                     if t.get("status") == "changed":
                         print(f"  - {pid}（{TARGET_LABELS.get(key, key)}）: {t['url']}")
+
+    if failed_count > 0:
+        print(f"\n❌ 以下 {failed_count} 个产品检查失败（下次运行会自动重试）：")
+        for pid, info in new_status.items():
+            if info["status"] == "failed":
+                for key, t in (info.get("targets") or {}).items():
+                    if t.get("status") == "failed":
+                        msg = t.get("message", "")
+                        # 简化消息：提取关键错误类型
+                        if "SSLError" in msg:
+                            reason = "SSL 证书验证失败（可能是防火墙/代理拦截）"
+                        elif "ConnectTimeout" in msg or "Timeout" in msg:
+                            reason = "连接超时（网站不可达）"
+                        elif "403" in msg:
+                            reason = "403 Forbidden（服务器拒绝访问，可能有反爬）"
+                        elif "405" in msg:
+                            reason = "405 Method Not Allowed（服务器不接受 GET 请求）"
+                        elif "ConnectionError" in msg:
+                            reason = "连接失败"
+                        else:
+                            reason = msg
+                        print(f"  - {pid}（{TARGET_LABELS.get(key, key)}）: {reason}")
+                        print(f"    URL: {t['url']}")
 
     return 0
 
