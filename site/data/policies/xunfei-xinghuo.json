@@ -22,9 +22,12 @@
         "4.3 您知悉并授权，为了提升您使用本服务的用户体验，在经安全加密技术处理、去标识化或匿名化处理的前提下，我们及关联公司可能会将本服务所收集的输入及对应输出，用于本协议下产品及服务的优化。如您拒绝提供前述授权，您可以通过本协议第7.2条的约定向我们反馈您的意见，我们将在充分尊重您的意见基础上采取有效措施以保护您的合法权益。（SparkDesk用户协议4.3，更新2025-08-25；原引文为4.3与7.2的拼接转述，2026-08-30 修正）",
         "如知识产权等权利人认为我们侵犯其合法权益的，可以通过我们的邮箱cbg_open_complaint_ml@iflytek.com 或点击 APP 右上角设置图标-点击'意见反馈'按钮进行举报。（SparkDesk用户协议7.2；原文7.2为知识产权举报条款，其邮箱即拒绝优化授权的反馈渠道）"
       ],
-      "policy_link": "https://www.xfyun.cn/doc/spark/ExperienceRules.html",
+      "policy_link": "https://xinghuo.xfyun.cn/policy/%E8%AE%AF%E9%A3%9E%E6%98%9F%E7%81%ABAPP%E7%94%A8%E6%88%B7%E5%8D%8F%E8%AE%AE",
       "last_verified": "2026-08-30",
-      "label": "个人版"
+      "label": "个人版",
+      "verification_notes": [
+        "引文出自《讯飞星火APP用户协议》4.3 / 7.2（xinghuo.xfyun.cn/policy/，2026-09-19 确认；原候选 www.xfyun.cn/doc/spark/UserAgreement.html 已 404）"
+      ]
     }
   },
   "timeline": [],

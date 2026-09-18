@@ -23,6 +23,7 @@
 - **首页瘦身**：`bundle.json` 按白名单裁剪（只含表格与展开面板所需字段），202 KB → 30 KB；Google Fonts 改为异步加载（国内访客不再因字体请求阻塞而白屏）；详情行改为展开时才渲染
 - `key_clauses` 纪律：非政策原文内容（对比提示、404 核对记录）移入新增的可选字段 `verification_notes`
 - 占位条目（政策 URL 只能指向产品首页）新增可选字段 `monitor: false`，监控脚本跳过，避免持续误报
+- 补齐 3 个产品"引文出处"的监控目标（`versions.toc.policy_link`，人工确认）：`zcode` → `zcode.z.ai/cn/privacy`；`xunfei-xinghuo` → 《讯飞星火APP用户协议》（`xinghuo.xfyun.cn/policy/`，原 `xfyun.cn/doc/spark/UserAgreement.html` 已 404）；`tencent-yuanbao` → 《腾讯元宝隐私政策》（`privacy.qq.com/document/preview/eb9be565...`）
 
 ### Added
 
