@@ -3,7 +3,7 @@
   var PT = window.PolicyTracker;
 
   var allProducts = [];      // policy JSON 对象，顺序与 data/products.json 索引一致
-  var monitorStatus = null;  // data/update_status.json（可能不存在）
+  var monitorStatus = null;  // generated/update_status.json（可能不存在）
   var state = { q: "", region: "all", training: "all", risk: "all" };
 
   /* 厂商归一化与排序键：与 scripts/gen_readme_table.py 的 VENDOR_RULES/VENDOR_SORT 保持同步 */
@@ -40,7 +40,7 @@
 
   function fetchAllProducts() {
     // 优先加载 CI 生成/提交的合并 bundle（1 个请求）；不存在（CI 未跑/本地新改数据）时回退逐文件加载
-    return fetchJson("data/bundle.json").then(function (bundle) {
+    return fetchJson("generated/bundle.json").then(function (bundle) {
       return { meta: bundle.meta, policies: bundle.policies };
     }).catch(function () {
       return fetchJson("data/products.json").then(function (index) {
@@ -55,7 +55,7 @@
   }
 
   function fetchMonitorStatus() {
-    return fetchJson("data/update_status.json")
+    return fetchJson("generated/update_status.json")
       .then(function (s) { monitorStatus = s; })
       .catch(function () { monitorStatus = null; });
   }

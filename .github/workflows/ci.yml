@@ -1,7 +1,7 @@
 name: 数据校验
 
 # PR 与主分支推送时自动运行回归测试、数据结构校验和 README 汇总表一致性检查，
-# 并在 main 推送后重新生成 data/bundle.json 与社交分享卡片。
+# 并在 main 推送后重新生成 generated/bundle.json 与社交分享卡片。
 on:
   pull_request:
   push:
@@ -70,5 +70,5 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/bundle.json assets/og-card.png
-          git diff --cached --quiet || (git commit -m "chore: CI 重新生成 data/bundle.json 和 OG 图片" && git push)
+          git add generated/bundle.json generated/og-card.png
+          git diff --cached --quiet || (git commit -m "chore: CI 重新生成 generated/bundle.json 和 OG 图片" && git push)

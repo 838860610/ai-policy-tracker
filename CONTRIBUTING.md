@@ -28,6 +28,7 @@ Questions are welcome via Issues — use the "数据纠错" template if you spot
 - **`data/policies/{id}.json` 是每个产品唯一的数据源**，包含该产品的名称、公司、版本政策、时间线等全部字段
 - `data/products.json` 只维护产品 ID 的排列顺序（定义首页/README 表格的展示顺序）与项目元信息，**不存储产品数据**
 - 修改产品数据只需要改 `data/policies/{id}.json` 一个文件，不存在需要同步的两份数据
+- **目录分层**：`data/` 只放人工维护的源数据（`products.json` + `policies/`）；脚本产出一律写入 `generated/`（`bundle.json`、`update_status.json`、`snapshots/`、`change_reports/`、`og-card.png`），**不要手工编辑**这些文件，改动会被下次 CI 覆盖
 
 ## 如何贡献政策更新
 
@@ -35,8 +36,8 @@ Questions are welcome via Issues — use the "数据纠错" template if you spot
 
 当监控检测到政策变更时，CI 会自动：
 
-1. `check_updates.py` 检测到 hash 变化，保存新旧快照到 `data/snapshots/{id}/{target}/`
-2. `analyze_changes.py` 对比新旧快照，调用 LLM 生成分析报告到 `data/change_reports/`
+1. `check_updates.py` 检测到 hash 变化，保存新旧快照到 `generated/snapshots/{id}/{target}/`
+2. `analyze_changes.py` 对比新旧快照，调用 LLM 生成分析报告到 `generated/change_reports/`
 3. 创建/评论 GitHub Issue（标签"政策变更"），嵌入 AI 分析摘要
 
 **人工跟进步骤**（基于 AI 分析报告）：

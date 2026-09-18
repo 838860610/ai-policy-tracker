@@ -201,5 +201,28 @@ class TestPublishedDocs(unittest.TestCase):
         self.assertIn("docs/internal/", gitignore)
 
 
+class TestLayout(unittest.TestCase):
+    """目录分层约定：data/ 只放源数据，generated/ 只放生成物。"""
+
+    def test_data_dir_only_contains_source(self):
+        entries = set(os.listdir(DATA_DIR))
+        self.assertEqual(entries, {"products.json", "policies"},
+                         f"data/ 应只含源数据，实际：{sorted(entries)}")
+
+    def test_no_artifact_left_in_data_or_assets(self):
+        for stale in ["bundle.json", "update_status.json", "snapshots", "change_reports"]:
+            self.assertFalse(os.path.exists(os.path.join(DATA_DIR, stale)),
+                             f"data/{stale} 已迁至 generated/，不应残留")
+        self.assertFalse(os.path.exists(os.path.join(BASE_DIR, "assets")),
+                         "assets/ 已合并进 generated/，不应残留")
+
+    def test_app_js_reads_from_generated(self):
+        with open(os.path.join(BASE_DIR, "js", "app.js"), encoding="utf-8") as f:
+            app = f.read()
+        self.assertIn("generated/bundle.json", app)
+        self.assertIn("generated/update_status.json", app)
+        self.assertNotIn("data/bundle.json", app)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

@@ -7,6 +7,18 @@
 - `Fixed` 修复问题
 - `Removed` 移除内容
 
+## [Unreleased]
+
+### Changed
+
+- **目录分层（A1）**：`data/` 只保留人工维护的源数据（`products.json` + `policies/`）；全部生成物迁入新的 `generated/` 目录——`bundle.json`、`update_status.json`、`snapshots/`、`change_reports/`，以及原 `assets/og-card.png`（`assets/` 目录已移除）
+- 相应更新 `gen_data_bundle.py`、`check_updates.py`、`analyze_changes.py`、`gen_og_image.py` 的产出路径，`js/app.js` 的读取路径，两个工作流的提交路径与 `.gitignore`
+- `tests/test_scripts.py` 新增 `TestLayout`（21 项）：断言 `data/` 不含生成物、前端只从 `generated/` 读取，防止回归
+
+### Fixed
+
+- 修正 `docs/update-monitoring` 中「`update_status.json` 已加入 .gitignore」的过时描述（该文件现已入库，由监控流程提交）
+
 ## [1.3.0] - 2026-09-18
 
 ### Fixed

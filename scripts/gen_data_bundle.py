@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-把 data/products.json（索引）与全部 data/policies/{id}.json 合并生成 data/bundle.json。
+把 data/products.json（索引）与全部 data/policies/{id}.json 合并生成 generated/bundle.json。
 
 首页优先加载 bundle（1 个请求替代 1+N 个，弱网/移动端首屏明显加快）；
 bundle 不存在时前端自动回退为逐文件加载，因此本地改完数据忘记生成也不会出错，
@@ -18,7 +18,7 @@ import os
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 INDEX_FILE = os.path.join(BASE_DIR, "data", "products.json")
 POLICIES_DIR = os.path.join(BASE_DIR, "data", "policies")
-BUNDLE_FILE = os.path.join(BASE_DIR, "data", "bundle.json")
+BUNDLE_FILE = os.path.join(BASE_DIR, "generated", "bundle.json")
 
 
 def main():

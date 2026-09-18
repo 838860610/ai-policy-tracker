@@ -9,7 +9,9 @@ __pycache__/
 venv/
 
 # 政策正文快照（监控脚本生成：体积大、每次运行都可能变动，不入库）
-data/snapshots/
+# generated/ 下其余产物（bundle.json / update_status.json / change_reports / og-card.png）
+# 需要入库——首页与 OG 标签直接引用它们，由 CI 生成后提交
+generated/snapshots/
 
 # 内部工作底稿（核实报告、优化清单等维护用文档，不对外发布）
 # 注意：docs/ 下的 methodology / update-monitoring 是线上站点引用页面，必须入库，勿整体忽略

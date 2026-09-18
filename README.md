@@ -43,7 +43,7 @@ cd ai-policy-tracker
 
 纯静态站点、无需构建：仓库 **Settings → Pages → Build and deployment → Source 选 "Deploy from a branch"**，分支选 `main` / `(root)`，即可通过 `https://838860610.github.io/ai-policy-tracker/` 访问。
 
-页面内资源与数据全部为相对路径引用，项目页子路径下可正常工作。监控工作流定时提交的 `data/update_status.json` 会随 Pages 自动更新展示。
+页面内资源与数据全部为相对路径引用，项目页子路径下可正常工作。监控工作流定时提交的 `generated/update_status.json` 会随 Pages 自动更新展示。
 
 ### 目录结构
 
@@ -58,16 +58,18 @@ ai-policy-tracker/
 │   ├── common.js           # 首页/详情页共享工具
 │   ├── app.js              # 首页逻辑
 │   └── detail.js           # 详情页逻辑
-├── data/
+├── data/                   # 人工维护的源数据（改数据只动这里）
 │   ├── products.json       # 产品 ID 索引（定义列表顺序）
-│   ├── bundle.json         # 合并数据包（CI 自动生成，首页加速用）
-│   ├── policies/           # 各产品全部数据（唯一数据源）
-│   │   ├── chatgpt.json
-│   │   ├── claude.json
-│   │   └── ...
-│   ├── update_status.json  # 监控状态（脚本自动生成，首页读取展示）
-│   ├── snapshots/          # 政策正文快照（监控脚本自动生成）
-│   └── change_reports/     # AI 变更分析报告（analyze_changes.py 生成）
+│   └── policies/           # 各产品全部数据（唯一数据源）
+│       ├── chatgpt.json
+│       ├── claude.json
+│       └── ...
+├── generated/              # 全部自动生成物，一律不手工编辑
+│   ├── bundle.json         # 合并数据包（gen_data_bundle.py，首页加速，CI 提交）
+│   ├── update_status.json  # 监控状态（check_updates.py，首页读取展示）
+│   ├── snapshots/          # 政策正文快照（.gitignore 忽略）
+│   ├── change_reports/     # AI 变更分析报告（analyze_changes.py）
+│   └── og-card.png         # Open Graph 分享卡片（gen_og_image.py）
 ├── scripts/
 │   ├── check_updates.py    # 政策更新监控脚本（第一层：hash 变化检测）
 │   ├── analyze_changes.py  # AI 辅助变更分析（第二层：LLM 对比新旧快照）
@@ -76,8 +78,6 @@ ai-policy-tracker/
 │   ├── gen_data_bundle.py  # 数据合并包生成脚本（首页加速）
 │   ├── gen_og_image.py     # 社交分享卡片生成脚本
 │   └── extract_clauses.py  # 条款提取工具
-├── assets/
-│   └── og-card.png         # Open Graph 分享卡片
 ├── docs/                   # 对外发布文档（methodology / update-monitoring）
 │   │                       #   注意：站点与 sitemap 直接引用这些页面，必须入库
 │   └── internal/           # 内部工作底稿（核实报告、优化清单，.gitignore 忽略）
@@ -97,6 +97,8 @@ ai-policy-tracker/
 ```
 
 > **数据模型**：`data/policies/{id}.json` 是每个产品唯一的数据源（含名称、公司、版本政策、时间线等全部字段），`data/products.json` 只维护产品 ID 的排列顺序。修改产品数据只需要改一个文件。
+>
+> **源数据 vs 生成物**：`data/` 下只有人工维护的源数据；`generated/` 下全部由脚本产出（`bundle.json`、`update_status.json`、`snapshots/`、`change_reports/`、`og-card.png`），**不要手工编辑**，改了也会被下次 CI 覆盖。
 
 ## 对比汇总表
 
@@ -186,9 +188,9 @@ python3 -m venv .venv
 .venv/bin/python scripts/check_updates.py
 ```
 
-脚本对政策页面正文（剥离 script/style、归一化空白后）计算哈希，并使用 ETag/If-Modified-Since 条件请求，避免页面动态内容导致的误报。检测结果写入 `data/update_status.json`，**首页会自动展示监控状态**：无变化时显示上次运行时间，检测到变更时在表格上方展示告警横幅并在对应产品旁标注 ⚠️。
+脚本对政策页面正文（剥离 script/style、归一化空白后）计算哈希，并使用 ETag/If-Modified-Since 条件请求，避免页面动态内容导致的误报。检测结果写入 `generated/update_status.json`，**首页会自动展示监控状态**：无变化时显示上次运行时间，检测到变更时在表格上方展示告警横幅并在对应产品旁标注 ⚠️。
 
-监控按产品逐条覆盖独立条款链接（顶层 policy_url + 个人版/企业版各自的 policy_link，URL 去重）。变更时正文快照自动留档到 `data/snapshots/`（`latest.txt` 为当前内容，日期文件为基线/变更存档，可用 diff 直接对比"到底改了什么"），并在仓库自动创建"政策变更待核实" Issue 提醒维护者核实。
+监控按产品逐条覆盖独立条款链接（顶层 policy_url + 个人版/企业版各自的 policy_link，URL 去重）。变更时正文快照自动留档到 `generated/snapshots/`（`latest.txt` 为当前内容，日期文件为基线/变更存档，可用 diff 直接对比"到底改了什么"），并在仓库自动创建"政策变更待核实" Issue 提醒维护者核实。
 
 其他校验与维护脚本：
 
@@ -201,7 +203,7 @@ python3 -m unittest discover -s tests -v     # 回归测试（无需第三方依
 仓库内置 GitHub Actions 工作流：
 
 - `.github/workflows/monitor.yml`——每周一北京时间 09:00 自动运行监控脚本，检测到变更时运行 AI 辅助分析并提交状态、快照、分析报告，创建/评论 Issue 告警（推送到 GitHub 后生效，也可在 Actions 页手动触发）
-- `.github/workflows/ci.yml`——PR 与主分支推送时自动运行回归测试、数据校验和汇总表一致性检查；main 推送后重新生成 `data/bundle.json` 和 OG 图片（写权限仅授予该发布 job）
+- `.github/workflows/ci.yml`——PR 与主分支推送时自动运行回归测试、数据校验和汇总表一致性检查；main 推送后重新生成 `generated/bundle.json` 和 OG 图片（写权限仅授予该发布 job）
 - `.github/dependabot.yml`——每周检查 GitHub Actions 与 pip 依赖更新
 
 ## 更新日志

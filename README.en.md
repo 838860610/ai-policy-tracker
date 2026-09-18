@@ -26,7 +26,7 @@ The full comparison table (in Chinese) lives in [README.md](README.md); the inte
 
 - **Comparison matrix**: grouped by vendor, filter by region / training usage / risk, searchable; ToC ↔ ToB toggle, shareable via URL
 - **Detail pages**: key clauses quoted verbatim, opt-out instructions, data retention, change timeline, and an auto-derived "green criteria" checklist
-- **Update monitoring**: a Python script re-checks every policy URL weekly (normalized-text hashing + ETag/If-Modified-Since conditional requests to avoid false positives from dynamic pages), covering each product's consumer and enterprise policy links separately. On change, the page text is archived under `data/snapshots/` for diffing, a warning banner appears on the site, and a GitHub issue is opened automatically
+- **Update monitoring**: a Python script re-checks every policy URL weekly (normalized-text hashing + ETag/If-Modified-Since conditional requests to avoid false positives from dynamic pages), covering each product's consumer and enterprise policy links separately. On change, the page text is archived under `generated/snapshots/` for diffing, a warning banner appears on the site, and a GitHub issue is opened automatically
 - **Accessibility**: keyboard navigation (Tab + Enter), ARIA labels
 - **Pure front-end**: no backend, no build tools
 

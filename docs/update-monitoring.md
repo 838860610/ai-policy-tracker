@@ -4,8 +4,8 @@
 
 本项目采用两层监控机制：
 
-- **第一层·变化检测**（`scripts/check_updates.py`）：定期检测各 AI 产品的隐私政策页面是否发生变化（正文归一化哈希 + 条件请求）。检测结果写入 `data/update_status.json`，**首页读取并展示监控状态**——检测到变更时在表格上方显示告警横幅并在对应产品名旁标注 ⚠️。
-- **第二层·AI 辅助分析**（`scripts/analyze_changes.py`）：检测到变更后，自动对比新旧政策快照，调用 LLM 提取训练政策/退出机制/留存期限等维度的变化，生成结构化报告写入 `data/change_reports/`，并将分析摘要嵌入 GitHub Issue。
+- **第一层·变化检测**（`scripts/check_updates.py`）：定期检测各 AI 产品的隐私政策页面是否发生变化（正文归一化哈希 + 条件请求）。检测结果写入 `generated/update_status.json`，**首页读取并展示监控状态**——检测到变更时在表格上方显示告警横幅并在对应产品名旁标注 ⚠️。
+- **第二层·AI 辅助分析**（`scripts/analyze_changes.py`）：检测到变更后，自动对比新旧政策快照，调用 LLM 提取训练政策/退出机制/留存期限等维度的变化，生成结构化报告写入 `generated/change_reports/`，并将分析摘要嵌入 GitHub Issue。
 
 ## 检测原理
 
@@ -75,7 +75,7 @@ AI 政策更新监控脚本
   已变更: 1
   失败:   1
   跳过:   0
-  状态文件: .../data/update_status.json
+  状态文件: .../generated/update_status.json
 ============================================================
 
 ⚠️ 告警：检测到 1 个产品政策可能已更新，请及时核实！
@@ -211,7 +211,7 @@ sudo systemctl enable --now ai-policy-check.timer
 ```
 1. 读取 data/products.json（ID 索引）
 2. 逐个加载 data/policies/{id}.json，获取 policy_url
-3. 读取 data/update_status.json（如存在）中上次的状态
+3. 读取 generated/update_status.json（如存在）中上次的状态
 4. 对每个产品：
    a. 跳过 URL 为空或"待核实"的条目
    b. 携带 ETag / If-Modified-Since 发起条件请求（失败自动重试）
@@ -220,19 +220,19 @@ sudo systemctl enable --now ai-policy-check.timer
    e. 与上次记录的 hash 对比（hash_scheme 不一致时重建基线）
    f. 记录检查结果与新 ETag / Last-Modified
    g. 等待 --delay 秒再检查下一个（礼貌抓取）
-5. 写入 data/update_status.json（首页读取展示）
+5. 写入 generated/update_status.json（首页读取展示）
 6. 输出告警信息
 ```
 
 ## 首页如何展示监控结果
 
-首页 `js/app.js` 会尝试加载 `data/update_status.json`：
+首页 `js/app.js` 会尝试加载 `generated/update_status.json`：
 
 - **文件不存在**（从未运行过监控）：页面不显示任何监控信息
 - **全部无变化**：表格上方显示一行"政策监控上次运行：…，未检测到政策变更"
 - **检测到变更**：显示醒目的告警横幅，列出可能已更新的产品（可点击进入详情），对应产品的名称旁也会标注 ⚠️
 
-> 注意：`data/update_status.json` 已加入 `.gitignore`（由监控流程生成）。若通过 GitHub Actions 定时运行监控并希望访客看到结果，可在 CI 中提交该文件。
+> 注意：`generated/update_status.json` 由监控流程生成，但**会入库**——首页与 Pages 直接读取它展示监控状态，`monitor.yml` 每次运行后自动提交。同目录下的 `generated/snapshots/` 因体积大、变动频繁而保留在 `.gitignore` 中，需要时用 `git add -f` 强制提交。
 
 ## 第二层 AI 辅助分析
 
@@ -240,9 +240,9 @@ sudo systemctl enable --now ai-policy-check.timer
 
 当检测到政策页面变化后，`scripts/analyze_changes.py` 自动对比新旧快照并调用 LLM 提取关键变化点：
 
-1. **新旧快照对比**：从 `data/snapshots/{id}/{target}/` 取 `latest.txt`（新版）和上一个日期存档或 git 历史（旧版）
+1. **新旧快照对比**：从 `generated/snapshots/{id}/{target}/` 取 `latest.txt`（新版）和上一个日期存档或 git 历史（旧版）
 2. **AI 对比分析**：调用 OpenAI 兼容 API，按结构化 prompt 提取训练政策/退出机制/留存期限/知识产权等维度的变化
-3. **结构化报告**：分析结果写入 `data/change_reports/{id}_{target}_{date}.json`，Markdown 摘要写入 `_summary.md`
+3. **结构化报告**：分析结果写入 `generated/change_reports/{id}_{target}_{date}.json`，Markdown 摘要写入 `_summary.md`
 4. **Issue 嵌入**：CI 中自动将分析摘要嵌入"政策变更待核实"Issue，人工直接在 Issue 中看到分析结论
 5. **降级模式**：未配置 `OPENAI_API_KEY` 时自动降级为纯文本 diff，仍输出可读报告
 
@@ -253,7 +253,7 @@ check_updates.py 检测到 hash 变化
   → analyze_changes.py 取新旧快照
   → LLM 分析新旧内容差异（无 API key 时降级为文本 diff）
   → 提取关键变化点（训练政策、退出机制、留存期限等）
-  → 生成结构化报告 data/change_reports/{id}_{target}_{date}.json
+  → 生成结构化报告 generated/change_reports/{id}_{target}_{date}.json
   → 生成 Markdown 摘要 _summary.md
   → CI 自动提交报告 + 嵌入 Issue
   → 人工确认后更新 data/policies/{id}.json
@@ -286,7 +286,7 @@ OPENAI_API_KEY=sk-... .venv/bin/python scripts/analyze_changes.py
 
 ### 分析报告格式
 
-`data/change_reports/{id}_{target}_{date}.json`：
+`generated/change_reports/{id}_{target}_{date}.json`：
 
 ```json
 {
