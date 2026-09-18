@@ -235,5 +235,49 @@ class TestLayout(unittest.TestCase):
                             f"site/{required} 缺失——部署后对应 URL 会 404")
 
 
+class _FakeResponse:
+    """模仿 requests.Response 的最小实现：只需 headers / encoding / apparent_encoding / text。"""
+
+    def __init__(self, content_type, body_bytes, encoding="ISO-8859-1", apparent="utf-8"):
+        self.headers = {"Content-Type": content_type}
+        self.content = body_bytes
+        self.encoding = encoding
+        self.apparent_encoding = apparent
+
+    @property
+    def text(self):
+        return self.content.decode(self.encoding, errors="replace")
+
+
+try:
+    CHECK_UPDATES = load_script("check_updates")
+except ModuleNotFoundError:  # 未安装 requests（CI 会装）
+    CHECK_UPDATES = None
+
+
+@unittest.skipIf(CHECK_UPDATES is None, "需要 requests 才能加载 check_updates.py")
+class TestResponseDecoding(unittest.TestCase):
+    """中文页面不能被解成 mojibake——否则快照不可读、AI 变更分析失效。"""
+
+    BODY = "用户协议 隐私政策".encode("utf-8")
+
+    def test_no_charset_uses_apparent_encoding(self):
+        resp = _FakeResponse("text/html", self.BODY)  # 未声明 charset，默认 latin-1
+        self.assertIn("用户协议", CHECK_UPDATES.response_text(resp))
+        self.assertNotIn("ç¨", CHECK_UPDATES.response_text(resp))
+
+    def test_declared_utf8_is_left_alone(self):
+        resp = _FakeResponse("text/html; charset=utf-8", self.BODY, encoding="utf-8")
+        self.assertEqual(CHECK_UPDATES.response_text(resp), "用户协议 隐私政策")
+
+    def test_wrong_iso8859_declaration_is_repaired(self):
+        resp = _FakeResponse("text/html; charset=ISO-8859-1", self.BODY)
+        self.assertIn("用户协议", CHECK_UPDATES.response_text(resp))
+
+    def test_hash_scheme_bumped_after_decoding_fix(self):
+        """解码修复会改变哈希，方案必须是 v2，否则会误报全部产品变更。"""
+        self.assertEqual(CHECK_UPDATES.HASH_SCHEME, "text-v2")
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

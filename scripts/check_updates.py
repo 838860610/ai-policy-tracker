@@ -65,7 +65,9 @@ STATUS_FILE = os.path.join(BASE_DIR, "site", "generated", "update_status.json")
 SNAPSHOTS_DIR = os.path.join(BASE_DIR, "site", "generated", "snapshots")
 
 # 哈希算法版本：提取/归一化逻辑变化时递增，旧状态会自动重建基线而不是误报"已变更"
-HASH_SCHEME = "text-v1"
+# text-v2：修复响应解码（此前中文被 latin-1 回退解成 mojibake），解码变化会让所有
+# 哈希随之改变，因此必须升版，让脚本重建基线，否则会误报"全部产品政策已变更"
+HASH_SCHEME = "text-v2"
 RETRY_TIMES = 2          # 网络类错误重试次数
 RETRY_BACKOFF = 5        # 重试间隔基数（秒）
 
@@ -173,6 +175,34 @@ def fetch_url(url, etag=None, last_modified=None, timeout=30):
     return resp, False
 
 
+def response_text(resp):
+    """返回正确解码的响应正文。
+
+    requests 对 Content-Type 未声明 charset 的 text/* 响应，按 RFC 2616 回退到
+    ISO-8859-1 解码——中文页面会被解成一串拉丁字符（mojibake），再以 UTF-8 写进
+    快照就成了双重编码的乱码，人没法读，AI 变更分析也拿不到有效文本。
+
+    处理顺序：
+      1. 响应未声明 charset → 用 requests 探测的 apparent_encoding，兜底 utf-8
+      2. 响应声明了 ISO-8859-1 但内容其实是 UTF-8 → 反向还原一次
+    """
+    content_type = (resp.headers.get("Content-Type") or "").lower()
+
+    if "charset" not in content_type:
+        resp.encoding = resp.apparent_encoding or "utf-8"
+        return resp.text
+
+    text = resp.text
+    if "iso-8859-1" in content_type or "latin-1" in content_type:
+        try:
+            repaired = text.encode("latin-1").decode("utf-8")
+            if repaired:
+                return repaired
+        except (UnicodeEncodeError, UnicodeDecodeError):
+            pass
+    return text
+
+
 def fetch_with_retry(url, etag, last_modified, timeout):
     """网络类错误（超时/连接失败）按指数退避重试；HTTP 4xx/5xx 不重试直接抛出。
     429 Too Many Requests：等待 Retry-After 或退避后重试。"""
@@ -249,7 +279,7 @@ def check_target(pid, name, key, url, prev_target, timeout):
                                       content_etag=etag, content_last_modified=last_modified,
                                       message="内容未变化（304 Not Modified）", last_checked=now)
 
-        raw_text = extract_text(resp.text)
+        raw_text = extract_text(response_text(resp))
         normalized = normalize_text(raw_text)
         current_hash = compute_hash(normalized)
 

@@ -16,18 +16,18 @@
 - 部署触发用 `workflow_run`（监听「数据校验」「政策更新监控」完成）而非 `push`——bot 用 `GITHUB_TOKEN` 提交的 commit 不会再触发 `push` 事件，否则自动生成的产物发布不出去
 - 脚本路径常量全部改为 `site/data` 与 `site/generated`；`start.sh` 改为 `http.server --directory site`；新增 `site/.nojekyll`
 
+- **目录分层**：`site/data/` 只保留人工维护的源数据（`products.json` + `policies/`）；生成物统一放 `site/generated/`——`bundle.json`、`update_status.json`、`snapshots/`、`change_reports/`，以及原 `assets/og-card.png`（`assets/` 目录已移除）
+
 ### Added
 
 - `tests/test_scripts.py` 新增 `test_site_dir_is_the_publish_root`：断言站点根文件齐备，防止漏文件导致线上 404
-
-### Changed
-
-- **目录分层（A1）**：`data/` 只保留人工维护的源数据（`products.json` + `policies/`）；全部生成物迁入新的 `generated/` 目录——`bundle.json`、`update_status.json`、`snapshots/`、`change_reports/`，以及原 `assets/og-card.png`（`assets/` 目录已移除）
-- 相应更新 `gen_data_bundle.py`、`check_updates.py`、`analyze_changes.py`、`gen_og_image.py` 的产出路径，`js/app.js` 的读取路径，两个工作流的提交路径与 `.gitignore`
-- `tests/test_scripts.py` 新增 `TestLayout`（21 项）：断言 `data/` 不含生成物、前端只从 `generated/` 读取，防止回归
+- `tests/test_scripts.py` 新增 `TestLayout`：断言源数据目录不含生成物、前端只从 `generated/` 读取
+- `tests/test_scripts.py` 新增 `TestResponseDecoding`（4 项）：防止响应解码回退到 latin-1 再次产生乱码快照
 
 ### Fixed
 
+- **修复政策正文快照乱码**：`requests` 对未声明 charset 的 `text/html` 会按 RFC 2616 回退到 ISO-8859-1，中文被解成拉丁字符后再以 UTF-8 存盘，形成双重编码（mojibake），快照无法阅读、AI 变更分析也拿不到有效文本。新增 `response_text()`：未声明 charset 时用探测编码（兜底 utf-8），声明为 ISO-8859-1 的尝试反向还原
+- `HASH_SCHEME` 升至 `text-v2`：解码变化会让所有哈希改变，升版后脚本重建基线，避免误报"全部产品政策已变更"
 - 修正 `docs/update-monitoring` 中「`update_status.json` 已加入 .gitignore」的过时描述（该文件现已入库，由监控流程提交）
 
 ## [1.3.0] - 2026-09-18
