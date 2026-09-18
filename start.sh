@@ -22,5 +22,6 @@ echo "检查/安装依赖 ..."
   fi
 ) >/dev/null 2>&1 &
 
-echo "本地服务已启动: http://localhost:$PORT  （Ctrl-C 停止）"
-exec .venv/bin/python -m http.server "$PORT"
+echo "本地服务已启动: http://localhost:$PORT  （根目录为 site/，Ctrl-C 停止）"
+# --directory site：站点文件都在 site/ 下，与线上部署（发布 site/ 目录）保持一致
+exec .venv/bin/python -m http.server "$PORT" --directory site

@@ -19,8 +19,11 @@ import unittest
 from datetime import date
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+# 站点根目录：index.html / css / js / data / generated / docs 都在其下，
+# 部署工作流发布的正是这个目录，因此路径断言都应以它为基准
+SITE_DIR = os.path.join(BASE_DIR, "site")
 SCRIPTS_DIR = os.path.join(BASE_DIR, "scripts")
-DATA_DIR = os.path.join(BASE_DIR, "data")
+DATA_DIR = os.path.join(SITE_DIR, "data")
 POLICIES_DIR = os.path.join(DATA_DIR, "policies")
 
 
@@ -174,35 +177,35 @@ class TestPublishedDocs(unittest.TestCase):
     def test_referenced_docs_exist(self):
         refs = set()
         for name in self.REFERENCING_FILES:
-            path = os.path.join(BASE_DIR, name)
+            path = os.path.join(SITE_DIR, name)
             if not os.path.exists(path):
                 continue
             with open(path, encoding="utf-8") as f:
                 refs.update(self.DOC_LINK.findall(f.read()))
         self.assertTrue(refs, "未在站点文件中找到任何 docs 引用，测试本身可能失效")
         for ref in refs:
-            self.assertTrue(os.path.exists(os.path.join(BASE_DIR, ref)),
+            self.assertTrue(os.path.exists(os.path.join(SITE_DIR, ref)),
                             f"{ref} 被站点引用但文件不存在（线上会 404）")
 
     def test_internal_docs_not_referenced(self):
-        """docs/internal/ 已被 .gitignore 忽略，站点不得引用其中的文件。"""
+        """site/docs/internal/ 已被 .gitignore 忽略，站点不得引用其中的文件。"""
         for name in self.REFERENCING_FILES:
-            path = os.path.join(BASE_DIR, name)
+            path = os.path.join(SITE_DIR, name)
             if not os.path.exists(path):
                 continue
             with open(path, encoding="utf-8") as f:
-                self.assertNotIn("docs/internal/", f.read(),
-                                 f"{name} 引用了被忽略的 docs/internal/ 内容")
+                self.assertNotIn("site/docs/internal/", f.read(),
+                                 f"{name} 引用了被忽略的 site/docs/internal/ 内容")
 
     def test_gitignore_does_not_ignore_published_docs(self):
         with open(os.path.join(BASE_DIR, ".gitignore"), encoding="utf-8") as f:
             gitignore = f.read()
         self.assertNotIn("docs/*", gitignore, "docs/* 会整体忽略发布页面，导致线上死链")
-        self.assertIn("docs/internal/", gitignore)
+        self.assertIn("site/docs/internal/", gitignore)
 
 
 class TestLayout(unittest.TestCase):
-    """目录分层约定：data/ 只放源数据，generated/ 只放生成物。"""
+    """目录分层约定：data/ 只放源数据，site/generated/ 只放生成物。"""
 
     def test_data_dir_only_contains_source(self):
         entries = set(os.listdir(DATA_DIR))
@@ -212,16 +215,24 @@ class TestLayout(unittest.TestCase):
     def test_no_artifact_left_in_data_or_assets(self):
         for stale in ["bundle.json", "update_status.json", "snapshots", "change_reports"]:
             self.assertFalse(os.path.exists(os.path.join(DATA_DIR, stale)),
-                             f"data/{stale} 已迁至 generated/，不应残留")
+                             f"site/data/{stale} 已迁至 site/generated/，不应残留")
         self.assertFalse(os.path.exists(os.path.join(BASE_DIR, "assets")),
-                         "assets/ 已合并进 generated/，不应残留")
+                         "assets/ 已合并进 site/generated/，不应残留")
 
     def test_app_js_reads_from_generated(self):
-        with open(os.path.join(BASE_DIR, "js", "app.js"), encoding="utf-8") as f:
+        """app.js 里的路径是相对站点根的，即 site/generated/... """
+        with open(os.path.join(SITE_DIR, "js", "app.js"), encoding="utf-8") as f:
             app = f.read()
         self.assertIn("generated/bundle.json", app)
         self.assertIn("generated/update_status.json", app)
         self.assertNotIn("data/bundle.json", app)
+
+    def test_site_dir_is_the_publish_root(self):
+        """部署工作流发布 site/，站点根文件必须都在其下，URL 才不会变。"""
+        for required in ["index.html", "detail.html", "404.html", "robots.txt",
+                         "sitemap.xml", ".nojekyll", "css", "js", "data", "generated"]:
+            self.assertTrue(os.path.exists(os.path.join(SITE_DIR, required)),
+                            f"site/{required} 缺失——部署后对应 URL 会 404")
 
 
 if __name__ == "__main__":

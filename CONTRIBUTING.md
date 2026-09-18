@@ -8,7 +8,7 @@
 
 The rest of this guide is in Chinese. The essentials:
 
-1. **One file per product**: `data/policies/{id}.json` is the single source of truth (name, company, per-version policy fields, timeline, cited clauses). `data/products.json` only lists product IDs in display order.
+1. **One file per product**: `site/data/policies/{id}.json` is the single source of truth (name, company, per-version policy fields, timeline, cited clauses). `site/data/products.json` only lists product IDs in display order.
 2. **Every claim needs evidence**: quote the official policy verbatim in `key_clauses`, and set `last_verified` to the date you checked.
 3. **Before opening a PR**, run (after `./start.sh` or `python3 -m venv .venv && .venv/bin/pip install -r requirements.txt`):
 
@@ -25,10 +25,10 @@ Questions are welcome via Issues — use the "数据纠错" template if you spot
 
 ## 数据模型（重要）
 
-- **`data/policies/{id}.json` 是每个产品唯一的数据源**，包含该产品的名称、公司、版本政策、时间线等全部字段
-- `data/products.json` 只维护产品 ID 的排列顺序（定义首页/README 表格的展示顺序）与项目元信息，**不存储产品数据**
-- 修改产品数据只需要改 `data/policies/{id}.json` 一个文件，不存在需要同步的两份数据
-- **目录分层**：`data/` 只放人工维护的源数据（`products.json` + `policies/`）；脚本产出一律写入 `generated/`（`bundle.json`、`update_status.json`、`snapshots/`、`change_reports/`、`og-card.png`），**不要手工编辑**这些文件，改动会被下次 CI 覆盖
+- **`site/data/policies/{id}.json` 是每个产品唯一的数据源**，包含该产品的名称、公司、版本政策、时间线等全部字段
+- `site/data/products.json` 只维护产品 ID 的排列顺序（定义首页/README 表格的展示顺序）与项目元信息，**不存储产品数据**
+- 修改产品数据只需要改 `site/data/policies/{id}.json` 一个文件，不存在需要同步的两份数据
+- **目录分层**：`data/` 只放人工维护的源数据（`products.json` + `policies/`）；脚本产出一律写入 `site/generated/`（`bundle.json`、`update_status.json`、`snapshots/`、`change_reports/`、`og-card.png`），**不要手工编辑**这些文件，改动会被下次 CI 覆盖
 
 ## 如何贡献政策更新
 
@@ -36,14 +36,14 @@ Questions are welcome via Issues — use the "数据纠错" template if you spot
 
 当监控检测到政策变更时，CI 会自动：
 
-1. `check_updates.py` 检测到 hash 变化，保存新旧快照到 `generated/snapshots/{id}/{target}/`
-2. `analyze_changes.py` 对比新旧快照，调用 LLM 生成分析报告到 `generated/change_reports/`
+1. `check_updates.py` 检测到 hash 变化，保存新旧快照到 `site/generated/snapshots/{id}/{target}/`
+2. `analyze_changes.py` 对比新旧快照，调用 LLM 生成分析报告到 `site/generated/change_reports/`
 3. 创建/评论 GitHub Issue（标签"政策变更"），嵌入 AI 分析摘要
 
 **人工跟进步骤**（基于 AI 分析报告）：
 
 1. 阅读 Issue 中的 AI 分析摘要，确认是否有实质政策变更
-2. 如有实质变更：访问该产品官方政策页面，更新 `data/policies/{id}.json`
+2. 如有实质变更：访问该产品官方政策页面，更新 `site/data/policies/{id}.json`
 3. 更新文件内 `last_verified` 字段为当前核实日期
 4. 在 `timeline` 中添加变更记录
 5. 如 AI 分析为"非实质变更"（仅排版/导航变化）：无需更新数据文件
@@ -52,8 +52,8 @@ Questions are welcome via Issues — use the "数据纠错" template if you spot
 
 如需添加新的 AI 产品：
 
-1. 在 `data/policies/` 下创建 `{id}.json` 详细政策文件（id 用小写英文+连字符，如 `github-copilot.json`）
-2. 在 `data/products.json` 的 `products` 数组中加入该 ID（决定展示顺序）
+1. 在 `site/data/policies/` 下创建 `{id}.json` 详细政策文件（id 用小写英文+连字符，如 `github-copilot.json`）
+2. 在 `site/data/products.json` 的 `products` 数组中加入该 ID（决定展示顺序）
 3. 确保所有必填字段都已填写
 4. 运行 `python3 scripts/gen_readme_table.py` 重新生成 README 汇总表
 
@@ -199,12 +199,12 @@ python3 -m venv .venv
 # 回归测试（标准库 unittest，无需额外依赖）
 python3 -m unittest discover -s tests -v
 
-# 启动本地服务预览（自动打开浏览器）
+# 启动本地服务预览（自动打开浏览器；根目录为 site/，与线上一致）
 ./start.sh
-# 或手动：python3 -m http.server 8080，访问 http://localhost:8080 检查页面
+# 或手动：python3 -m http.server 8080 --directory site，访问 http://localhost:8080 检查页面
 ```
 
-> **文档约定**：`docs/` 下的 `methodology` / `update-monitoring` 是线上站点与 `sitemap.xml` 直接引用的页面，**必须入库**；`docs/internal/` 存放内部工作底稿（核实报告、优化清单），已被 `.gitignore` 忽略，站点不得引用其中的文件（测试 `tests/test_scripts.py` 会校验这一点）。
+> **文档约定**：`docs/` 下的 `methodology` / `update-monitoring` 是线上站点与 `sitemap.xml` 直接引用的页面，**必须入库**；`site/docs/internal/` 存放内部工作底稿（核实报告、优化清单），已被 `.gitignore` 忽略，站点不得引用其中的文件（测试 `tests/test_scripts.py` 会校验这一点）。
 
 ### 其他维护脚本
 

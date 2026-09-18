@@ -39,8 +39,8 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           # update_status.json 已入库（首页读取展示监控状态）；snapshots/ 仍在 .gitignore 中，需 -f
-          git add generated/update_status.json
-          if [ -d generated/snapshots ]; then git add -f generated/snapshots; fi
+          git add site/generated/update_status.json
+          if [ -d site/generated/snapshots ]; then git add -f site/generated/snapshots; fi
           git diff --cached --quiet || (git commit -m "monitor: 政策更新检查 $(date -u +%F)" && git push)
 
       - name: AI 辅助变更分析
@@ -51,8 +51,8 @@ jobs:
         run: |
           python scripts/analyze_changes.py || true
           # 提交分析报告（change_reports/ 不在 .gitignore，正常 add）
-          if [ -d generated/change_reports ]; then
-            git add generated/change_reports/
+          if [ -d site/generated/change_reports ]; then
+            git add site/generated/change_reports/
             git diff --cached --quiet || (git commit -m "monitor: AI 变更分析报告 $(date -u +%F)" && git push)
           fi
 
@@ -63,7 +63,7 @@ jobs:
           python3 - <<'PYEOF'
           import json, os
 
-          with open("generated/update_status.json", encoding="utf-8") as f:
+          with open("site/generated/update_status.json", encoding="utf-8") as f:
               status = json.load(f)
 
           changed = {pid: info for pid, info in status.get("products", {}).items()
@@ -81,13 +81,13 @@ jobs:
           ]
 
           # 如果有 AI 分析报告，嵌入摘要
-          summary_path = "generated/change_reports/_summary.md"
+          summary_path = "site/generated/change_reports/_summary.md"
           if os.path.exists(summary_path):
               with open(summary_path, encoding="utf-8") as f:
                   lines.append(f.read())
               lines.append("")
           else:
-              lines.append("核实指引：对比 `generated/snapshots/{产品}/{目标}/` 下的日期存档与 latest.txt（正文快照已随本次检查自动留档），确认变更内容后更新 `data/policies/{id}.json` 并补充 timeline。")
+              lines.append("核实指引：对比 `site/generated/snapshots/{产品}/{目标}/` 下的日期存档与 latest.txt（正文快照已随本次检查自动留档），确认变更内容后更新 `site/data/policies/{id}.json` 并补充 timeline。")
               lines.append("")
               for pid, info in changed.items():
                   lines.append(f"## {pid}")

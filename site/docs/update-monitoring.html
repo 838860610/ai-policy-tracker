@@ -6,7 +6,7 @@
   <meta name="description" content="AI 用户政策追踪器监控说明：政策更新监控脚本的使用方法、检测原理与定时运行配置。">
   <title>监控说明 - AI 用户政策追踪器</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%9B%A1%EF%B8%8F%3C/text%3E%3C/svg%3E">
-  <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="../site/css/style.css">
 </head>
 <body>
   <div class="header">
@@ -16,7 +16,7 @@
 
   <div class="docs-body">
     <h2>概述</h2>
-    <p>本项目包含一个自动化的政策更新监控脚本 <code>scripts/check_updates.py</code>，用于定期检测各 AI 产品的隐私政策页面是否发生变化。当检测到变化时，脚本会输出告警信息，并把结果写入 <code>generated/update_status.json</code> —— <strong>首页会读取该文件并展示监控状态</strong>，检测到变更时会在表格上方显示告警横幅并在对应产品名旁标注 ⚠️。</p>
+    <p>本项目包含一个自动化的政策更新监控脚本 <code>scripts/check_updates.py</code>，用于定期检测各 AI 产品的隐私政策页面是否发生变化。当检测到变化时，脚本会输出告警信息，并把结果写入 <code>site/generated/update_status.json</code> —— <strong>首页会读取该文件并展示监控状态</strong>，检测到变更时会在表格上方显示告警横幅并在对应产品名旁标注 ⚠️。</p>
 
     <h2>检测原理</h2>
     <p>为避免误报，脚本不会直接对原始 HTML 做哈希（政策页面普遍含有时间戳、CSRF token、A/B 实验等动态内容，裸哈希几乎每次运行都会误报"已变更"），而是：</p>
@@ -79,7 +79,7 @@ AI 政策更新监控脚本
   已变更: 1
   失败:   1
   跳过:   0
-  状态文件: .../generated/update_status.json
+  状态文件: .../site/generated/update_status.json
 ============================================================
 
 ⚠️ 告警：检测到 1 个产品政策可能已更新，请及时核实！
@@ -193,9 +193,9 @@ WantedBy=timers.target</code></pre>
     </table>
 
     <h2>监控流程</h2>
-    <pre><code>1. 读取 data/products.json（ID 索引）
-2. 逐个加载 data/policies/{id}.json，获取 policy_url
-3. 读取 generated/update_status.json（如存在）中上次的状态
+    <pre><code>1. 读取 site/data/products.json（ID 索引）
+2. 逐个加载 site/data/policies/{id}.json，获取 policy_url
+3. 读取 site/generated/update_status.json（如存在）中上次的状态
 4. 对每个产品：
    a. 跳过 URL 为空或"待核实"的条目
    b. 携带 ETag / If-Modified-Since 发起条件请求（失败自动重试）
@@ -204,24 +204,24 @@ WantedBy=timers.target</code></pre>
    e. 与上次记录的 hash 对比（hash_scheme 不一致时重建基线）
    f. 记录检查结果与新 ETag / Last-Modified
    g. 等待 --delay 秒再检查下一个（礼貌抓取）
-5. 写入 generated/update_status.json（首页读取展示）
+5. 写入 site/generated/update_status.json（首页读取展示）
 6. 输出告警信息</code></pre>
 
     <h2>首页如何展示监控结果</h2>
-    <p>首页 <code>js/app.js</code> 会尝试加载 <code>generated/update_status.json</code>：</p>
+    <p>首页 <code>site/js/app.js</code> 会尝试加载 <code>site/generated/update_status.json</code>：</p>
     <ul>
       <li><strong>文件不存在</strong>（从未运行过监控）：页面不显示任何监控信息</li>
       <li><strong>全部无变化</strong>：表格上方显示一行"政策监控上次运行：…，未检测到政策变更"</li>
       <li><strong>检测到变更</strong>：显示醒目的告警横幅，列出可能已更新的产品（可点击进入详情），对应产品的名称旁也会标注 ⚠️</li>
     </ul>
-    <blockquote>注意：<code>generated/update_status.json</code> 由监控流程生成，但<strong>会入库</strong>——首页与 Pages 直接读取它展示监控状态，<code>monitor.yml</code> 每次运行后自动提交。同目录下的 <code>generated/snapshots/</code> 因体积大、变动频繁而保留在 <code>.gitignore</code> 中，需要时用 <code>git add -f</code> 强制提交。</blockquote>
+    <blockquote>注意：<code>site/generated/update_status.json</code> 由监控流程生成，但<strong>会入库</strong>——首页与 Pages 直接读取它展示监控状态，<code>monitor.yml</code> 每次运行后自动提交。同目录下的 <code>site/generated/snapshots/</code> 因体积大、变动频繁而保留在 <code>.gitignore</code> 中，需要时用 <code>git add -f</code> 强制提交。</blockquote>
 
     <h2>第二层 AI 辅助分析（未来功能）</h2>
     <p>当检测到政策页面变化后，目前需要人工核实。未来计划引入 AI 辅助分析作为第二层监控：</p>
     <ol>
       <li><strong>自动抓取新内容</strong>：检测到变化后，自动抓取新的政策页面内容</li>
       <li><strong>AI 对比分析</strong>：使用 LLM 对比新旧政策内容，提取关键变化点</li>
-      <li><strong>结构化输出</strong>：自动更新 <code>data/policies/{id}.json</code> 中的相关字段</li>
+      <li><strong>结构化输出</strong>：自动更新 <code>site/data/policies/{id}.json</code> 中的相关字段</li>
       <li><strong>变更报告</strong>：生成人类可读的变更报告，标注关键变化</li>
     </ol>
     <p>预期流程：</p>

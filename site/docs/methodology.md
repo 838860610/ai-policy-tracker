@@ -27,7 +27,7 @@
 | 百川智能 | Baichuan AI |
 | 零一万物 | 01.AI |
 
-完整产品列表见 [首页对比表格](https://838860610.github.io/ai-policy-tracker/) 或 `data/products.json`。
+完整产品列表见 [首页对比表格](https://838860610.github.io/ai-policy-tracker/) 或 `site/data/products.json`。
 
 ## 风险等级评定标准
 
@@ -110,7 +110,7 @@
 
 ## 数据字段说明
 
-> `data/policies/{id}.json` 是每个产品唯一的数据源；`data/products.json` 只维护产品 ID 的排列顺序与项目元信息，不再重复存储产品数据。
+> `site/data/policies/{id}.json` 是每个产品唯一的数据源；`site/data/products.json` 只维护产品 ID 的排列顺序与项目元信息，不再重复存储产品数据。
 
 ### policies/{id}.json 顶层字段
 

@@ -4,17 +4,17 @@
 AI 政策更新监控脚本
 
 功能：
-  - 读取 data/products.json（ID 索引）与 data/policies/{id}.json
+  - 读取 site/data/products.json（ID 索引）与 site/data/policies/{id}.json
   - 每个产品监控多个目标 URL：顶层 policy_url（main）+ 各版本独立的 policy_link
     （toc 个人版 / tob 企业版，与 main 去重后逐条检查）
   - 抓取政策页面，剥离 script/style 后提取正文文本、归一化空白，计算 SHA256 哈希
     （直接对原始 HTML 哈希会因时间戳、CSRF token 等动态内容产生大量误报）
   - 支持 ETag / If-Modified-Since 条件请求，页面未变化时服务端返回 304，零误报
-  - 与 generated/update_status.json 中上次记录对比；哈希变化则标记"⚠️ 政策可能已更新，待核实"
-  - 每次成功抓取将正文快照写入 generated/snapshots/{id}/{target}/latest.txt；
+  - 与 site/generated/update_status.json 中上次记录对比；哈希变化则标记"⚠️ 政策可能已更新，待核实"
+  - 每次成功抓取将正文快照写入 site/generated/snapshots/{id}/{target}/latest.txt；
     首次记录基线或检测到变更时额外写入按日期命名的存档（{YYYY-MM-DD}.txt），
     便于用 git diff / 文本对比工具查看政策到底改了什么
-  - 结果写入 generated/update_status.json（首页会读取并展示监控状态），告警输出到控制台
+  - 结果写入 site/generated/update_status.json（首页会读取并展示监控状态），告警输出到控制台
 
 使用方法：
   .venv/bin/python scripts/check_updates.py [--delay 秒] [--timeout 秒]
@@ -34,8 +34,8 @@ Cron 配置示例（每周一早上 9 点运行）：
   0 9 * * 1 cd /path/to/ai-policy-tracker && mkdir -p logs && .venv/bin/python scripts/check_updates.py >> logs/check_updates.log 2>&1
 
 输出文件：
-  generated/update_status.json - 每个产品的聚合检查状态 + 各目标 URL 明细（首页读取展示）
-  generated/snapshots/         - 政策正文快照（latest.txt 为当前内容，日期文件为基线/变更存档）
+  site/generated/update_status.json - 每个产品的聚合检查状态 + 各目标 URL 明细（首页读取展示）
+  site/generated/snapshots/         - 政策正文快照（latest.txt 为当前内容，日期文件为基线/变更存档）
 
 退出码：总是 0（只要状态文件写成功）。个别产品检查失败不视为脚本失败——
 结果中的 failed 计数与 Issue 告警会反映失败情况，CI 中失败不应阻塞状态提交。
@@ -59,10 +59,10 @@ except ImportError:
     BeautifulSoup = None  # 退化为正则去标签，建议安装 beautifulsoup4
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-INDEX_FILE = os.path.join(BASE_DIR, "data", "products.json")
-POLICIES_DIR = os.path.join(BASE_DIR, "data", "policies")
-STATUS_FILE = os.path.join(BASE_DIR, "generated", "update_status.json")
-SNAPSHOTS_DIR = os.path.join(BASE_DIR, "generated", "snapshots")
+INDEX_FILE = os.path.join(BASE_DIR, "site", "data", "products.json")
+POLICIES_DIR = os.path.join(BASE_DIR, "site", "data", "policies")
+STATUS_FILE = os.path.join(BASE_DIR, "site", "generated", "update_status.json")
+SNAPSHOTS_DIR = os.path.join(BASE_DIR, "site", "generated", "snapshots")
 
 # 哈希算法版本：提取/归一化逻辑变化时递增，旧状态会自动重建基线而不是误报"已变更"
 HASH_SCHEME = "text-v1"

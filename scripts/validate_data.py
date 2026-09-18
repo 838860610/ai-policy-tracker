@@ -3,7 +3,7 @@
 """
 数据校验脚本
 
-检查 data/products.json（ID 索引）与 data/policies/*.json 的结构完整性，
+检查 site/data/products.json（ID 索引）与 site/data/policies/*.json 的结构完整性，
 在提交 PR 前运行，防止字段缺失、ID 不一致等问题进入主分支。
 
 用法：
@@ -19,7 +19,7 @@ import sys
 import datetime
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DATA_DIR = os.path.join(BASE_DIR, "data")
+DATA_DIR = os.path.join(BASE_DIR, "site", "data")
 INDEX_FILE = os.path.join(DATA_DIR, "products.json")
 POLICIES_DIR = os.path.join(DATA_DIR, "policies")
 

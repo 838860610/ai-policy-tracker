@@ -36,40 +36,57 @@ cd ai-policy-tracker
 ./start.sh 9000
 ```
 
-> 手动方式：`python3 -m http.server 8080` 后访问 `http://localhost:8080`（静态页面本身不依赖 Python 包）。
+> 手动方式：`python3 -m http.server 8080 --directory site` 后访问 `http://localhost:8080`（静态页面本身不依赖 Python 包；`--directory site` 是因为站点文件都在 `site/` 下）。
 > 注意：直接双击 index.html 无法使用——浏览器禁止 file:// 协议下的 fetch 请求，数据加载不出来，必须通过 HTTP 服务访问。
 
 ### 部署到 GitHub Pages
 
-纯静态站点、无需构建：仓库 **Settings → Pages → Build and deployment → Source 选 "Deploy from a branch"**，分支选 `main` / `(root)`，即可通过 `https://838860610.github.io/ai-policy-tracker/` 访问。
+站点文件集中在 `site/` 目录，由 GitHub Actions 部署：
 
-页面内资源与数据全部为相对路径引用，项目页子路径下可正常工作。监控工作流定时提交的 `generated/update_status.json` 会随 Pages 自动更新展示。
+1. **一次性设置**：仓库 **Settings → Pages → Build and deployment → Source 选 "GitHub Actions"**
+2. `.github/workflows/deploy.yml` 在「数据校验」或「政策更新监控」工作流跑完后自动重新部署（也可在 Actions 页手动触发）
+
+访问地址不变：**<https://838860610.github.io/ai-policy-tracker/>** —— `site/` 即站点根，所以 `site/index.html` → `/`、`site/robots.txt` → `/robots.txt`。
+
+> **为什么不用 "Deploy from a branch"**：Pages 的分支发布只认 `/(root)` 和 `/docs` 两个目录，指定不了 `site/`。要用自定义目录就必须走 Actions 部署，代价是多一个部署工作流 + 一次性切换设置。
+>
+> **为什么用 `workflow_run` 而不是 `push` 触发**：CI/监控用 `GITHUB_TOKEN` 提交的 commit 不会再触发 `push` 事件，那样自动生成的 `bundle.json`、`update_status.json` 就发布不出去；`workflow_run` 在上游工作流结束后触发，人和 bot 的提交都能覆盖到。
+
+页面内资源与数据全部为相对路径引用，项目页子路径下可正常工作。
 
 ### 目录结构
 
 ```
 ai-policy-tracker/
-├── index.html              # 首页 - 对比表格
-├── detail.html             # 产品详情页
-├── 404.html                # GitHub Pages 404 页面
-├── css/
-│   └── style.css           # 样式文件
-├── js/
-│   ├── common.js           # 首页/详情页共享工具
-│   ├── app.js              # 首页逻辑
-│   └── detail.js           # 详情页逻辑
-├── data/                   # 人工维护的源数据（改数据只动这里）
-│   ├── products.json       # 产品 ID 索引（定义列表顺序）
-│   └── policies/           # 各产品全部数据（唯一数据源）
-│       ├── chatgpt.json
-│       ├── claude.json
-│       └── ...
-├── generated/              # 全部自动生成物，一律不手工编辑
-│   ├── bundle.json         # 合并数据包（gen_data_bundle.py，首页加速，CI 提交）
-│   ├── update_status.json  # 监控状态（check_updates.py，首页读取展示）
-│   ├── snapshots/          # 政策正文快照（.gitignore 忽略）
-│   ├── change_reports/     # AI 变更分析报告（analyze_changes.py）
-│   └── og-card.png         # Open Graph 分享卡片（gen_og_image.py）
+├── site/                   # 站点根目录——部署时发布的正是这个目录
+│   │                       #   （site/index.html → /，site/robots.txt → /robots.txt）
+│   ├── index.html          # 首页 - 对比表格
+│   ├── detail.html         # 产品详情页
+│   ├── 404.html            # GitHub Pages 404 页面
+│   ├── robots.txt
+│   ├── sitemap.xml
+│   ├── .nojekyll           # 禁止 Jekyll 处理，原样发布
+│   ├── css/
+│   │   └── style.css       # 样式文件
+│   ├── js/
+│   │   ├── common.js       # 首页/详情页共享工具
+│   │   ├── app.js          # 首页逻辑
+│   │   └── detail.js       # 详情页逻辑
+│   ├── data/               # 人工维护的源数据（改数据只动这里）
+│   │   ├── products.json   # 产品 ID 索引（定义列表顺序）
+│   │   └── policies/       # 各产品全部数据（唯一数据源）
+│   │       ├── chatgpt.json
+│   │       ├── claude.json
+│   │       └── ...
+│   ├── generated/          # 全部自动生成物，一律不手工编辑
+│   │   ├── bundle.json     # 合并数据包（gen_data_bundle.py，首页加速，CI 提交）
+│   │   ├── update_status.json # 监控状态（check_updates.py，首页读取展示）
+│   │   ├── snapshots/      # 政策正文快照（.gitignore 忽略）
+│   │   ├── change_reports/ # AI 变更分析报告（analyze_changes.py）
+│   │   └── og-card.png     # Open Graph 分享卡片（gen_og_image.py）
+│   └── docs/               # 对外发布文档（methodology / update-monitoring）
+│       │                   #   注意：站点与 sitemap 直接引用这些页面，必须入库
+│       └── internal/       # 内部工作底稿（核实报告、优化清单，.gitignore 忽略）
 ├── scripts/
 │   ├── check_updates.py    # 政策更新监控脚本（第一层：hash 变化检测）
 │   ├── analyze_changes.py  # AI 辅助变更分析（第二层：LLM 对比新旧快照）
@@ -78,9 +95,6 @@ ai-policy-tracker/
 │   ├── gen_data_bundle.py  # 数据合并包生成脚本（首页加速）
 │   ├── gen_og_image.py     # 社交分享卡片生成脚本
 │   └── extract_clauses.py  # 条款提取工具
-├── docs/                   # 对外发布文档（methodology / update-monitoring）
-│   │                       #   注意：站点与 sitemap 直接引用这些页面，必须入库
-│   └── internal/           # 内部工作底稿（核实报告、优化清单，.gitignore 忽略）
 ├── tests/                  # 回归测试（unittest，无第三方依赖）
 ├── .github/
 │   ├── workflows/          # CI/CD 工作流
@@ -96,9 +110,9 @@ ai-policy-tracker/
 └── LICENSE
 ```
 
-> **数据模型**：`data/policies/{id}.json` 是每个产品唯一的数据源（含名称、公司、版本政策、时间线等全部字段），`data/products.json` 只维护产品 ID 的排列顺序。修改产品数据只需要改一个文件。
+> **数据模型**：`site/data/policies/{id}.json` 是每个产品唯一的数据源（含名称、公司、版本政策、时间线等全部字段），`site/data/products.json` 只维护产品 ID 的排列顺序。修改产品数据只需要改一个文件。
 >
-> **源数据 vs 生成物**：`data/` 下只有人工维护的源数据；`generated/` 下全部由脚本产出（`bundle.json`、`update_status.json`、`snapshots/`、`change_reports/`、`og-card.png`），**不要手工编辑**，改了也会被下次 CI 覆盖。
+> **源数据 vs 生成物**：`site/data/` 下只有人工维护的源数据；`site/generated/` 下全部由脚本产出（`bundle.json`、`update_status.json`、`snapshots/`、`change_reports/`、`og-card.png`），**不要手工编辑**，改了也会被下次 CI 覆盖。
 
 ## 对比汇总表
 
@@ -188,9 +202,9 @@ python3 -m venv .venv
 .venv/bin/python scripts/check_updates.py
 ```
 
-脚本对政策页面正文（剥离 script/style、归一化空白后）计算哈希，并使用 ETag/If-Modified-Since 条件请求，避免页面动态内容导致的误报。检测结果写入 `generated/update_status.json`，**首页会自动展示监控状态**：无变化时显示上次运行时间，检测到变更时在表格上方展示告警横幅并在对应产品旁标注 ⚠️。
+脚本对政策页面正文（剥离 script/style、归一化空白后）计算哈希，并使用 ETag/If-Modified-Since 条件请求，避免页面动态内容导致的误报。检测结果写入 `site/generated/update_status.json`，**首页会自动展示监控状态**：无变化时显示上次运行时间，检测到变更时在表格上方展示告警横幅并在对应产品旁标注 ⚠️。
 
-监控按产品逐条覆盖独立条款链接（顶层 policy_url + 个人版/企业版各自的 policy_link，URL 去重）。变更时正文快照自动留档到 `generated/snapshots/`（`latest.txt` 为当前内容，日期文件为基线/变更存档，可用 diff 直接对比"到底改了什么"），并在仓库自动创建"政策变更待核实" Issue 提醒维护者核实。
+监控按产品逐条覆盖独立条款链接（顶层 policy_url + 个人版/企业版各自的 policy_link，URL 去重）。变更时正文快照自动留档到 `site/generated/snapshots/`（`latest.txt` 为当前内容，日期文件为基线/变更存档，可用 diff 直接对比"到底改了什么"），并在仓库自动创建"政策变更待核实" Issue 提醒维护者核实。
 
 其他校验与维护脚本：
 
@@ -203,7 +217,8 @@ python3 -m unittest discover -s tests -v     # 回归测试（无需第三方依
 仓库内置 GitHub Actions 工作流：
 
 - `.github/workflows/monitor.yml`——每周一北京时间 09:00 自动运行监控脚本，检测到变更时运行 AI 辅助分析并提交状态、快照、分析报告，创建/评论 Issue 告警（推送到 GitHub 后生效，也可在 Actions 页手动触发）
-- `.github/workflows/ci.yml`——PR 与主分支推送时自动运行回归测试、数据校验和汇总表一致性检查；main 推送后重新生成 `generated/bundle.json` 和 OG 图片（写权限仅授予该发布 job）
+- `.github/workflows/ci.yml`——PR 与主分支推送时自动运行回归测试、数据校验和汇总表一致性检查；main 推送后重新生成 `site/generated/bundle.json` 和 OG 图片（写权限仅授予该发布 job）
+- `.github/workflows/deploy.yml`——在上述工作流跑完后把 `site/` 目录部署到 GitHub Pages（也可手动触发）
 - `.github/dependabot.yml`——每周检查 GitHub Actions 与 pip 依赖更新
 
 ## 更新日志
@@ -212,7 +227,7 @@ python3 -m unittest discover -s tests -v     # 回归测试（无需第三方依
 
 ### v1.3.0 (2026-09-18)
 
-- **修复线上死链**：`docs/` 曾被 `.gitignore` 整体忽略，首页方法论与 sitemap 中的 `docs/*.html` 线上 404；现拆分为发布页面（入库）+ `docs/internal/`（忽略）
+- **修复线上死链**：`docs/` 曾被 `.gitignore` 整体忽略，首页方法论与 sitemap 中的 `docs/*.html` 线上 404；现拆分为发布页面（入库）+ `site/docs/internal/`（忽略）
 - **社区文档**：新增 `CODE_OF_CONDUCT.md`（行为准则）、`SECURITY.md`（安全政策）、`CHANGELOG.md`（变更日志）
 - **回归测试**：新增 `tests/test_scripts.py`（数据完整性、汇总表生成、发布文档链接有效性），CI 已接入
 - **工程**：CI 拆分为只读校验 job 与 main 发布 job（最小权限）、工作流并发控制、dependabot、贡献指南英文快速上手

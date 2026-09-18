@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-生成社交分享卡片 generated/og-card.png（1200×630，Open Graph / Twitter Card 用）。
+生成社交分享卡片 site/generated/og-card.png（1200×630，Open Graph / Twitter Card 用）。
 
-统计数字从 data/policies/*.json 实时计算（按个人版风险），与 README 汇总表同口径，
+统计数字从 site/data/policies/*.json 实时计算（按个人版风险），与 README 汇总表同口径，
 重新生成即可保持同步：.venv/bin/python scripts/gen_og_image.py
 
 依赖 Pillow（维护用一次性依赖，未列入 requirements.txt 以保持运行依赖精简）：
@@ -17,8 +17,8 @@ import os
 from PIL import Image, ImageDraw, ImageFont
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-POLICIES_DIR = os.path.join(BASE_DIR, "data", "policies")
-OUTPUT = os.path.join(BASE_DIR, "generated", "og-card.png")
+POLICIES_DIR = os.path.join(BASE_DIR, "site", "data", "policies")
+OUTPUT = os.path.join(BASE_DIR, "site", "generated", "og-card.png")
 
 W, H = 1200, 630
 BG = (245, 245, 245)        # 与站点 --bg 一致

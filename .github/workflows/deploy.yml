@@ -1,0 +1,50 @@
+name: 部署 Pages
+
+# 站点文件全部位于 site/ 目录，而 Pages 的 "Deploy from a branch" 只支持发布仓库根
+# 或 /docs，无法指定 site/，因此改用 Actions 部署：把 site/ 打包成产物发布出去。
+# 对外 URL 不变（site/ 即站点根）：https://838860610.github.io/ai-policy-tracker/
+#
+# 一次性手动设置：仓库 Settings → Pages → Build and deployment → Source 选 "GitHub Actions"。
+#
+# 触发说明：用 workflow_run 而不是 push——bot（GITHUB_TOKEN）提交的 commit 不会再触发
+# push 事件，ci.yml / monitor.yml 自动提交的产物也就不会触发重新部署；workflow_run
+# 在这两个工作流跑完后触发，无论提交者是人是 bot 都能覆盖到。
+on:
+  workflow_run:
+    workflows: ["数据校验", "政策更新监控"]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch: {} # 支持在 Actions 页面手动重新部署
+
+# 同时只允许一个部署任务在跑，避免相互覆盖
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    # 上游工作流失败时不部署；手动触发不受此限制
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages # 不存在时 GitHub 会自动创建
+      url: ${{ steps.deployment.outputs.page_url }}
+    permissions:
+      contents: read
+      pages: write # 部署到 GitHub Pages
+      id-token: write # OIDC 校验
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/configure-pages@v5
+
+      # 只发布 site/：它是站点根，因此 site/index.html → /、site/robots.txt → /robots.txt
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site/
+
+      - id: deployment
+        uses: actions/deploy-pages@v4

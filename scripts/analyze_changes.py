@@ -4,17 +4,17 @@
 AI 辅助政策变更分析（第二层监控）。
 
 功能：
-  - 读取 generated/update_status.json，找出 status=changed 的产品
+  - 读取 site/generated/update_status.json，找出 status=changed 的产品
   - 对每个变更产品，对比新旧政策正文快照：
-      新快照：generated/snapshots/{id}/{target}/latest.txt（本次检查抓取）
-      旧快照：generated/snapshots/{id}/{target}/ 下除 latest.txt 外最新的日期存档，
-              或从 git 历史取（generated/snapshots/ 已入 git 时）
+      新快照：site/generated/snapshots/{id}/{target}/latest.txt（本次检查抓取）
+      旧快照：site/generated/snapshots/{id}/{target}/ 下除 latest.txt 外最新的日期存档，
+              或从 git 历史取（site/generated/snapshots/ 已入 git 时）
   - 调用 LLM（OpenAI 兼容 API）对比新旧内容，提取关键变化点：
       - 训练数据政策是否变化
       - 退出/关闭机制是否变化
       - 数据留存期限是否变化
       - 其他关键条款变化
-  - 生成结构化变更报告，写入 generated/change_reports/{id}_{date}.json
+  - 生成结构化变更报告，写入 site/generated/change_reports/{id}_{date}.json
   - 输出 Markdown 摘要到 stdout（供 CI 嵌入 Issue 评论）
   - 无 API key 时降级为纯文本 diff，仍输出可读的变更报告
 
@@ -35,7 +35,7 @@ AI 辅助政策变更分析（第二层监控）。
   OPENAI_MODEL     - 模型名（默认 gpt-4o-mini）
 
 输出文件：
-  generated/change_reports/{id}_{date}.json - 结构化变更分析报告
+  site/generated/change_reports/{id}_{date}.json - 结构化变更分析报告
 """
 
 import argparse
@@ -50,10 +50,10 @@ import sys
 import requests
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-STATUS_FILE = os.path.join(BASE_DIR, "generated", "update_status.json")
-SNAPSHOTS_DIR = os.path.join(BASE_DIR, "generated", "snapshots")
-REPORTS_DIR = os.path.join(BASE_DIR, "generated", "change_reports")
-POLICIES_DIR = os.path.join(BASE_DIR, "data", "policies")
+STATUS_FILE = os.path.join(BASE_DIR, "site", "generated", "update_status.json")
+SNAPSHOTS_DIR = os.path.join(BASE_DIR, "site", "generated", "snapshots")
+REPORTS_DIR = os.path.join(BASE_DIR, "site", "generated", "change_reports")
+POLICIES_DIR = os.path.join(BASE_DIR, "site", "data", "policies")
 
 TARGET_LABELS = {"main": "主监控页", "toc": "个人版条款", "tob": "企业版条款"}
 
@@ -289,7 +289,7 @@ def analyze_product(pid, target_key, target_info, policy):
 
 
 def save_report(report):
-    """保存分析报告到 generated/change_reports/。"""
+    """保存分析报告到 site/generated/change_reports/。"""
     os.makedirs(REPORTS_DIR, exist_ok=True)
     date = datetime.date.today().isoformat()
     pid = report["pid"]
@@ -345,9 +345,9 @@ def render_markdown_summary(reports):
 
     lines.append("### 人工确认指引")
     lines.append("")
-    lines.append("1. 实质变更产品：请访问上述 URL 确认变更内容，更新 `data/policies/{id}.json`")
+    lines.append("1. 实质变更产品：请访问上述 URL 确认变更内容，更新 `site/data/policies/{id}.json`")
     lines.append("2. 非实质变更：无需更新数据文件，下次监控自动以新内容为基线")
-    lines.append("3. 完整分析报告：`generated/change_reports/` 目录下各产品 JSON 文件")
+    lines.append("3. 完整分析报告：`site/generated/change_reports/` 目录下各产品 JSON 文件")
     lines.append("")
 
     return "\n".join(lines)

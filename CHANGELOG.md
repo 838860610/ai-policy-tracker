@@ -11,6 +11,17 @@
 
 ### Changed
 
+- **站点整体迁入 `site/`（方案 D）**：`site/` 即站点根，内含 `index.html`、`detail.html`、`404.html`、`robots.txt`、`sitemap.xml`、`css/`、`js/`、`data/`、`generated/`、`docs/`；仓库根只留文档与工具（21 → 12 项）
+- **部署改用 GitHub Actions**：新增 `.github/workflows/deploy.yml`，发布 `site/` 目录；Pages 设置需一次性改为 *Settings → Pages → Source: GitHub Actions*（原因：分支发布只支持 `/(root)` 或 `/docs`，无法指定 `site/`）
+- 部署触发用 `workflow_run`（监听「数据校验」「政策更新监控」完成）而非 `push`——bot 用 `GITHUB_TOKEN` 提交的 commit 不会再触发 `push` 事件，否则自动生成的产物发布不出去
+- 脚本路径常量全部改为 `site/data` 与 `site/generated`；`start.sh` 改为 `http.server --directory site`；新增 `site/.nojekyll`
+
+### Added
+
+- `tests/test_scripts.py` 新增 `test_site_dir_is_the_publish_root`：断言站点根文件齐备，防止漏文件导致线上 404
+
+### Changed
+
 - **目录分层（A1）**：`data/` 只保留人工维护的源数据（`products.json` + `policies/`）；全部生成物迁入新的 `generated/` 目录——`bundle.json`、`update_status.json`、`snapshots/`、`change_reports/`，以及原 `assets/og-card.png`（`assets/` 目录已移除）
 - 相应更新 `gen_data_bundle.py`、`check_updates.py`、`analyze_changes.py`、`gen_og_image.py` 的产出路径，`js/app.js` 的读取路径，两个工作流的提交路径与 `.gitignore`
 - `tests/test_scripts.py` 新增 `TestLayout`（21 项）：断言 `data/` 不含生成物、前端只从 `generated/` 读取，防止回归
