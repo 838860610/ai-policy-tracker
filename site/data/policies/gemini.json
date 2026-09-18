@@ -9,23 +9,26 @@
   "versions": {
     "toc": {
       "used_for_training": true,
-      "training_note": "用户对话数据可能用于训练（Keep Activity 开启时），关闭活动记录后未来对话不用于训练模型；自动删除默认18个月（2026-08-30 复核补充：原记录只写3/36选项）。引文原为意译，已换为帮助文档原句；原文另载：设置不控制匿名化数据处理、临时聊天保留72小时",
+      "training_note": "Keep Activity 开启时：Google 使用活动记录提供、开发和改进服务（including training generative AI models），并有人工审核；18 岁及以上默认开启。关闭后未来对话不用于训练模型（除非主动提交反馈），但仍保留 72 小时且可能经人工审核用于安全目的。语音与 Gemini Live 音视频默认不用于改进服务。设置不控制匿名化数据的处理。",
       "default_state": "默认开启",
       "opt_out": "设置开关",
-      "opt_out_method": "关闭活动记录（Keep Activity off：未来对话不进入活动记录且不用于训练模型）；自动删除默认18个月，可改3/36个月或不自动删除",
+      "opt_out_method": "关闭 Keep Activity：未来对话不进入活动记录且不用于训练模型（原文含例外——unless you choose to send Google feedback，主动提交反馈的对话仍会被用于改进）；未来对话仍保留 72 小时用于响应、处理反馈与安全目的。自动删除默认 18 个月，可改 3/36 个月或不自动删除",
       "deidentified": true,
       "data_retention": "活动记录自动删除默认18个月，可改为3个月或36个月（或不自动删除）；被人工抽检的对话及相关数据即使删除活动仍保留最长3年",
       "copyright": "用户所有",
       "other_uses": "模型训练、服务改进",
       "risk_level": "yellow",
       "key_clauses": [
-        "Your future chats won't appear in your Activity, and won't be used to train our AI models.（Gemini Apps 隐私帮助文档·Keep Activity off；原文该句后接 unless 但书）",
-        "You can change your auto-delete setting in Gemini Apps Activity from the default of 18 months to 3 months, 36 months, or indefinite.（Gemini Apps 隐私帮助文档）",
-        "Reviewed chats are retained for up to three years.（Gemini Apps 隐私帮助文档）"
+        "Your future chats won't appear in your Activity, and won't be used to train our AI models, unless you choose to send Google feedback. Future chats are still saved for 72 hours so Gemini can respond to you, process your feedback, and protect Google, its users, and the public.（Gemini Apps Privacy Hub·Keep Activity off，最后更新 2026-08-10）",
+        "You can change your auto-delete setting in Gemini Apps Activity from the default of 18 months to 3 months, 36 months, or indefinite. You can also manually delete your Gemini Apps chats anytime.（Gemini Apps Privacy Hub·How long we retain your data，最后更新 2026-08-10）",
+        "Chats reviewed by human reviewers (and related data like your language, device type, location info, or feedback) are not deleted when you delete your activity. Instead, they are retained for up to three years.（Gemini Apps Privacy Hub·How long we retain your data）"
       ],
-      "policy_link": "https://policies.google.com/terms",
+      "policy_link": "https://support.google.com/gemini/answer/13594961?hl=en",
       "last_verified": "2026-08-30",
-      "label": "个人版"
+      "label": "个人版",
+      "verification_notes": [
+        "2026-09-19 逐字复核：引文出自 Gemini Apps Privacy Hub（support.google.com/gemini/answer/13594961，最后更新 2026-08-10），非 13278892（该页为活动记录管理操作页）。toc 第 1 条原为截断句，已补全 unless you choose to send Google feedback 与 72 小时保留句；第 3 条原为意译，已替换为原文整句。tob 两条与 Generative AI in Google Workspace Privacy Hub 逐字一致，无需修改。"
+      ]
     },
     "tob": {
       "used_for_training": false,
@@ -39,8 +42,8 @@
       "other_uses": "无",
       "risk_level": "yellow",
       "key_clauses": [
-        "Your chats and uploaded files in Gemini app won't be reviewed by human reviewers or otherwise used to train generative AI models without your permission.（Google Workspace 生成式 AI 隐私中心，2026-08-30 核验）",
-        "Admins can choose to automatically delete conversations after 3, 18, or 36 months. The default is 18 months.（Google Workspace 生成式 AI 隐私中心）"
+        "Your chats and uploaded files in Gemini app won't be reviewed by human reviewers or otherwise used to train generative AI models without your permission.（Generative AI in Google Workspace Privacy Hub，最后更新 2026-08-14）",
+        "Admins can choose to automatically delete conversations after 3, 18, or 36 months. The default is 18 months.（Generative AI in Google Workspace Privacy Hub，最后更新 2026-08-14）"
       ],
       "policy_link": "https://knowledge.workspace.google.com/admin/generative-ai/generative-ai-in-google-workspace-privacy-hub",
       "last_verified": "2026-08-30",
