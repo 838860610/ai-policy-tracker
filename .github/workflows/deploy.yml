@@ -39,6 +39,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: 安装依赖（生成 OG 社交卡片）
+        run: pip install --quiet pillow
+
+      - name: 部署时生成社交分享卡片
+        # OG 卡片在部署阶段现场生成，而非由 CI 提交回 main：避免字体/依赖环境差异
+        # 导致每次 CI 都产生一个自动提交、进而造成本地与远端分叉。
+        run: python scripts/gen_og_image.py
+
       - uses: actions/configure-pages@v5
 
       # 只发布 site/：它是站点根，因此 site/index.html → /、site/robots.txt → /robots.txt
