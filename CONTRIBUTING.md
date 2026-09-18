@@ -134,6 +134,16 @@ git push origin update/xxx-policy
 ```
 
 > **注意**：`key_clauses` 必须是政策原文摘录，不要填"待核实"占位文字或评述性文字。`validate_data.py` 会对占位文字给出警告。
+>
+> **不要把核实过程写进 `key_clauses`**：诸如"该文档已 404""此条引自 A 协议用于对比""2026-08-30 修正了条款编号"这类内容，请放到可选的 `verification_notes`（数组）里——`key_clauses` 会被详情页当作厂商条款渲染，混进核对记录会误导读者。
+
+### 其他可选字段
+
+| 字段 | 位置 | 说明 |
+|------|------|------|
+| `verification_notes` | `versions.toc` / `versions.tob` | 核实说明数组（非政策原文），不参与条款展示 |
+| `monitor` | 顶层 | 设为 `false` 时该产品**不纳入自动监控**。适用于没有独立公开政策页、政策 URL 只能指向产品首页的占位条目，否则监控脚本会对首页做正文哈希，产生持续误报 |
+| `toc_note` / `tob_note` | 顶层 | 该版本无数据时的书面说明（填了就不会产生"缺少版本数据"警告） |
 
 ## 风险等级评定标准
 
@@ -204,7 +214,9 @@ python3 -m unittest discover -s tests -v
 # 或手动：python3 -m http.server 8080 --directory site，访问 http://localhost:8080 检查页面
 ```
 
-> **文档约定**：`docs/` 下的 `methodology` / `update-monitoring` 是线上站点与 `sitemap.xml` 直接引用的页面，**必须入库**；`site/docs/internal/` 存放内部工作底稿（核实报告、优化清单），已被 `.gitignore` 忽略，站点不得引用其中的文件（测试 `tests/test_scripts.py` 会校验这一点）。
+> **文档约定**：`site/docs/` 下的 `methodology` / `update-monitoring` 是线上站点与 `sitemap.xml` 直接引用的页面，**必须入库**。
+> - **`.md` 是唯一源，`.html` 由 `scripts/gen_docs.py` 渲染生成，不要手工编辑 html**（此前两份手工维护导致 html 长期停留在旧版本）；CI 会跑 `--check`，不一致即失败
+> - `site/docs/internal/` 存放内部工作底稿（核实报告、优化清单），已被 `.gitignore` 忽略，站点不得引用其中的文件（测试 `tests/test_scripts.py` 会校验这一点）
 
 ### 其他维护脚本
 
@@ -223,6 +235,10 @@ python3 -m unittest discover -s tests -v
 
 # AI 辅助变更分析（对比新旧快照，调用 LLM 提取关键变化点）
 .venv/bin/python scripts/analyze_changes.py
+
+# 文档页生成：site/docs/*.md 是唯一源，*.html 由脚本渲染（不要手工改 html）
+.venv/bin/python scripts/gen_docs.py            # 重新生成
+.venv/bin/python scripts/gen_docs.py --check    # CI 用：校验是否已最新
 ```
 
 ### 转录型字段联动复审

@@ -3,68 +3,83 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="AI 用户政策追踪器监控说明：政策更新监控脚本的使用方法、检测原理与定时运行配置。">
-  <title>监控说明 - AI 用户政策追踪器</title>
+  <meta name="description" content="AI 用户政策追踪器政策更新监控说明：变化检测、快照留档与 AI 辅助变更分析。">
+  <title>政策更新监控 - AI 用户政策追踪器</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%9B%A1%EF%B8%8F%3C/text%3E%3C/svg%3E">
-  <link rel="stylesheet" href="../site/css/style.css">
+  <link rel="stylesheet" href="../css/style.css?v=20260919-1">
 </head>
 <body>
   <div class="header">
-    <h1>监控说明</h1>
-    <p class="subtitle">AI 用户政策追踪器 · 政策更新自动监控</p>
+    <h1>政策更新监控</h1>
+    <p class="subtitle">AI 用户政策追踪器 · 自动化政策变更监控说明</p>
   </div>
 
   <div class="docs-body">
-    <h2>概述</h2>
-    <p>本项目包含一个自动化的政策更新监控脚本 <code>scripts/check_updates.py</code>，用于定期检测各 AI 产品的隐私政策页面是否发生变化。当检测到变化时，脚本会输出告警信息，并把结果写入 <code>site/generated/update_status.json</code> —— <strong>首页会读取该文件并展示监控状态</strong>，检测到变更时会在表格上方显示告警横幅并在对应产品名旁标注 ⚠️。</p>
-
-    <h2>检测原理</h2>
-    <p>为避免误报，脚本不会直接对原始 HTML 做哈希（政策页面普遍含有时间戳、CSRF token、A/B 实验等动态内容，裸哈希几乎每次运行都会误报"已变更"），而是：</p>
-    <ol>
-      <li><strong>正文提取</strong>：剥离 <code>&lt;script&gt;</code>、<code>&lt;style&gt;</code> 等非正文标签，提取可见文本（使用 BeautifulSoup，未安装时退化为正则去标签）</li>
-      <li><strong>空白归一化</strong>：压缩行内连续空白、丢弃空行，使哈希对纯排版变化不敏感</li>
-      <li><strong>归一化哈希</strong>：对归一化后的文本计算 SHA256</li>
-      <li><strong>条件请求</strong>：携带上次记录的 <code>ETag</code> / <code>Last-Modified</code>，页面未变化时服务端直接返回 304，不下载正文、零误报</li>
-      <li><strong>哈希方案版本化</strong>：状态文件中记录 <code>hash_scheme</code>；提取算法升级时自动重建基线，而不是误报全部"已变更"</li>
-    </ol>
-
-    <h2>监控脚本使用方法</h2>
-
-    <h3>前置条件</h3>
-    <p>所有 Python 脚本统一使用项目虚拟环境 <code>.venv</code> 运行（不污染系统 Python，也规避新版 Python 禁止直接 pip 装包的限制）：</p>
-    <pre><code># 方式一：./start.sh 会自动创建 .venv 并安装依赖
+<h1>更新监控说明</h1>
+<h2>概述</h2>
+<p>本项目采用两层监控机制：</p>
+<ul>
+<li><strong>第一层·变化检测</strong>（<code>scripts/check_updates.py</code>）：定期检测各 AI 产品的隐私政策页面是否发生变化（正文归一化哈希 + 条件请求）。检测结果写入 <code>site/generated/update_status.json</code>，<strong>首页读取并展示监控状态</strong>——检测到变更时在表格上方显示告警横幅并在对应产品名旁标注 ⚠️。</li>
+<li><strong>第二层·AI 辅助分析</strong>（<code>scripts/analyze_changes.py</code>）：检测到变更后，自动对比新旧政策快照，调用 LLM 提取训练政策/退出机制/留存期限等维度的变化，生成结构化报告写入 <code>site/generated/change_reports/</code>，并将分析摘要嵌入 GitHub Issue。</li>
+</ul>
+<h2>检测原理</h2>
+<p>为避免误报，脚本不会直接对原始 HTML 做哈希（政策页面普遍含有时间戳、CSRF token、A/B 实验等动态内容，裸哈希几乎每次运行都会误报"已变更"），而是：</p>
+<ol>
+<li><strong>正文提取</strong>：剥离 <code>&lt;script&gt;</code>、<code>&lt;style&gt;</code> 等非正文标签，提取可见文本（使用 BeautifulSoup，未安装时退化为正则去标签）</li>
+<li><strong>空白归一化</strong>：压缩行内连续空白、丢弃空行，使哈希对纯排版变化不敏感</li>
+<li><strong>归一化哈希</strong>：对归一化后的文本计算 SHA256</li>
+<li><strong>条件请求</strong>：携带上次记录的 <code>ETag</code> / <code>Last-Modified</code>，页面未变化时服务端直接返回 304，不下载正文、零误报</li>
+<li><strong>哈希方案版本化</strong>：状态文件中记录 <code>hash_scheme</code>；提取算法升级时自动重建基线，而不是误报全部"已变更"</li>
+</ol>
+<h2>监控脚本使用方法</h2>
+<h3>前置条件</h3>
+<p>所有 Python 脚本统一使用项目虚拟环境 <code>.venv</code> 运行（不污染系统 Python，也规避新版 Python 禁止直接 pip 装包的限制）：</p>
+<pre><code class="language-bash"># 方式一：./start.sh 会自动创建 .venv 并安装依赖
 ./start.sh
 
 # 方式二：手动创建
 python3 -m venv .venv
-.venv/bin/pip install -r requirements.txt   # requests + beautifulsoup4</code></pre>
-
-    <h3>手动运行</h3>
-    <pre><code>cd /path/to/ai-policy-tracker
+.venv/bin/pip install -r requirements.txt   # requests + beautifulsoup4
+</code></pre>
+<h3>手动运行</h3>
+<pre><code class="language-bash">cd /path/to/ai-policy-tracker
 
 # 默认参数：请求间隔 1.5s，单次超时 30s
 .venv/bin/python scripts/check_updates.py
 
 # 自定义参数
-.venv/bin/python scripts/check_updates.py --delay 3 --timeout 60</code></pre>
-
-    <table>
-      <thead><tr><th>参数</th><th>默认值</th><th>说明</th></tr></thead>
-      <tbody>
-        <tr><td><code>--delay</code></td><td>1.5</td><td>相邻请求间隔秒数（礼貌抓取，避免触发对方风控）</td></tr>
-        <tr><td><code>--timeout</code></td><td>30</td><td>单次请求超时秒数</td></tr>
-      </tbody>
-    </table>
-    <p>网络类错误（超时、连接失败）会自动重试 2 次，按 5s、10s 退避。</p>
-
-    <h3>输出示例</h3>
-    <pre><code>============================================================
+.venv/bin/python scripts/check_updates.py --delay 3 --timeout 60
+</code></pre>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>默认值</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--delay</code></td>
+<td>1.5</td>
+<td>相邻请求间隔秒数（礼貌抓取，避免触发对方风控）</td>
+</tr>
+<tr>
+<td><code>--timeout</code></td>
+<td>30</td>
+<td>单次请求超时秒数</td>
+</tr>
+</tbody>
+</table>
+<p>网络类错误（超时、连接失败）会自动重试 2 次，按 5s、10s 退避。</p>
+<h3>输出示例</h3>
+<pre><code>============================================================
 AI 政策更新监控脚本
 运行时间：2026-08-29 09:00:00
 哈希方案：text-v1（正文文本归一化）
 ============================================================
 
-共 12 个产品需要检查
+共 50 个产品需要检查
 
   [OK]   ChatGPT (chatgpt): 内容未变化（304 Not Modified）
   [OK]   Claude (claude): 内容未变化
@@ -83,31 +98,31 @@ AI 政策更新监控脚本
 ============================================================
 
 ⚠️ 告警：检测到 1 个产品政策可能已更新，请及时核实！
-  - gemini: https://policies.google.com/terms</code></pre>
-
-    <h2>定时运行</h2>
-
-    <h3>Cron（每周运行一次，推荐）</h3>
-    <pre><code># 编辑 crontab
+  - gemini: https://policies.google.com/terms
+</code></pre>
+<h2>定时运行</h2>
+<h3>Cron（每周运行一次，推荐）</h3>
+<pre><code class="language-bash"># 编辑 crontab
 crontab -e
 
 # 每周一早上 9 点运行（logs 目录需预先创建：mkdir -p logs）
-0 9 * * 1 cd /path/to/ai-policy-tracker &amp;&amp; mkdir -p logs &amp;&amp; /path/to/ai-policy-tracker/.venv/bin/python scripts/check_updates.py &gt;&gt; logs/check_updates.log 2&gt;&amp;1</code></pre>
-
-    <h3>每天运行一次</h3>
-    <pre><code>0 9 * * * cd /path/to/ai-policy-tracker &amp;&amp; mkdir -p logs &amp;&amp; /path/to/ai-policy-tracker/.venv/bin/python scripts/check_updates.py &gt;&gt; logs/check_updates.log 2&gt;&amp;1</code></pre>
-
-    <h3>使用 systemd timer（替代方案）</h3>
-    <p>创建 <code>/etc/systemd/system/ai-policy-check.service</code>：</p>
-    <pre><code>[Unit]
+0 9 * * 1 cd /path/to/ai-policy-tracker &amp;&amp; mkdir -p logs &amp;&amp; /path/to/ai-policy-tracker/.venv/bin/python scripts/check_updates.py &gt;&gt; logs/check_updates.log 2&gt;&amp;1
+</code></pre>
+<h3>每天运行一次</h3>
+<pre><code class="language-bash">0 9 * * * cd /path/to/ai-policy-tracker &amp;&amp; mkdir -p logs &amp;&amp; /path/to/ai-policy-tracker/.venv/bin/python scripts/check_updates.py &gt;&gt; logs/check_updates.log 2&gt;&amp;1
+</code></pre>
+<h3>使用 systemd timer（替代方案）</h3>
+<p>创建 <code>/etc/systemd/system/ai-policy-check.service</code>：</p>
+<pre><code class="language-ini">[Unit]
 Description=AI Policy Update Check
 
 [Service]
 Type=oneshot
 WorkingDirectory=/path/to/ai-policy-tracker
-ExecStart=/path/to/ai-policy-tracker/.venv/bin/python scripts/check_updates.py</code></pre>
-    <p>创建 <code>/etc/systemd/system/ai-policy-check.timer</code>：</p>
-    <pre><code>[Unit]
+ExecStart=/path/to/ai-policy-tracker/.venv/bin/python scripts/check_updates.py
+</code></pre>
+<p>创建 <code>/etc/systemd/system/ai-policy-check.timer</code>：</p>
+<pre><code class="language-ini">[Unit]
 Description=Run AI Policy Check weekly
 
 [Timer]
@@ -115,89 +130,160 @@ OnCalendar=Mon *-*-* 09:00:00
 Persistent=true
 
 [Install]
-WantedBy=timers.target</code></pre>
-    <p>启用：</p>
-    <pre><code>sudo systemctl enable --now ai-policy-check.timer</code></pre>
-
-    <h2>输出说明</h2>
-
-    <h3>状态标记含义</h3>
-    <table>
-      <thead><tr><th>标记</th><th>含义</th></tr></thead>
-      <tbody>
-        <tr><td><code>[OK]</code></td><td>内容未变化（含 304 Not Modified）</td></tr>
-        <tr><td><code>[⚠️]</code></td><td>内容已变化，需要人工核实</td></tr>
-        <tr><td><code>[新增]</code></td><td>首次检查，记录基线 hash</td></tr>
-        <tr><td><code>[基线]</code></td><td>哈希算法升级或无有效基线，重新记录</td></tr>
-        <tr><td><code>[失败]</code></td><td>请求失败（超时、404 等，重试后仍失败）</td></tr>
-        <tr><td><code>[跳过]</code></td><td>URL 为空或"待核实"，跳过检查</td></tr>
-      </tbody>
-    </table>
-
-    <h3>update_status.json 格式</h3>
-    <pre><code>{
-  "meta": {
-    "last_run": "2026-08-29T09:00:00",
-    "hash_scheme": "text-v1",
-    "total_products": 12,
-    "changed": 1,
-    "failed": 0,
-    "skipped": 0
+WantedBy=timers.target
+</code></pre>
+<p>启用：</p>
+<pre><code class="language-bash">sudo systemctl enable --now ai-policy-check.timer
+</code></pre>
+<h2>输出说明</h2>
+<h3>状态标记含义</h3>
+<table>
+<thead>
+<tr>
+<th>标记</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>[OK]</code></td>
+<td>内容未变化（含 304 Not Modified）</td>
+</tr>
+<tr>
+<td><code>[⚠️]</code></td>
+<td>内容已变化，需要人工核实</td>
+</tr>
+<tr>
+<td><code>[新增]</code></td>
+<td>首次检查，记录基线 hash</td>
+</tr>
+<tr>
+<td><code>[基线]</code></td>
+<td>哈希算法升级或无有效基线，重新记录</td>
+</tr>
+<tr>
+<td><code>[失败]</code></td>
+<td>请求失败（超时、404 等，重试后仍失败）</td>
+</tr>
+<tr>
+<td><code>[跳过]</code></td>
+<td>URL 为空或"待核实"，跳过检查</td>
+</tr>
+</tbody>
+</table>
+<h3>update_status.json 格式</h3>
+<pre><code class="language-json">{
+  &quot;meta&quot;: {
+    &quot;last_run&quot;: &quot;2026-08-29T09:00:00&quot;,
+    &quot;hash_scheme&quot;: &quot;text-v1&quot;,
+    &quot;total_products&quot;: 12,
+    &quot;changed&quot;: 1,
+    &quot;failed&quot;: 0,
+    &quot;skipped&quot;: 0
   },
-  "products": {
-    "chatgpt": {
-      "url": "https://openai.com/policies/terms-of-use",
-      "hash_scheme": "text-v1",
-      "current_hash": "a1b2c3d4e5f6...",
-      "content_etag": "\"abc123\"",
-      "content_last_modified": "Mon, 24 Aug 2026 10:00:00 GMT",
-      "last_checked": "2026-08-29T09:00:00",
-      "status": "ok",
-      "message": "内容未变化（304 Not Modified）",
-      "last_changed_date": null
+  &quot;products&quot;: {
+    &quot;chatgpt&quot;: {
+      &quot;url&quot;: &quot;https://openai.com/policies/terms-of-use&quot;,
+      &quot;hash_scheme&quot;: &quot;text-v1&quot;,
+      &quot;current_hash&quot;: &quot;a1b2c3d4e5f6...&quot;,
+      &quot;content_etag&quot;: &quot;\&quot;abc123\&quot;&quot;,
+      &quot;content_last_modified&quot;: &quot;Mon, 24 Aug 2026 10:00:00 GMT&quot;,
+      &quot;last_checked&quot;: &quot;2026-08-29T09:00:00&quot;,
+      &quot;status&quot;: &quot;ok&quot;,
+      &quot;message&quot;: &quot;内容未变化（304 Not Modified）&quot;,
+      &quot;last_changed_date&quot;: null
     },
-    "gemini": {
-      "url": "https://policies.google.com/terms",
-      "hash_scheme": "text-v1",
-      "current_hash": "f6e5d4c3b2a1...",
-      "content_etag": null,
-      "content_last_modified": null,
-      "last_checked": "2026-08-29T09:00:00",
-      "status": "changed",
-      "message": "⚠️ 政策可能已更新，待核实",
-      "last_changed_date": "2026-08-29T09:00:00"
+    &quot;gemini&quot;: {
+      &quot;url&quot;: &quot;https://policies.google.com/terms&quot;,
+      &quot;hash_scheme&quot;: &quot;text-v1&quot;,
+      &quot;current_hash&quot;: &quot;f6e5d4c3b2a1...&quot;,
+      &quot;content_etag&quot;: null,
+      &quot;content_last_modified&quot;: null,
+      &quot;last_checked&quot;: &quot;2026-08-29T09:00:00&quot;,
+      &quot;status&quot;: &quot;changed&quot;,
+      &quot;message&quot;: &quot;⚠️ 政策可能已更新，待核实&quot;,
+      &quot;last_changed_date&quot;: &quot;2026-08-29T09:00:00&quot;
     }
   }
-}</code></pre>
-
-    <h3>字段说明</h3>
-    <table>
-      <thead><tr><th>字段</th><th>说明</th></tr></thead>
-      <tbody>
-        <tr><td><code>meta.last_run</code></td><td>最后运行时间（ISO 格式）</td></tr>
-        <tr><td><code>meta.hash_scheme</code></td><td>当前哈希算法版本</td></tr>
-        <tr><td><code>meta.total_products</code></td><td>检查的产品总数</td></tr>
-        <tr><td><code>meta.changed</code></td><td>检测到变化的产品数</td></tr>
-        <tr><td><code>meta.failed</code></td><td>检查失败的产品数</td></tr>
-        <tr><td><code>meta.skipped</code></td><td>跳过检查的产品数</td></tr>
-        <tr><td><code>products.{id}.url</code></td><td>检查的政策 URL</td></tr>
-        <tr><td><code>products.{id}.hash_scheme</code></td><td>生成该哈希时的算法版本</td></tr>
-        <tr><td><code>products.{id}.current_hash</code></td><td>当前页面正文（归一化）的 SHA256 hash</td></tr>
-        <tr><td><code>products.{id}.content_etag</code></td><td>服务端返回的 ETag（用于条件请求）</td></tr>
-        <tr><td><code>products.{id}.content_last_modified</code></td><td>服务端返回的 Last-Modified（用于条件请求）</td></tr>
-        <tr><td><code>products.{id}.last_checked</code></td><td>最后检查时间</td></tr>
-        <tr><td><code>products.{id}.status</code></td><td>检查状态（ok/changed/failed/skipped）</td></tr>
-        <tr><td><code>products.{id}.message</code></td><td>状态描述信息</td></tr>
-        <tr><td><code>products.{id}.last_changed_date</code></td><td>最后检测到变化的日期</td></tr>
-      </tbody>
-    </table>
-
-    <h2>监控流程</h2>
-    <pre><code>1. 读取 site/data/products.json（ID 索引）
+}
+</code></pre>
+<h3>字段说明</h3>
+<table>
+<thead>
+<tr>
+<th>字段</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>meta.last_run</code></td>
+<td>最后运行时间（ISO 格式）</td>
+</tr>
+<tr>
+<td><code>meta.hash_scheme</code></td>
+<td>当前哈希算法版本</td>
+</tr>
+<tr>
+<td><code>meta.total_products</code></td>
+<td>检查的产品总数</td>
+</tr>
+<tr>
+<td><code>meta.changed</code></td>
+<td>检测到变化的产品数</td>
+</tr>
+<tr>
+<td><code>meta.failed</code></td>
+<td>检查失败的产品数</td>
+</tr>
+<tr>
+<td><code>meta.skipped</code></td>
+<td>跳过检查的产品数</td>
+</tr>
+<tr>
+<td><code>products.{id}.url</code></td>
+<td>检查的政策 URL</td>
+</tr>
+<tr>
+<td><code>products.{id}.hash_scheme</code></td>
+<td>生成该哈希时的算法版本</td>
+</tr>
+<tr>
+<td><code>products.{id}.current_hash</code></td>
+<td>当前页面正文（归一化）的 SHA256 hash</td>
+</tr>
+<tr>
+<td><code>products.{id}.content_etag</code></td>
+<td>服务端返回的 ETag（用于条件请求）</td>
+</tr>
+<tr>
+<td><code>products.{id}.content_last_modified</code></td>
+<td>服务端返回的 Last-Modified（用于条件请求）</td>
+</tr>
+<tr>
+<td><code>products.{id}.last_checked</code></td>
+<td>最后检查时间</td>
+</tr>
+<tr>
+<td><code>products.{id}.status</code></td>
+<td>检查状态（ok/changed/failed/skipped）</td>
+</tr>
+<tr>
+<td><code>products.{id}.message</code></td>
+<td>状态描述信息</td>
+</tr>
+<tr>
+<td><code>products.{id}.last_changed_date</code></td>
+<td>最后检测到变化的日期</td>
+</tr>
+</tbody>
+</table>
+<h2>监控流程</h2>
+<pre><code>1. 读取 site/data/products.json（ID 索引）
 2. 逐个加载 site/data/policies/{id}.json，获取 policy_url
 3. 读取 site/generated/update_status.json（如存在）中上次的状态
 4. 对每个产品：
-   a. 跳过 URL 为空或"待核实"的条目
+   a. 跳过 URL 为空或&quot;待核实&quot;的条目
    b. 携带 ETag / If-Modified-Since 发起条件请求（失败自动重试）
    c. 服务端返回 304 → 内容未变化
    d. 否则提取正文文本、归一化空白、计算 SHA256
@@ -205,41 +291,109 @@ WantedBy=timers.target</code></pre>
    f. 记录检查结果与新 ETag / Last-Modified
    g. 等待 --delay 秒再检查下一个（礼貌抓取）
 5. 写入 site/generated/update_status.json（首页读取展示）
-6. 输出告警信息</code></pre>
-
-    <h2>首页如何展示监控结果</h2>
-    <p>首页 <code>site/js/app.js</code> 会尝试加载 <code>site/generated/update_status.json</code>：</p>
-    <ul>
-      <li><strong>文件不存在</strong>（从未运行过监控）：页面不显示任何监控信息</li>
-      <li><strong>全部无变化</strong>：表格上方显示一行"政策监控上次运行：…，未检测到政策变更"</li>
-      <li><strong>检测到变更</strong>：显示醒目的告警横幅，列出可能已更新的产品（可点击进入详情），对应产品的名称旁也会标注 ⚠️</li>
-    </ul>
-    <blockquote>注意：<code>site/generated/update_status.json</code> 由监控流程生成，但<strong>会入库</strong>——首页与 Pages 直接读取它展示监控状态，<code>monitor.yml</code> 每次运行后自动提交。同目录下的 <code>site/generated/snapshots/</code> 因体积大、变动频繁而保留在 <code>.gitignore</code> 中，需要时用 <code>git add -f</code> 强制提交。</blockquote>
-
-    <h2>第二层 AI 辅助分析（未来功能）</h2>
-    <p>当检测到政策页面变化后，目前需要人工核实。未来计划引入 AI 辅助分析作为第二层监控：</p>
-    <ol>
-      <li><strong>自动抓取新内容</strong>：检测到变化后，自动抓取新的政策页面内容</li>
-      <li><strong>AI 对比分析</strong>：使用 LLM 对比新旧政策内容，提取关键变化点</li>
-      <li><strong>结构化输出</strong>：自动更新 <code>site/data/policies/{id}.json</code> 中的相关字段</li>
-      <li><strong>变更报告</strong>：生成人类可读的变更报告，标注关键变化</li>
-    </ol>
-    <p>预期流程：</p>
-    <pre><code>检测到 hash 变化
-  → 抓取新页面内容
-  → AI 分析新旧内容差异
+6. 输出告警信息
+</code></pre>
+<h2>首页如何展示监控结果</h2>
+<p>首页 <code>site/js/app.js</code> 会尝试加载 <code>site/generated/update_status.json</code>：</p>
+<ul>
+<li><strong>文件不存在</strong>（从未运行过监控）：页面不显示任何监控信息</li>
+<li><strong>全部无变化</strong>：表格上方显示一行"政策监控上次运行：…，未检测到政策变更"</li>
+<li><strong>检测到变更</strong>：显示醒目的告警横幅，列出可能已更新的产品（可点击进入详情），对应产品的名称旁也会标注 ⚠️</li>
+</ul>
+<blockquote>
+<p>注意：<code>site/generated/update_status.json</code> 由监控流程生成，但<strong>会入库</strong>——首页与 Pages 直接读取它展示监控状态，<code>monitor.yml</code> 每次运行后自动提交。同目录下的 <code>site/generated/snapshots/</code> 因体积大、变动频繁而保留在 <code>.gitignore</code> 中，需要时用 <code>git add -f</code> 强制提交。</p>
+</blockquote>
+<h2>第二层 AI 辅助分析</h2>
+<h3>已实现（2026-09-09）</h3>
+<p>当检测到政策页面变化后，<code>scripts/analyze_changes.py</code> 自动对比新旧快照并调用 LLM 提取关键变化点：</p>
+<ol>
+<li><strong>新旧快照对比</strong>：从 <code>site/generated/snapshots/{id}/{target}/</code> 取 <code>latest.txt</code>（新版）和上一个日期存档或 git 历史（旧版）</li>
+<li><strong>AI 对比分析</strong>：调用 OpenAI 兼容 API，按结构化 prompt 提取训练政策/退出机制/留存期限/知识产权等维度的变化</li>
+<li><strong>结构化报告</strong>：分析结果写入 <code>site/generated/change_reports/{id}_{target}_{date}.json</code>，Markdown 摘要写入 <code>_summary.md</code></li>
+<li><strong>Issue 嵌入</strong>：CI 中自动将分析摘要嵌入"政策变更待核实"Issue，人工直接在 Issue 中看到分析结论</li>
+<li><strong>降级模式</strong>：未配置 <code>OPENAI_API_KEY</code> 时自动降级为纯文本 diff，仍输出可读报告</li>
+</ol>
+<h3>流程</h3>
+<pre><code>check_updates.py 检测到 hash 变化
+  → analyze_changes.py 取新旧快照
+  → LLM 分析新旧内容差异（无 API key 时降级为文本 diff）
   → 提取关键变化点（训练政策、退出机制、留存期限等）
-  → 生成变更摘要
-  → 自动更新数据文件（需人工确认）
-  → 发送通知（邮件/ webhook）</code></pre>
-    <blockquote>注意：第二层分析功能尚在规划中，当前版本仅支持第一层的内容变化检测。</blockquote>
+  → 生成结构化报告 site/generated/change_reports/{id}_{target}_{date}.json
+  → 生成 Markdown 摘要 _summary.md
+  → CI 自动提交报告 + 嵌入 Issue
+  → 人工确认后更新 site/data/policies/{id}.json
+</code></pre>
+<h3>配置</h3>
+<p>在 GitHub 仓库 Settings → Secrets and variables → Actions 中添加：</p>
+<table>
+<thead>
+<tr>
+<th>Secret</th>
+<th>说明</th>
+<th>示例</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>OPENAI_API_KEY</code></td>
+<td>LLM API 密钥</td>
+<td><code>sk-...</code></td>
+</tr>
+<tr>
+<td><code>OPENAI_BASE_URL</code></td>
+<td>API 端点（可选，默认 OpenAI）</td>
+<td><code>https://api.openai.com/v1</code></td>
+</tr>
+<tr>
+<td><code>OPENAI_MODEL</code></td>
+<td>模型名（可选，默认 gpt-4o-mini）</td>
+<td><code>gpt-4o</code></td>
+</tr>
+</tbody>
+</table>
+<p>支持任何 OpenAI 兼容 API（OpenAI / DeepSeek / 智谱 / Moonshot 等）。未配置 <code>OPENAI_API_KEY</code> 时自动降级为纯文本 diff 模式。</p>
+<h3>手动运行</h3>
+<pre><code class="language-bash"># 降级模式（纯 diff，无需 API key）
+.venv/bin/python scripts/analyze_changes.py
 
-    <p><a href="../index.html">&larr; 返回首页</a></p>
+# 指定产品
+.venv/bin/python scripts/analyze_changes.py --product kimi
+
+# 使用 LLM 分析
+OPENAI_API_KEY=sk-... .venv/bin/python scripts/analyze_changes.py
+</code></pre>
+<h3>分析报告格式</h3>
+<p><code>site/generated/change_reports/{id}_{target}_{date}.json</code>：</p>
+<pre><code class="language-json">{
+  &quot;pid&quot;: &quot;kimi&quot;,
+  &quot;name&quot;: &quot;Kimi&quot;,
+  &quot;target&quot;: &quot;main&quot;,
+  &quot;label&quot;: &quot;主监控页&quot;,
+  &quot;url&quot;: &quot;https://platform.kimi.com/docs/agreement/userservice&quot;,
+  &quot;has_old_snapshot&quot;: true,
+  &quot;analysis_date&quot;: &quot;2026-09-09T14:10:00&quot;,
+  &quot;text_diff&quot;: &quot;...&quot;,
+  &quot;llm_analysis&quot;: {
+    &quot;has_substantive_change&quot;: true,
+    &quot;change_summary&quot;: &quot;训练授权表述从'模型训练'改为'模型服务优化'&quot;,
+    &quot;training_policy&quot;: {&quot;changed&quot;: true, &quot;old&quot;: &quot;...&quot;, &quot;new&quot;: &quot;...&quot;},
+    &quot;opt_out_mechanism&quot;: {&quot;changed&quot;: false, &quot;detail&quot;: null},
+    &quot;data_retention&quot;: {&quot;changed&quot;: false, &quot;detail&quot;: null},
+    &quot;other_changes&quot;: [],
+    &quot;risk_assessment&quot;: &quot;风险等级可能需要从 red 调整为 yellow&quot;,
+    &quot;recommended_actions&quot;: [&quot;更新 key_clauses 中的条款引用&quot;, &quot;复核 risk_level&quot;]
+  },
+  &quot;has_substantive_change&quot;: true,
+  &quot;change_summary&quot;: &quot;训练授权表述从'模型训练'改为'模型服务优化'&quot;
+}
+</code></pre>
+<blockquote>
+<p>注意：AI 分析结果仅供参考，不自动修改 <code>site/data/policies/{id}.json</code>。人工确认分析结论后再更新数据文件。</p>
+</blockquote>
   </div>
 
-  <div class="footer">
-    <p>AI 用户政策追踪器 | <a href="../index.html">返回首页</a> | <a href="methodology.html">方法论</a></p>
-    <p>免责声明：本数据仅供参考，不构成法律建议。请以官方最新政策为准。</p>
+  <div class="docs-body">
+    <p><a href="../index.html">返回首页</a> | <a href="methodology.html">方法论</a></p>
   </div>
 </body>
 </html>

@@ -22,7 +22,7 @@
       "data_retention": "未明确具体期限（'为提供服务所必需'，隐私政策第7节；删除单条对话后'立即从对话历史移除并从后端自动删除'——隐私政策第5节 Your Rights；原标注'账号存续期间'未见于原文，2026-08-30 修正）",
       "copyright": "用户保留 Prompts 与 Outputs 的全部权利（IV.4），但授予公司及关联方无条件、不可撤销、非排他、免版税、可完全转让、可再许可、永久的全球许可，并可授权他人（IV.5）；另授予用户名与头像使用许可；放弃精神权利（IV.6，新加坡版权法/Berne 6bis）",
       "other_uses": "公开互联网信息训练模型（隐私政策第2节）；公共分享功能下接收方可无限制使用内容（IV.3.c）；营销材料相关隐私/公开权放弃（IV.6）",
-      "risk_level": "yellow",
+      "risk_level": "red",
       "key_clauses": [
         "Service Improvement and Development. For individual users... You hereby explicitly authorize and consent to our: (i) utilization and storage of User Content that does not constitute personal data for the purpose of developing and improving our machine learning and artificial intelligence technologies.（Z.ai 条款 IV.3.a，2026-04-14 更新）",
         "You grant us and our affiliates an unconditional, irrevocable, non-exclusive, royalty-free, fully transferable, sub-licensable, perpetual, worldwide license to access, use, host, modify, communicate, reproduce, adapt, create derivative works from, publish, perform, and distribute your User Content, and to authorize others to do so, in any format and on any platform.（Z.ai 条款 IV.5）",

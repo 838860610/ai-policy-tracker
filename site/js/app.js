@@ -209,7 +209,10 @@
           "<td>" + trainCell(tob && tob.used_for_training) + "</td>" +
           "<td>" + riskMini(toc) + "</td>" +
           "<td>" + riskMini(tob) + "</td></tr>" +
-          '<tr class="detail-row" hidden><td colspan="5">' + detailRowHtml(p) + "</td></tr>";
+          // 详情行按需渲染：50 个产品的展开面板不必在每次筛选时都重建，
+          // 只在真正展开时生成（首次展开前保持空单元格）
+          '<tr class="detail-row" hidden data-pid="' + PT.escapeHtml(p.id) +
+          '"><td colspan="5"></td></tr>";
       });
     });
     tbody.innerHTML = html;
@@ -217,10 +220,25 @@
 
   /* ---------- 交互（事件委托） ---------- */
 
+  /** 按 id 找到产品（用于按需渲染详情行）。 */
+  function findProduct(pid) {
+    for (var i = 0; i < allProducts.length; i++) {
+      if (allProducts[i].id === pid) return allProducts[i];
+    }
+    return null;
+  }
+
   function toggleDetail(row) {
     var det = row.nextElementSibling;
     if (!det || !det.classList.contains("detail-row")) return;
     var open = det.hidden;
+    if (open) {
+      var cell = det.firstElementChild;
+      if (cell && !cell.innerHTML) {
+        var product = findProduct(det.getAttribute("data-pid"));
+        if (product) cell.innerHTML = detailRowHtml(product);
+      }
+    }
     det.hidden = !open;
     row.setAttribute("aria-expanded", open ? "true" : "false");
     row.classList.toggle("open", open);

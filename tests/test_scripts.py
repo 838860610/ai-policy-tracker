@@ -274,9 +274,101 @@ class TestResponseDecoding(unittest.TestCase):
         resp = _FakeResponse("text/html; charset=ISO-8859-1", self.BODY)
         self.assertIn("用户协议", CHECK_UPDATES.response_text(resp))
 
-    def test_hash_scheme_bumped_after_decoding_fix(self):
-        """解码修复会改变哈希，方案必须是 v2，否则会误报全部产品变更。"""
-        self.assertEqual(CHECK_UPDATES.HASH_SCHEME, "text-v2")
+    def test_hash_scheme_covers_extractor_variant(self):
+        """哈希方案必须带提取器标识：bs4 与正则回退剥离的标签不同，
+        若共用 scheme，一旦依赖缺失就会全库哈希漂移 → 批量误报。"""
+        self.assertTrue(CHECK_UPDATES.HASH_SCHEME.startswith("text-v3-"))
+        self.assertIn(CHECK_UPDATES.EXTRACTOR, CHECK_UPDATES.HASH_SCHEME)
+        self.assertIn(CHECK_UPDATES.EXTRACTOR, ("bs4", "regex"))
+
+    def test_min_body_chars_threshold_exists(self):
+        """空壳正文（SPA 只返回标题）不能建基线，否则监控空转。"""
+        self.assertIsInstance(CHECK_UPDATES.MIN_BODY_CHARS, int)
+        self.assertGreaterEqual(CHECK_UPDATES.MIN_BODY_CHARS, 200)
+
+
+class TestSiteConsistency(unittest.TestCase):
+    """站点层面的跨文件一致性——这几项都是此前真实出过问题的地方。"""
+
+    HTML_LINK = re.compile(r'(?:href|src)="([^"]+)"')
+    VERSION = re.compile(r"\?v=(\d{8}-\d+)")
+
+    def html_files(self):
+        files = []
+        for root, dirs, names in os.walk(SITE_DIR):
+            dirs[:] = [d for d in dirs if d != "internal"]  # 内部底稿不发布
+            files.extend(os.path.join(root, n) for n in names if n.endswith(".html"))
+        return files
+
+    def test_local_links_resolve(self):
+        """docs 页曾引用 ../site/css/style.css，部署后是死链 → 页面无样式。"""
+        broken = []
+        for path in self.html_files():
+            with open(path, encoding="utf-8") as f:
+                content = f.read()
+            for target in self.HTML_LINK.findall(content):
+                if target.startswith(("http://", "https://", "data:", "mailto:", "#")):
+                    continue
+                resolved = os.path.normpath(
+                    os.path.join(os.path.dirname(path), target.split("?")[0]))
+                if not os.path.exists(resolved):
+                    broken.append(f"{os.path.relpath(path, BASE_DIR)} -> {target}")
+        self.assertEqual(broken, [], f"无法解析的资源引用：{broken}")
+
+    def test_asset_version_is_consistent(self):
+        """同一份 CSS/JS 不能有两个版本号：会重复下载，也可能命中旧缓存导致详情页报错。"""
+        versions = set()
+        for path in self.html_files():
+            with open(path, encoding="utf-8") as f:
+                versions.update(self.VERSION.findall(f.read()))
+        self.assertEqual(len(versions), 1, f"资源版本号不统一：{sorted(versions)}")
+
+    def test_sitemap_matches_products(self):
+        with open(os.path.join(SITE_DIR, "sitemap.xml"), encoding="utf-8") as f:
+            sitemap_ids = set(re.findall(r"detail\.html\?id=([a-z0-9-]+)", f.read()))
+        with open(os.path.join(DATA_DIR, "products.json"), encoding="utf-8") as f:
+            data_ids = set(json.load(f)["products"])
+        self.assertEqual(sitemap_ids, data_ids, "sitemap 与 products.json 产品 id 不一致")
+
+    def test_deploy_workflow_names_match(self):
+        """deploy.yml 的 workflow_run.workflows 必须与 ci/monitor 的 name 完全一致。"""
+        wf_dir = os.path.join(BASE_DIR, ".github", "workflows")
+
+        def name_of(filename):
+            with open(os.path.join(wf_dir, filename), encoding="utf-8") as f:
+                for line in f:
+                    m = re.match(r"^name:\s*(.+?)\s*$", line)
+                    if m:
+                        return m.group(1)
+            return None
+
+        with open(os.path.join(wf_dir, "deploy.yml"), encoding="utf-8") as f:
+            deploy = f.read()
+        block = re.search(r"workflows:\s*\[([^\]]*)\]", deploy)
+        self.assertIsNotNone(block, "deploy.yml 缺少 workflow_run.workflows")
+        referenced = set(re.findall(r'"([^"]+)"', block.group(1)))
+        expected = {name_of("ci.yml"), name_of("monitor.yml")}
+        self.assertEqual(referenced, expected,
+                         f"部署触发的工作流名不匹配：引用 {referenced}，实际 {expected}")
+
+    def test_bundle_is_slim_and_complete(self):
+        """bundle 只服务首页，不应携带长条款原文；但产品数必须与索引一致。"""
+        with open(os.path.join(BASE_DIR, "site", "generated", "bundle.json"), encoding="utf-8") as f:
+            bundle = json.load(f)
+        with open(os.path.join(DATA_DIR, "products.json"), encoding="utf-8") as f:
+            ids = json.load(f)["products"]
+        self.assertEqual([p["id"] for p in bundle["policies"]], ids)
+        for policy in bundle["policies"]:
+            for version in (policy.get("versions") or {}).values():
+                self.assertNotIn("key_clauses", version, "bundle 不应包含长条款原文")
+
+    def test_published_docs_have_no_stale_wording(self):
+        """第二层 AI 分析已上线，文档页不能再写"未来功能"。"""
+        path = os.path.join(SITE_DIR, "docs", "update-monitoring.html")
+        with open(path, encoding="utf-8") as f:
+            content = f.read()
+        self.assertNotIn("未来功能", content)
+        self.assertIn("analyze_changes", content)
 
 
 if __name__ == "__main__":

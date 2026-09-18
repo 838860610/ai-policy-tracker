@@ -18,7 +18,7 @@ AI products increasingly reserve the right to use your chats, files, and generat
 
 The full comparison table (in Chinese) lives in [README.md](README.md); the interactive version with per-product detail pages is on the live site.
 
-- **Coverage**: 50 products (46 Chinese + 4 global: ChatGPT, Claude, Gemini, Z.ai), 64 policy entries across consumer (ToC) and enterprise (ToB) tiers
+- **Coverage**: 50 products (46 Chinese + 4 global: ChatGPT, Claude, Gemini, Z.ai), 65 policy entries across consumer (ToC) and enterprise (ToB) tiers
 - **Risk rating**: 🟢 low / 🟡 medium / 🔴 high, derived from four explicit criteria — default training opt-in, de-identification, retention period (≤30 days for green), and content copyright — with per-criterion evidence shown on each detail page
 - **Evidence-based**: every conclusion cites the exact clause, with the source document/section and verification date
 

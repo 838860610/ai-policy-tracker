@@ -14,10 +14,14 @@
   <link rel="canonical" href="https://838860610.github.io/ai-policy-tracker/">
   <title>AI 用户政策追踪器</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%9B%A1%EF%B8%8F%3C/text%3E%3C/svg%3E">
+  <!-- 字体异步加载：fonts.googleapis.com 对国内访客可能不可达，同步 <link rel=stylesheet>
+       会阻塞渲染直到超时（白屏）。改用 media=print + onload 切换，失败也不影响首屏，
+       CSS 里已配置 PingFang SC / 系统字体兜底。 -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css?v=20260916-1">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+  <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"></noscript>
+  <link rel="stylesheet" href="css/style.css?v=20260919-1">
 </head>
 <body>
   <noscript>
@@ -60,7 +64,7 @@
     <div class="hero-inner">
       <div class="hero-eyebrow">
         <span class="pulse-dot"></span>
-        <span>实时监控 · 50+ AI 产品 · 隐私政策对比</span>
+        <span>实时监控 · 50 款 AI 产品 · 隐私政策对比</span>
       </div>
       <h1 class="hero-title">
         你的数据，<br>
@@ -176,7 +180,7 @@
     </footer>
   </main>
 
-  <script src="js/common.js?v=20260916-1"></script>
-  <script src="js/app.js?v=20260916-1"></script>
+  <script src="js/common.js?v=20260919-1"></script>
+  <script src="js/app.js?v=20260919-1"></script>
 </body>
 </html>

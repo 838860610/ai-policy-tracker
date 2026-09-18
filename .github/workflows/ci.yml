@@ -40,6 +40,9 @@ jobs:
       - name: README 汇总表一致性检查
         run: python scripts/gen_readme_table.py --check
 
+      - name: 文档页一致性检查
+        run: python scripts/gen_docs.py --check
+
   publish:
     name: 生成并提交产物
     needs: validate
@@ -61,14 +64,15 @@ jobs:
           pip install -r requirements.txt
           pip install --quiet pillow
 
-      - name: 生成数据 bundle 与社交分享卡片
+      - name: 生成数据 bundle、文档页与社交分享卡片
         run: |
           python scripts/gen_data_bundle.py
+          python scripts/gen_docs.py
           python scripts/gen_og_image.py
 
-      - name: 提交 bundle 和 OG 图片（有变化时）
+      - name: 提交 bundle、文档页和 OG 图片（有变化时）
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add site/generated/bundle.json site/generated/og-card.png
-          git diff --cached --quiet || (git commit -m "chore: CI 重新生成 site/generated/bundle.json 和 OG 图片" && git push)
+          git add site/generated/bundle.json site/generated/og-card.png site/docs/*.html
+          git diff --cached --quiet || (git commit -m "chore: CI 重新生成 bundle.json、文档页和 OG 图片" && git push)

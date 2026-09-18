@@ -20,6 +20,26 @@ INDEX_FILE = os.path.join(BASE_DIR, "site", "data", "products.json")
 POLICIES_DIR = os.path.join(BASE_DIR, "site", "data", "policies")
 BUNDLE_FILE = os.path.join(BASE_DIR, "site", "generated", "bundle.json")
 
+# bundle 只服务首页（表格行 + 展开面板），详情页始终直接读 data/policies/{id}.json。
+# 因此按白名单裁剪：key_clauses（长条款原文）等首页不渲染的字段不带进首屏，
+# 实测可从 ~200KB 降到 ~20KB。
+# ⚠️ 首页若要新增展示字段，必须同步加到下面的白名单，否则会显示"—"。
+BUNDLE_TOP_FIELDS = ("id", "name", "company", "region", "icon", "toc_note", "tob_note")
+BUNDLE_VERSION_FIELDS = ("label", "used_for_training", "opt_out", "deidentified",
+                         "data_retention", "risk_level")
+
+
+def slim_policy(policy):
+    """只保留首页渲染所需的字段。"""
+    out = {k: policy.get(k) for k in BUNDLE_TOP_FIELDS if k in policy}
+    versions = {}
+    for tier in ("toc", "tob"):
+        version = (policy.get("versions") or {}).get(tier)
+        if version:
+            versions[tier] = {k: version.get(k) for k in BUNDLE_VERSION_FIELDS if k in version}
+    out["versions"] = versions
+    return out
+
 
 def main():
     with open(INDEX_FILE, encoding="utf-8") as f:
@@ -29,7 +49,7 @@ def main():
     for pid in index.get("products", []):
         path = os.path.join(POLICIES_DIR, pid + ".json")
         with open(path, encoding="utf-8") as f:
-            policies.append(json.load(f))
+            policies.append(slim_policy(json.load(f)))
 
     bundle = {"meta": index.get("meta", {}), "policies": policies}
     with open(BUNDLE_FILE, "w", encoding="utf-8") as f:

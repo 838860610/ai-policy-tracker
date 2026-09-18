@@ -65,11 +65,17 @@ STATUS_FILE = os.path.join(BASE_DIR, "site", "generated", "update_status.json")
 SNAPSHOTS_DIR = os.path.join(BASE_DIR, "site", "generated", "snapshots")
 
 # 哈希算法版本：提取/归一化逻辑变化时递增，旧状态会自动重建基线而不是误报"已变更"
-# text-v2：修复响应解码（此前中文被 latin-1 回退解成 mojibake），解码变化会让所有
-# 哈希随之改变，因此必须升版，让脚本重建基线，否则会误报"全部产品政策已变更"
-HASH_SCHEME = "text-v2"
+# - text-v2：修复响应解码（此前中文被 latin-1 回退解成 mojibake）
+# - text-v3：把"提取器变体"并入 scheme。BeautifulSoup 与正则回退剥离的标签集不同，
+#   同一页面两条路径产出的归一化文本也不同；不区分的话，一旦 bs4 缺失（未安装依赖）
+#   全库哈希会一次性漂移，造成批量误报。故 scheme 形如 text-v3-bs4 / text-v3-regex。
+EXTRACTOR = "bs4" if BeautifulSoup is not None else "regex"
+HASH_SCHEME = f"text-v3-{EXTRACTOR}"
 RETRY_TIMES = 2          # 网络类错误重试次数
 RETRY_BACKOFF = 5        # 重试间隔基数（秒）
+# 正文最小长度：低于此值视为"空壳正文"（SPA / 反爬只返回标题骨架），
+# 不建基线也不报变更——否则既会漏报（正文由 JS 渲染）又会误报（标题微调）。
+MIN_BODY_CHARS = 500
 
 # 监控目标的中文名（控制台输出与 Issue 正文用）
 TARGET_LABELS = {"main": "主监控页", "toc": "个人版条款", "tob": "企业版条款"}
@@ -88,8 +94,12 @@ def load_product_ids():
 
 def load_policy(pid):
     path = os.path.join(POLICIES_DIR, pid + ".json")
-    with open(path, encoding="utf-8") as f:
-        return json.load(f)
+    try:
+        with open(path, encoding="utf-8") as f:
+            return json.load(f)
+    except (IOError, json.JSONDecodeError) as e:
+        print(f"  [错误] 无法读取 {path}：{e}")
+        return {}
 
 
 def load_previous_status():
@@ -283,6 +293,15 @@ def check_target(pid, name, key, url, prev_target, timeout):
         normalized = normalize_text(raw_text)
         current_hash = compute_hash(normalized)
 
+        if len(normalized) < MIN_BODY_CHARS:
+            # 空壳正文：不建基线、不报变更，标记为 suspicious 交由人工处理
+            print(f"  [可疑] {name} ({pid}·{label}): 正文仅 {len(normalized)} 字符，"
+                  f"疑似 JS 渲染/反爬空壳，未记录基线")
+            return base_target_result(url, prev_target, current_hash=prev_hash, status="suspicious",
+                                      message=f"抓取正文过短（{len(normalized)} 字符 < "
+                                              f"{MIN_BODY_CHARS}），疑似 JS 渲染或反爬，未记录基线",
+                                      last_checked=now)
+
         if prev_hash is None:
             print(f"  [新增] {name} ({pid}·{label}): 首次记录基线")
             save_snapshot(pid, key, raw_text, archived=True)
@@ -343,6 +362,11 @@ def check_product(pid, policy, prev_entry, timeout, delay):
         return {"status": "skipped", "message": "URL 为空或待核实，跳过检查",
                 "last_checked": datetime.datetime.now().isoformat()}
 
+    if policy.get("monitor") is False:
+        # 占位条目（无公开政策页 / 政策 URL 指向产品首页）：不抓取，避免持续误报
+        return {"status": "skipped", "message": "该产品已标记为不监控（无独立公开政策页）",
+                "last_checked": datetime.datetime.now().isoformat()}
+
     prev_targets = migrate_prev_targets(prev_entry)
     target_results = {}
     statuses = []
@@ -353,22 +377,33 @@ def check_product(pid, policy, prev_entry, timeout, delay):
         if i < len(targets) - 1:
             time.sleep(delay)
 
-    # 聚合规则：任一目标变更 → changed；否则任一失败 → failed；否则 ok
+    # 聚合规则：changed > failed > suspicious > ok
     if "changed" in statuses:
         status = "changed"
     elif "failed" in statuses:
         status = "failed"
+    elif "suspicious" in statuses:
+        status = "suspicious"
     else:
         status = "ok"
 
     changed_keys = [k for k, r in target_results.items() if r["status"] == "changed"]
+    failed_keys = [k for k, r in target_results.items() if r["status"] == "failed"]
+    suspicious_keys = [k for k, r in target_results.items() if r["status"] == "suspicious"]
     if changed_keys:
         summary = "⚠️ 政策可能已更新，待核实（" + "、".join(
             TARGET_LABELS.get(k, k) for k in changed_keys) + "）"
-    elif "failed" in statuses:
-        failed_keys = [k for k, r in target_results.items() if r["status"] == "failed"]
-        summary = "部分目标检查失败（" + "、".join(
-            TARGET_LABELS.get(k, k) for k in failed_keys) + "），其余未变化"
+    elif failed_keys:
+        # 全部失败时不能再说"部分"
+        if len(failed_keys) == len(statuses):
+            summary = "全部目标检查失败（" + "、".join(
+                TARGET_LABELS.get(k, k) for k in failed_keys) + "）"
+        else:
+            summary = "部分目标检查失败（" + "、".join(
+                TARGET_LABELS.get(k, k) for k in failed_keys) + "），其余未变化"
+    elif suspicious_keys:
+        summary = "正文疑似空壳（" + "、".join(
+            TARGET_LABELS.get(k, k) for k in suspicious_keys) + "），未记录基线，需人工确认抓取目标"
     else:
         summary = "内容未变化"
 
@@ -398,7 +433,7 @@ def main():
     pids = load_product_ids()
     prev_status = load_previous_status().get("products", {})
     new_status = {}
-    changed_count = failed_count = skipped_count = 0
+    changed_count = failed_count = skipped_count = suspicious_count = 0
     total_targets = 0
 
     print(f"\n共 {len(pids)} 个产品需要检查\n")
@@ -406,6 +441,11 @@ def main():
     for i, pid in enumerate(pids):
         policy = load_policy(pid)
         prev = prev_status.get(pid, {})
+        if not policy:
+            new_status[pid] = {"status": "failed", "message": "数据文件缺失或不是合法 JSON",
+                               "last_checked": datetime.datetime.now().isoformat()}
+            failed_count += 1
+            continue
         new_status[pid] = check_product(pid, policy, prev, args.timeout, args.delay)
         total_targets += len(new_status[pid].get("targets", {}))
 
@@ -414,6 +454,8 @@ def main():
             changed_count += 1
         elif status == "failed":
             failed_count += 1
+        elif status == "suspicious":
+            suspicious_count += 1
         elif status == "skipped":
             skipped_count += 1
 
@@ -428,24 +470,32 @@ def main():
             "total_targets": total_targets,
             "changed": changed_count,
             "failed": failed_count,
+            "suspicious": suspicious_count,
             "skipped": skipped_count,
         },
         "products": new_status,
     }
 
     os.makedirs(os.path.dirname(STATUS_FILE), exist_ok=True)
-    with open(STATUS_FILE, "w", encoding="utf-8") as f:
+    # 原子写：先落临时文件再 rename，避免中途被 kill（CI 超时）留下截断的 JSON
+    tmp_path = STATUS_FILE + ".tmp"
+    with open(tmp_path, "w", encoding="utf-8") as f:
         json.dump(status_data, f, ensure_ascii=False, indent=2)
+    os.replace(tmp_path, STATUS_FILE)
 
     print("\n" + "=" * 60)
     print("检查完成")
     print(f"  产品: {len(pids)}，监控目标: {total_targets}")
-    print(f"  未变化: {len(pids) - changed_count - failed_count - skipped_count}")
+    print(f"  未变化: {len(pids) - changed_count - failed_count - suspicious_count - skipped_count}")
     print(f"  已变更: {changed_count}")
     print(f"  失败:   {failed_count}")
+    print(f"  可疑:   {suspicious_count}（正文疑似空壳，未记录基线）")
     print(f"  跳过:   {skipped_count}")
     print(f"  状态文件: {STATUS_FILE}")
     print("=" * 60)
+
+    if changed_count == 0 and failed_count == len(pids) and pids:
+        print("\n❌ 本轮全部产品检查失败：可能是网络/代理故障或 URL 大面积失效，请人工确认监控是否正常")
 
     if changed_count > 0:
         print(f"\n⚠️ 告警：检测到 {changed_count} 个产品政策可能已更新，请及时核实！")

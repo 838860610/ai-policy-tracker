@@ -105,18 +105,31 @@ ANALYSIS_PROMPT = """你是一个 AI 产品政策分析专家。请对比以下�
 
 
 def load_status():
+    """读取监控状态；文件缺失或损坏都返回空字典，绝不把异常抛到调用方。
+
+    注意：这里不能静默吞掉异常后继续跑——上游 monitor.yml 用 `|| true` 兜底，
+    一旦崩溃就会沿用上一轮遗留的 _summary.md，把旧结论当本轮结果发到 Issue。
+    """
     if not os.path.exists(STATUS_FILE):
         return {}
-    with open(STATUS_FILE, encoding="utf-8") as f:
-        return json.load(f)
+    try:
+        with open(STATUS_FILE, encoding="utf-8") as f:
+            return json.load(f)
+    except (json.JSONDecodeError, IOError) as e:
+        print(f"[警告] update_status.json 无法解析（{e}），按空状态处理")
+        return {}
 
 
 def load_policy(pid):
     path = os.path.join(POLICIES_DIR, pid + ".json")
     if not os.path.exists(path):
         return {}
-    with open(path, encoding="utf-8") as f:
-        return json.load(f)
+    try:
+        with open(path, encoding="utf-8") as f:
+            return json.load(f)
+    except (json.JSONDecodeError, IOError) as e:
+        print(f"[警告] {pid} 数据文件无法解析（{e}）")
+        return {}
 
 
 def find_old_snapshot(pid, key):
@@ -148,15 +161,17 @@ def find_old_snapshot(pid, key):
     # 方式3：从 git 历史取 latest.txt 的上一版本
     latest_path = os.path.join(target_dir, "latest.txt")
     try:
+        # git 的 pathspec 按仓库相对路径匹配，传绝对路径永远不会命中（这条兜底曾长期失效）
+        rel_path = os.path.relpath(latest_path, BASE_DIR)
         result = subprocess.run(
-            ["git", "log", "--format=%H", "-2", "--", latest_path],
+            ["git", "log", "--format=%H", "-2", "--", rel_path],
             capture_output=True, text=True, cwd=BASE_DIR, timeout=10,
         )
         commits = result.stdout.strip().split("\n")
         if len(commits) >= 2:
             old_commit = commits[1]
             result = subprocess.run(
-                ["git", "show", f"{old_commit}:{latest_path}"],
+                ["git", "show", f"{old_commit}:{rel_path}"],
                 capture_output=True, text=True, cwd=BASE_DIR, timeout=10,
             )
             if result.returncode == 0 and result.stdout.strip():
@@ -247,7 +262,9 @@ def analyze_product(pid, target_key, target_info, policy):
     if not new_text:
         return None
     if not old_text:
-        # 没有旧快照，无法对比（首次基线情况）
+        # 没有旧快照，无法对比（首次基线情况）。
+        # 必须显式给出 has_substantive_change=True：否则下游按 True/False 两分过滤时，
+        # 这份报告会被两边同时漏掉，Issue 里一个产品都不列 —— 告警在最后一公里丢失。
         return {
             "pid": pid,
             "name": name,
@@ -255,7 +272,8 @@ def analyze_product(pid, target_key, target_info, policy):
             "label": label,
             "url": url,
             "has_old_snapshot": False,
-            "message": "无旧快照可对比（首次基线或旧快照已清理）",
+            "has_substantive_change": True,
+            "message": "无旧快照可对比（首次基线或旧快照已清理），请人工打开 URL 核实",
         }
 
     # 文本 diff
@@ -366,6 +384,12 @@ def main():
     else:
         print("LLM：未配置 API key，降级为纯文本 diff 模式")
     print("=" * 60)
+
+    # 每轮开始先清掉上一轮的摘要：否则脚本中途失败/提前返回时，monitor.yml 会把
+    # 陈旧的 _summary.md 当成本轮结论嵌进 Issue（该文件已入库，会一直被复用）
+    stale_summary = os.path.join(REPORTS_DIR, "_summary.md")
+    if os.path.exists(stale_summary):
+        os.remove(stale_summary)
 
     status = load_status()
     products = status.get("products", {})

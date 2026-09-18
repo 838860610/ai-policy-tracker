@@ -67,6 +67,12 @@ def check_version(where, v):
         err(f"{where}: deidentified 必须是布尔值，当前为 {v['deidentified']!r}")
     if "risk_level" in v and v["risk_level"] not in RISK_LEVELS:
         err(f"{where}: risk_level 必须是 {sorted(RISK_LEVELS)} 之一，当前为 {v['risk_level']!r}")
+    link = v.get("policy_link")
+    if link is not None and not str(link).startswith(("http://", "https://")):
+        # 曾完全不校验：填 "N/A" / "见主协议" 会让监控每次都请求失败，首页长期显示检查失败
+        warn(f"{where}: policy_link 应以 http(s):// 开头，当前为 {link!r}"
+             f"（会被监控当作抓取目标，导致该目标持续 failed）")
+
     clauses = v.get("key_clauses")
     if clauses is not None:
         if not isinstance(clauses, list) or not clauses:
@@ -133,9 +139,17 @@ def validate_policy(pid, path):
     for key in TOP_REQUIRED:
         if key not in data:
             err(f"{pid}: 缺少必填字段 {key}")
+        elif data[key] is None:
+            # 旧版只检查"键是否存在"，null 会一路放行并在前端显示空白
+            err(f"{pid}: 必填字段 {key} 不能为 null")
     for key in ("icon", "product_url"):
         if key not in data:
             warn(f"{pid}: 缺少可选字段 {key}")
+
+    region = data.get("region")
+    if region is not None and region not in ("中国", "美国", "全球"):
+        warn(f"{pid}: region={region!r} 不是预期取值（中国/美国/全球），"
+             f"会导致首页「国内/海外」筛选与 README 分组错位")
 
     lv = data.get("last_verified")
     if lv is not None and not (isinstance(lv, str) and DATE_PATTERN.match(lv)):
@@ -145,6 +159,8 @@ def validate_policy(pid, path):
             d = datetime.date.fromisoformat(lv)
             if d < datetime.date(2025, 1, 1):
                 warn(f"{pid}: last_verified={lv} 距今较久，建议重新核实")
+            elif d > datetime.date.today():
+                err(f"{pid}: last_verified={lv} 晚于今天")
         except ValueError:
             err(f"{pid}: last_verified={lv!r} 不是有效日期")
 
@@ -153,21 +169,29 @@ def validate_policy(pid, path):
         err(f"{pid}: policy_url 应以 http(s):// 开头，当前为 {url!r}")
 
     versions = data.get("versions")
+    if versions is not None and not isinstance(versions, dict):
+        # 旧版把非 dict 静默置空，versions: [] / "abc" 都能通过校验
+        err(f"{pid}: versions 必须是对象，当前为 {type(versions).__name__}")
+        versions = {}
     if not isinstance(versions, dict):
         versions = {}
-    if "toc" in versions:
-        check_version(f"{pid}.versions.toc", versions["toc"])
-    elif data.get("toc_note"):
-        pass  # 有书面说明的纯开发者产品（无消费端条款）
-    else:
-        warn(f"{pid}: 没有 toc 版本数据；如为纯开发者产品，请添加 toc_note 说明原因")
-    if isinstance(versions, dict):
-        if "tob" in versions:
-            check_version(f"{pid}.versions.tob", versions["tob"])
-        elif data.get("tob_note"):
-            pass  # 有书面说明的无 ToB 产品（如未发布企业版），视为合规
+
+    def check_version_block(tier, note_field):
+        if tier in versions:
+            block = versions[tier]
+            if isinstance(block, dict):
+                check_version(f"{pid}.versions.{tier}", block)
+            else:
+                err(f"{pid}: versions.{tier} 必须是对象，当前为 {type(block).__name__!r}")
+        elif data.get(note_field):
+            pass  # 有书面说明（如纯开发者产品 / 无企业版），视为合规
         else:
-            warn(f"{pid}: 没有 tob 版本数据（详情页会自动隐藏企业版标签）；如确无企业版，请在数据中添加 tob_note 说明原因")
+            fallback = "如为纯开发者产品，请添加 toc_note 说明原因" if tier == "toc" \
+                else "如确无企业版，请在数据中添加 tob_note 说明原因"
+            warn(f"{pid}: 没有 {tier} 版本数据（详情页会隐藏对应标签）；{fallback}")
+
+    check_version_block("toc", "toc_note")
+    check_version_block("tob", "tob_note")
 
     timeline = data.get("timeline")
     if timeline is not None:
@@ -177,6 +201,12 @@ def validate_policy(pid, path):
             for i, item in enumerate(timeline):
                 if not isinstance(item, dict) or "date" not in item or "event" not in item:
                     err(f"{pid}: timeline[{i}] 必须包含 date 和 event 字段")
+                    continue
+                if not re.match(r"^\d{4}-\d{2}(-\d{2})?$", str(item.get("date", ""))):
+                    warn(f"{pid}: timeline[{i}].date={item.get('date')!r} "
+                         f"建议为 YYYY-MM 或 YYYY-MM-DD（约定见 CONTRIBUTING）")
+                if not str(item.get("event", "")).strip():
+                    err(f"{pid}: timeline[{i}].event 不能为空")
 
     for key in ("key_findings", "recommendations"):
         v = data.get(key)

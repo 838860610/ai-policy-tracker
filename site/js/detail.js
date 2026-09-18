@@ -151,6 +151,11 @@
       var tab = document.getElementById(pair[0]);
       if (tab) tab.style.display = versions[pair[1]] ? "" : "none";
     });
+    // 默认面板必须切到"第一个可见的标签"：CSS 里 .tab-content 默认 display:none，
+    // 只隐藏按钮而把 active 留在 contentToc，会让纯 ToB 产品打开后主内容区空白
+    if (hasToc) activateTab("toc");
+    else if (hasTob) activateTab("tob");
+
     if (!hasToc && !hasTob) {
       var notes = [];
       if (data.toc_note) notes.push("个人版：" + data.toc_note);
@@ -165,18 +170,24 @@
     }
   }
 
+  /** 切换标签页：同步按钮 active 与面板 active（面板 id 形如 contentToc / contentTob）。 */
+  function activateTab(key) {
+    var suffix = key.charAt(0).toUpperCase() + key.slice(1);
+    document.querySelectorAll(".tab").forEach(function (t) {
+      t.classList.toggle("active", t.getAttribute("data-tab") === key);
+    });
+    document.querySelectorAll(".tab-content").forEach(function (c) {
+      c.classList.remove("active");
+    });
+    var panel = document.getElementById("content" + suffix);
+    if (panel) panel.classList.add("active");
+  }
+
   function initTabs() {
     var tabs = document.querySelectorAll(".tab");
     tabs.forEach(function (tab) {
       tab.addEventListener("click", function () {
-        var target = this.getAttribute("data-tab");
-        tabs.forEach(function (t) { t.classList.remove("active"); });
-        this.classList.add("active");
-        document.querySelectorAll(".tab-content").forEach(function (c) {
-          c.classList.remove("active");
-        });
-        document.getElementById("content" + target.charAt(0).toUpperCase() + target.slice(1))
-          .classList.add("active");
+        activateTab(this.getAttribute("data-tab"));
       });
     });
   }
@@ -231,7 +242,10 @@
           link.href = data.policy_url;
         } else {
           link.style.display = "none";
-          link.parentElement.querySelector(".label").textContent = "政策链接（暂无）";
+          // .label 是 .value 的兄弟节点，不是后代；且取不到时不能让整页崩掉
+          var item = link.closest ? link.closest(".info-item") : null;
+          var label = item ? item.querySelector(".label") : null;
+          if (label) label.textContent = "政策链接（暂无）";
         }
 
         document.getElementById("loading").style.display = "none";

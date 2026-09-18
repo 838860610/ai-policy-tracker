@@ -6,7 +6,7 @@
   <meta name="description" content="AI 用户政策追踪器方法论：数据来源、风险等级评定标准、核实方法与数据字段说明。">
   <title>方法论 - AI 用户政策追踪器</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%9B%A1%EF%B8%8F%3C/text%3E%3C/svg%3E">
-  <link rel="stylesheet" href="../site/css/style.css">
+  <link rel="stylesheet" href="../css/style.css?v=20260919-1">
 </head>
 <body>
   <div class="header">
@@ -15,158 +15,316 @@
   </div>
 
   <div class="docs-body">
-    <h2>数据来源</h2>
-    <p>本项目的数据来源于各 AI 产品官方发布的隐私政策、服务条款和使用条件。具体来源包括：</p>
-    <table>
-      <thead><tr><th>产品</th><th>数据来源</th></tr></thead>
-      <tbody>
-        <tr><td>ChatGPT</td><td>OpenAI 隐私政策、企业隐私政策</td></tr>
-        <tr><td>Claude</td><td>Anthropic 隐私政策、商业条款</td></tr>
-        <tr><td>Gemini</td><td>Google 隐私政策、Workspace 条款</td></tr>
-        <tr><td>文心一言</td><td>百度隐私政策、千帆平台条款</td></tr>
-        <tr><td>通义千问</td><td>阿里云服务条款、百炼平台文档</td></tr>
-        <tr><td>豆包</td><td>豆包隐私政策、火山引擎条款</td></tr>
-        <tr><td>智谱清言</td><td>智谱清言隐私政策、开放平台条款</td></tr>
-        <tr><td>Kimi</td><td>Kimi 隐私政策、Moonshot API 条款</td></tr>
-        <tr><td>DeepSeek</td><td>DeepSeek 隐私政策、API 条款</td></tr>
-        <tr><td>讯飞星火</td><td>讯飞星火隐私政策、平台条款</td></tr>
-        <tr><td>腾讯元宝</td><td>腾讯隐私政策、腾讯云条款</td></tr>
-        <tr><td>可灵AI</td><td>快手可灵用户协议、隐私政策</td></tr>
-      </tbody>
-    </table>
-
-    <h2>风险等级评定标准</h2>
-
-    <h3>🟢 绿色（低风险）</h3>
-    <p>满足以下<strong>所有</strong>条件：</p>
-    <ul>
-      <li><strong>不使用</strong>用户数据训练模型（默认关闭）</li>
-      <li>数据经过去标识化处理</li>
-      <li>数据留存期限明确且合理（≤30天）</li>
-      <li>用户保留生成内容的版权</li>
-    </ul>
-
-    <h3>🟡 黄色（中风险）</h3>
-    <p>满足以下<strong>任一</strong>条件：</p>
-    <ul>
-      <li>使用用户数据训练，但<strong>提供明确的退出机制</strong>且操作简单</li>
-      <li>数据留存期限较长（&gt;30天）但可配置</li>
-      <li>去标识化处理不明确</li>
-    </ul>
-
-    <h3>🔴 红色（高风险）</h3>
-    <p>满足以下<strong>任一</strong>条件：</p>
-    <ul>
-      <li>使用用户数据训练且<strong>无退出机制</strong>或退出困难</li>
-      <li>数据长期留存且无明确删除机制</li>
-      <li>未进行去标识化处理</li>
-      <li>隐私政策模糊，数据使用边界不清晰</li>
-    </ul>
-
-    <h2>判定示例（逐条对照）</h2>
-    <p>以实际条目为例演示四项标准的应用。<strong>判定以条款实质为准，不以是否出现"训练"字样为准</strong>（检索须使用同义词组：训练/优化模型/提升模型/改进模型/模型训练/用于训练/优化训练/机器学习等）。</p>
-    <p><strong>示例一：腾讯元宝（🟡）</strong>——加入式训练 + 留存不明确：① 默认不用于训练 ✓（加入式"体验优化计划"）；② 去标识化 ✓；③ 留存明确 ≤30天 ✗（无具体天数）；④ 版权归用户 ✓ → 中风险（黄色标准"去标识化或使用边界不明确"）。</p>
-    <p><strong>示例二：CodeBuddy 个人版（🔴）</strong>——非代码输入输出默认参与优化模型（隐私声明 2.6.3-4，加密脱敏前提），退出为联系式（第十一条）无产品内开关，未去标识化 → 高风险（红色标准"未去标识化处理"+"退出困难"）。代码信息例外不训练。</p>
-    <p><strong>示例三：ima（🟢→🟡 校准案例）</strong>——知识库数据明确不用于模型训练 ✓、问答记录 90 天 ✓，但去标识化未说明 ✗、版权归属未核实 ✗ → 按严格四项口径为中风险。</p>
-    <blockquote>校验脚本（validate_data.py）按同一规则自动推导并比对 risk_level，判定与规则不符时会告警。</blockquote>
-
-    <h2>核实方法</h2>
-
-    <h3>核实流程</h3>
-    <ol>
-      <li><strong>访问官方政策页面</strong>：直接访问各产品的官方隐私政策 URL</li>
-      <li><strong>定位关键条款</strong>：查找关于"数据使用"、"模型训练"、"数据保留"的章节</li>
-      <li><strong>提取关键信息</strong>：
-        <ul>
-          <li>是否明确说明使用/不使用用户数据训练</li>
-          <li>默认状态（开启/关闭）</li>
-          <li>是否提供退出机制及操作方法</li>
-          <li>数据留存期限</li>
-          <li>去标识化措施</li>
-          <li>版权归属</li>
-        </ul>
-      </li>
-      <li><strong>交叉验证</strong>：对照产品设置界面，验证政策描述与实际操作是否一致</li>
-      <li><strong>记录核实日期</strong>：每次核实后更新 <code>last_verified</code> 字段</li>
-    </ol>
-
-    <h3>核实要点</h3>
-    <ul>
-      <li>优先查看<strong>最新版本</strong>的隐私政策</li>
-      <li>注意区分<strong>个人版</strong>和<strong>企业版</strong>的不同政策</li>
-      <li>关注政策<strong>更新日期</strong>，确保使用最新版本</li>
-      <li>对于中国产品，同时查阅《个人信息保护法》合规声明</li>
-    </ul>
-
-    <h2>建议核实周期</h2>
-    <ul>
-      <li><strong>常规核实</strong>：每月一次，检查所有产品的政策页面是否有更新</li>
-      <li><strong>自动监控</strong>：每周运行 <code>scripts/check_updates.py</code>，检测政策页面内容变化</li>
-      <li><strong>事件驱动</strong>：当媒体报道某产品政策变更时，立即手动核实</li>
-      <li><strong>版本更新</strong>：当产品发布重大版本更新时，重新核实相关政策</li>
-    </ul>
-
-    <h2>数据字段说明</h2>
-    <blockquote><strong>说明</strong>：<code>site/data/policies/{id}.json</code> 是每个产品唯一的数据源；<code>site/data/products.json</code> 只维护产品 ID 的排列顺序与项目元信息，不再重复存储产品数据。</blockquote>
-
-    <h3>policies/{id}.json 顶层字段</h3>
-    <table>
-      <thead><tr><th>字段</th><th>说明</th></tr></thead>
-      <tbody>
-        <tr><td><code>id</code></td><td>产品唯一标识符（必须与文件名一致）</td></tr>
-        <tr><td><code>name</code></td><td>产品名称</td></tr>
-        <tr><td><code>company</code></td><td>所属公司</td></tr>
-        <tr><td><code>region</code></td><td>所属地区</td></tr>
-        <tr><td><code>description</code></td><td>产品简介</td></tr>
-        <tr><td><code>policy_url</code></td><td>官方隐私政策 URL（监控脚本抓取目标）</td></tr>
-        <tr><td><code>last_verified</code></td><td>最后人工核实日期（YYYY-MM-DD）</td></tr>
-        <tr><td><code>versions</code></td><td>包含 toc 和 tob 两个版本的详细政策</td></tr>
-        <tr><td><code>timeline</code></td><td>政策变更时间线</td></tr>
-        <tr><td><code>analysis_summary</code></td><td>分析摘要</td></tr>
-        <tr><td><code>key_findings</code></td><td>关键发现（数组）</td></tr>
-        <tr><td><code>recommendations</code></td><td>使用建议（数组）</td></tr>
-        <tr><td><code>icon</code> / <code>product_url</code></td><td>展示用图标与产品主页（可选）</td></tr>
-      </tbody>
-    </table>
-
-    <h3>versions.toc / versions.tob 字段</h3>
-    <table>
-      <thead><tr><th>字段</th><th>说明</th></tr></thead>
-      <tbody>
-        <tr><td><code>used_for_training</code></td><td>是否使用用户数据训练（布尔值）</td></tr>
-        <tr><td><code>training_note</code></td><td>训练说明</td></tr>
-        <tr><td><code>default_state</code></td><td>默认状态（默认开启/默认关闭）</td></tr>
-        <tr><td><code>opt_out</code></td><td>退出机制（设置开关/邮件申请/无需退出等）</td></tr>
-        <tr><td><code>opt_out_method</code></td><td>退出操作说明</td></tr>
-        <tr><td><code>deidentified</code></td><td>是否去标识化（布尔值）</td></tr>
-        <tr><td><code>data_retention</code></td><td>数据留存期限</td></tr>
-        <tr><td><code>copyright</code></td><td>版权归属</td></tr>
-        <tr><td><code>risk_level</code></td><td>风险等级（green/yellow/red）</td></tr>
-        <tr><td><code>key_clauses</code></td><td>关键条款摘录（数组）</td></tr>
-        <tr><td><code>policy_link</code></td><td>该版本政策链接</td></tr>
-        <tr><td><code>label</code></td><td>版本标签（详情页标签页文案）</td></tr>
-      </tbody>
-    </table>
-
-    <h2>局限性说明</h2>
-    <ol>
-      <li><strong>政策解读主观性</strong>：隐私政策的语言可能模糊，不同人可能有不同解读</li>
-      <li><strong>时效性</strong>：各产品政策可能随时变更，本数据可能滞后</li>
-      <li><strong>地域差异</strong>：同一产品在不同地区可能有不同的政策（如 GDPR vs 中国《个保法》）</li>
-      <li><strong>功能差异</strong>：同一产品的不同功能模块可能适用不同政策</li>
-      <li><strong>间接使用</strong>：部分产品可能通过关联公司间接使用数据，难以完全追踪</li>
-      <li><strong>动态变化</strong>：产品的设置选项可能随版本更新而变化</li>
-      <li><strong>语言限制</strong>：部分国外产品的政策以英文为主，翻译可能存在偏差</li>
-    </ol>
-
-    <blockquote><strong>重要提醒</strong>：本数据仅供参考，不构成法律建议。在做出重要决策前，请咨询专业法律人士并查阅最新的官方政策。</blockquote>
-
-    <p><a href="../index.html">&larr; 返回首页</a></p>
+<h1>方法论</h1>
+<h2>数据来源</h2>
+<p>本项目的数据来源于各 AI 产品官方发布的隐私政策、服务条款和使用条件。当前覆盖 50 款产品（国内 46 + 海外 4），包括但不限于：</p>
+<table>
+<thead>
+<tr>
+<th>厂商</th>
+<th>代表产品</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>OpenAI</td>
+<td>ChatGPT</td>
+</tr>
+<tr>
+<td>Anthropic</td>
+<td>Claude</td>
+</tr>
+<tr>
+<td>Google</td>
+<td>Gemini</td>
+</tr>
+<tr>
+<td>百度</td>
+<td>文心一言、文心快码、千帆</td>
+</tr>
+<tr>
+<td>阿里云/阿里巴巴</td>
+<td>通义千问、百炼、Qoder CN</td>
+</tr>
+<tr>
+<td>字节跳动</td>
+<td>豆包、扣子、即梦、Trae</td>
+</tr>
+<tr>
+<td>智谱AI</td>
+<td>智谱清言、AutoGLM、Z.ai 等</td>
+</tr>
+<tr>
+<td>月之暗面</td>
+<td>Kimi</td>
+</tr>
+<tr>
+<td>深度求索</td>
+<td>DeepSeek</td>
+</tr>
+<tr>
+<td>科大讯飞</td>
+<td>讯飞星火、讯飞智作</td>
+</tr>
+<tr>
+<td>腾讯</td>
+<td>腾讯元宝、ima、CodeBuddy 等</td>
+</tr>
+<tr>
+<td>快手</td>
+<td>可灵AI</td>
+</tr>
+<tr>
+<td>昆仑万维</td>
+<td>天工、Mureka、SkyReels 等</td>
+</tr>
+<tr>
+<td>华为</td>
+<td>盘古大模型、小艺</td>
+</tr>
+<tr>
+<td>360</td>
+<td>纽米 AI、360 智脑</td>
+</tr>
+<tr>
+<td>MiniMax</td>
+<td>海螺 AI</td>
+</tr>
+<tr>
+<td>商汤科技</td>
+<td>日日新</td>
+</tr>
+<tr>
+<td>阶跃星辰</td>
+<td>跃问</td>
+</tr>
+<tr>
+<td>百川智能</td>
+<td>Baichuan AI</td>
+</tr>
+<tr>
+<td>零一万物</td>
+<td>01.AI</td>
+</tr>
+</tbody>
+</table>
+<p>完整产品列表见 <a href="https://838860610.github.io/ai-policy-tracker/">首页对比表格</a> 或 <code>site/data/products.json</code>。</p>
+<h2>风险等级评定标准</h2>
+<h3>🟢 绿色（低风险）</h3>
+<p>满足以下<strong>所有</strong>条件：<br />
+- <strong>不使用</strong>用户数据训练模型（默认关闭）<br />
+- 数据经过去标识化处理<br />
+- 数据留存期限明确且合理（≤30天）<br />
+- 用户保留生成内容的版权</p>
+<h3>🟡 黄色（中风险）</h3>
+<p>满足以下<strong>任一</strong>条件：<br />
+- 使用用户数据训练，但<strong>提供明确的退出机制</strong>且操作简单<br />
+- 数据留存期限较长（&gt;30天）但可配置<br />
+- 去标识化处理不明确</p>
+<h3>🔴 红色（高风险）</h3>
+<p>满足以下<strong>任一</strong>条件：<br />
+- 使用用户数据训练且<strong>无退出机制</strong>或退出困难<br />
+- 数据长期留存且无明确删除机制<br />
+- <strong>训练场景</strong>下未进行去标识化处理（若条款明示不训练，未去标识化本身不构成红色条件，见下方说明）<br />
+- 隐私政策模糊，数据使用边界不清晰</p>
+<blockquote>
+<p><strong>关于"未去标识化"的口径（2026-09-19 修订）</strong>：早期表述为"未进行去标识化处理 → 红"，<br />
+但实操中大量"训练但已去标识化"与"不训练但未载明去标识化"的条目无法用这条规则区分。<br />
+现明确为：红色条件第③条只在<strong>数据实际用于训练/模型优化</strong>的前提下适用；<br />
+若条款明示不用于训练，则按第①条判定，不再因"未载明去标识化"单独升红。</p>
+</blockquote>
+<h2>判定示例（逐条对照）</h2>
+<p>以实际条目为例演示四项标准的应用。<strong>判定以条款实质为准，不以是否出现"训练"字样为准</strong>（检索须使用同义词组：训练/优化模型/提升模型/改进模型/模型训练/用于训练/优化训练/机器学习等）。</p>
+<p><strong>示例一：腾讯元宝（🟡）</strong>——加入式训练 + 留存不明确<br />
+- ① 默认不用于训练 ✓（2025-12 版协议 5.4：除非开启"体验优化计划"，否则不用于模型优化——加入式）<br />
+- ② 去标识化 ✓（加入计划后去标识化处理）<br />
+- ③ 留存明确 ≤30天 ✗（仅"目的所必需的最短时间"原则，无具体天数）<br />
+- ④ 版权归用户 ✓<br />
+- 结论：④②①✓ 但 ③✗ → <strong>中风险</strong>（黄色标准"去标识化或使用边界不明确"）</p>
+<p><strong>示例二：CodeBuddy 个人版（🔴）</strong>——退出式训练 + 未去标识化 + 联系式退出<br />
+- 非代码输入输出默认参与优化模型（隐私声明 2.6.3-4，加密脱敏前提）<br />
+- 退出为联系式（第十一条），无产品内开关 → 退出困难<br />
+- 代码信息例外不训练，但其他内容未去标识化<br />
+- 结论：训练默认 + 联系式退出 + 未去标识化 → <strong>高风险</strong>（红色标准"未去标识化处理"+"退出困难"）</p>
+<p><strong>示例三：ima（🟢→🟡 校准案例）</strong><br />
+- 知识库数据明确不用于模型训练 ✓、问答记录 90 天 ✓<br />
+- 但去标识化未说明 ✗、版权归属未核实 ✗<br />
+- 结论：按严格四项口径 <strong>中风险</strong>（本库曾标绿，校验脚本推导后校准）</p>
+<blockquote>
+<p>校验脚本（<code>validate_data.py</code>）按同一规则自动推导并比对 <code>risk_level</code>，判定与规则不符时会告警。</p>
+</blockquote>
+<h2>核实方法</h2>
+<h3>核实流程</h3>
+<ol>
+<li><strong>访问官方政策页面</strong>：直接访问各产品的官方隐私政策 URL</li>
+<li><strong>定位关键条款</strong>：查找关于"数据使用"、"模型训练"、"数据保留"的章节</li>
+<li><strong>提取关键信息</strong>：<br />
+   - 是否明确说明使用/不使用用户数据训练<br />
+   - 默认状态（开启/关闭）<br />
+   - 是否提供退出机制及操作方法<br />
+   - 数据留存期限<br />
+   - 去标识化措施<br />
+   - 版权归属</li>
+<li><strong>交叉验证</strong>：对照产品设置界面，验证政策描述与实际操作是否一致</li>
+<li><strong>记录核实日期</strong>：每次核实后更新 <code>last_verified</code> 字段</li>
+</ol>
+<h3>核实要点</h3>
+<ul>
+<li>优先查看<strong>最新版本</strong>的隐私政策</li>
+<li>注意区分<strong>个人版</strong>和<strong>企业版</strong>的不同政策</li>
+<li>关注政策<strong>更新日期</strong>，确保使用最新版本</li>
+<li>对于中国产品，同时查阅《个人信息保护法》合规声明</li>
+</ul>
+<h2>建议核实周期</h2>
+<ul>
+<li><strong>常规核实</strong>：每月一次，检查所有产品的政策页面是否有更新</li>
+<li><strong>自动监控</strong>：每周运行 <code>scripts/check_updates.py</code>，检测政策页面内容变化</li>
+<li><strong>事件驱动</strong>：当媒体报道某产品政策变更时，立即手动核实</li>
+<li><strong>版本更新</strong>：当产品发布重大版本更新时，重新核实相关政策</li>
+</ul>
+<h2>数据字段说明</h2>
+<blockquote>
+<p><code>site/data/policies/{id}.json</code> 是每个产品唯一的数据源；<code>site/data/products.json</code> 只维护产品 ID 的排列顺序与项目元信息，不再重复存储产品数据。</p>
+</blockquote>
+<h3>policies/{id}.json 顶层字段</h3>
+<table>
+<thead>
+<tr>
+<th>字段</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>id</code></td>
+<td>产品唯一标识符（必须与文件名一致）</td>
+</tr>
+<tr>
+<td><code>name</code></td>
+<td>产品名称</td>
+</tr>
+<tr>
+<td><code>company</code></td>
+<td>所属公司</td>
+</tr>
+<tr>
+<td><code>region</code></td>
+<td>所属地区</td>
+</tr>
+<tr>
+<td><code>description</code></td>
+<td>产品简介</td>
+</tr>
+<tr>
+<td><code>policy_url</code></td>
+<td>官方隐私政策 URL（监控脚本抓取目标）</td>
+</tr>
+<tr>
+<td><code>last_verified</code></td>
+<td>最后人工核实日期（YYYY-MM-DD）</td>
+</tr>
+<tr>
+<td><code>versions</code></td>
+<td>包含 toc 和 tob 两个版本的详细政策</td>
+</tr>
+<tr>
+<td><code>timeline</code></td>
+<td>政策变更时间线</td>
+</tr>
+<tr>
+<td><code>analysis_summary</code></td>
+<td>分析摘要</td>
+</tr>
+<tr>
+<td><code>key_findings</code></td>
+<td>关键发现（数组）</td>
+</tr>
+<tr>
+<td><code>recommendations</code></td>
+<td>使用建议（数组）</td>
+</tr>
+<tr>
+<td><code>icon</code> / <code>product_url</code></td>
+<td>展示用图标与产品主页（可选）</td>
+</tr>
+</tbody>
+</table>
+<h3>versions.toc / versions.tob 字段</h3>
+<table>
+<thead>
+<tr>
+<th>字段</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>used_for_training</code></td>
+<td>是否使用用户数据训练（布尔值）</td>
+</tr>
+<tr>
+<td><code>training_note</code></td>
+<td>训练说明</td>
+</tr>
+<tr>
+<td><code>default_state</code></td>
+<td>默认状态（默认开启/默认关闭）</td>
+</tr>
+<tr>
+<td><code>opt_out</code></td>
+<td>退出机制（设置开关/邮件申请/无需退出等）</td>
+</tr>
+<tr>
+<td><code>opt_out_method</code></td>
+<td>退出操作说明</td>
+</tr>
+<tr>
+<td><code>deidentified</code></td>
+<td>是否去标识化（布尔值）</td>
+</tr>
+<tr>
+<td><code>data_retention</code></td>
+<td>数据留存期限</td>
+</tr>
+<tr>
+<td><code>copyright</code></td>
+<td>版权归属</td>
+</tr>
+<tr>
+<td><code>risk_level</code></td>
+<td>风险等级（green/yellow/red）</td>
+</tr>
+<tr>
+<td><code>key_clauses</code></td>
+<td>关键条款摘录（数组）</td>
+</tr>
+<tr>
+<td><code>policy_link</code></td>
+<td>该版本政策链接</td>
+</tr>
+<tr>
+<td><code>label</code></td>
+<td>版本标签（详情页标签页文案）</td>
+</tr>
+</tbody>
+</table>
+<h2>局限性说明</h2>
+<ol>
+<li><strong>政策解读主观性</strong>：隐私政策的语言可能模糊，不同人可能有不同解读</li>
+<li><strong>时效性</strong>：各产品政策可能随时变更，本数据可能滞后</li>
+<li><strong>地域差异</strong>：同一产品在不同地区可能有不同的政策（如 GDPR vs 中国《个保法》）</li>
+<li><strong>功能差异</strong>：同一产品的不同功能模块可能适用不同政策</li>
+<li><strong>间接使用</strong>：部分产品可能通过关联公司间接使用数据，难以完全追踪</li>
+<li><strong>动态变化</strong>：产品的设置选项可能随版本更新而变化</li>
+<li><strong>语言限制</strong>：部分国外产品的政策以英文为主，翻译可能存在偏差</li>
+</ol>
+<blockquote>
+<p><strong>重要提醒</strong>：本数据仅供参考，不构成法律建议。在做出重要决策前，请咨询专业法律人士并查阅最新的官方政策。</p>
+</blockquote>
   </div>
 
-  <div class="footer">
-    <p>AI 用户政策追踪器 | <a href="../index.html">返回首页</a> | <a href="update-monitoring.html">监控说明</a></p>
-    <p>免责声明：本数据仅供参考，不构成法律建议。请以官方最新政策为准。</p>
+  <div class="docs-body">
+    <p><a href="../index.html">返回首页</a> | <a href="update-monitoring.html">政策更新监控</a></p>
   </div>
 </body>
 </html>

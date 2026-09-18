@@ -17,18 +17,37 @@
 - 脚本路径常量全部改为 `site/data` 与 `site/generated`；`start.sh` 改为 `http.server --directory site`；新增 `site/.nojekyll`
 
 - **目录分层**：`site/data/` 只保留人工维护的源数据（`products.json` + `policies/`）；生成物统一放 `site/generated/`——`bundle.json`、`update_status.json`、`snapshots/`、`change_reports/`，以及原 `assets/og-card.png`（`assets/` 目录已移除）
+- **风险等级校准**：4 处"训练且无退出机制却标黄"改为红（`zai.toc`、`kimi.tob`、`bigmodel.tob`、`glm-coding-plan.toc`），README 汇总表与 OG 图已重新生成（高风险 15 → 17，中风险 24 → 22）
+- **方法论口径修订**：红色标准第③条明确为"**训练场景下**未进行去标识化处理"，消除与约 15 个 `deidentified=false` 黄色块的规则冲突
+- **文档单源化**：新增 `scripts/gen_docs.py`，`site/docs/*.md` 为唯一源、`*.html` 由脚本渲染，CI 跑 `--check` 并自动提交，彻底消除两份手工副本的漂移
+- **首页瘦身**：`bundle.json` 按白名单裁剪（只含表格与展开面板所需字段），202 KB → 30 KB；Google Fonts 改为异步加载（国内访客不再因字体请求阻塞而白屏）；详情行改为展开时才渲染
+- `key_clauses` 纪律：非政策原文内容（对比提示、404 核对记录）移入新增的可选字段 `verification_notes`
+- 占位条目（政策 URL 只能指向产品首页）新增可选字段 `monitor: false`，监控脚本跳过，避免持续误报
 
 ### Added
 
 - `tests/test_scripts.py` 新增 `test_site_dir_is_the_publish_root`：断言站点根文件齐备，防止漏文件导致线上 404
 - `tests/test_scripts.py` 新增 `TestLayout`：断言源数据目录不含生成物、前端只从 `generated/` 读取
 - `tests/test_scripts.py` 新增 `TestResponseDecoding`（4 项）：防止响应解码回退到 latin-1 再次产生乱码快照
+- `tests/test_scripts.py` 新增 `TestSiteConsistency`（6 项）：页面内相对链接可达性、资源版本号一致、sitemap 与产品索引一致、`deploy.yml` 的 `workflow_run` 名字匹配、bundle 瘦身且完整、文档页无"未来功能"等过时表述
+- `scripts/gen_docs.py`：把 `site/docs/*.md` 渲染为发布用 `.html`（依赖 `markdown`，已加入 requirements.txt）
 
 ### Fixed
 
 - **修复政策正文快照乱码**：`requests` 对未声明 charset 的 `text/html` 会按 RFC 2616 回退到 ISO-8859-1，中文被解成拉丁字符后再以 UTF-8 存盘，形成双重编码（mojibake），快照无法阅读、AI 变更分析也拿不到有效文本。新增 `response_text()`：未声明 charset 时用探测编码（兜底 utf-8），声明为 ISO-8859-1 的尝试反向还原
 - `HASH_SCHEME` 升至 `text-v2`：解码变化会让所有哈希改变，升版后脚本重建基线，避免误报"全部产品政策已变更"
 - 修正 `docs/update-monitoring` 中「`update_status.json` 已加入 .gitignore」的过时描述（该文件现已入库，由监控流程提交）
+- **文档页 CSS 死链**：`site/docs/*.html` 引用 `../site/css/style.css`（迁移 `site/` 后的遗留路径），部署后 404 导致两个已收录页面完全没有样式
+- **8 个纯 ToB 产品详情页首屏空白**：`syncTabs` 只隐藏了标签按钮，没把 `active` 从 `contentToc` 移到 `contentTob`
+- **资源版本号分裂**：`index.html` 用 `20260916-1`、`detail.html`/`404.html` 用 `20260909-1`、docs 页无版本号，现统一为单一版本（测试已锁死）
+- **监控空转**：12 个产品的正文快照只有 19–93 字节（SPA/反爬只返回标题骨架），却仍记为 `ok` 并建基线；现对低于 `MIN_BODY_CHARS` 的正文标记 `suspicious`，不建基线、不报变更
+- **AI 变更告警在最后一公里丢失**：无旧快照的报告缺少 `has_substantive_change`，被摘要的 True/False 两分过滤同时漏掉；现补为 `True`，且 Issue 正文始终逐条列出变更产品
+- **陈旧摘要被当本轮结论**：`analyze_changes.py` 现在每轮开始先删除上一轮 `_summary.md`，并为状态文件读取加 `JSONDecodeError` 兜底
+- **git 历史回退是死代码**：把绝对路径当作 git pathspec 传给 `git log/show`，永远不会命中，改为 `os.path.relpath`
+- **哈希方案不覆盖提取器变体**：bs4 与正则回退剥离的标签不同，`HASH_SCHEME` 现形如 `text-v3-bs4` / `text-v3-regex`，避免依赖缺失时全库哈希漂移造成批量误报
+- **数据文案与字段矛盾**：`zhipu-qingyan`（摘要说"退出需发邮件"、字段是设置开关）、`ima`（摘要说"评为低风险"、字段是 yellow）
+- **脚本健壮性**：`update_status.json` 改为原子写（tmp + `os.replace`）；单个数据文件损坏不再中断整轮监控；全部产品失败时显式告警；`validate_data.py` 补齐漏检（`null` 值、非 dict `versions`、版本块非对象、`policy_link` 非 URL、`region` 枚举、未来日期、`timeline` 日期格式）
+- **文档数字口径**：`README.en` 的 64 → 65 条版本条目、首页 "50+" → 50 款；`SECURITY.md` 支持版本补 1.3.x，并移除已不可用的"GitHub 站内私信"联系方式
 
 ## [1.3.0] - 2026-09-18
 
