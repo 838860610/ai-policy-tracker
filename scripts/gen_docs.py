@@ -22,7 +22,7 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DOCS_DIR = os.path.join(BASE_DIR, "site", "docs")
 
 # 站点资源版本号：必须与 site/*.html 里的 ?v= 保持一致（tests 会校验）
-ASSET_VERSION = "20260919-1"
+ASSET_VERSION = "20260919-2"
 
 # 文档页标题与副标题
 DOC_META = {
