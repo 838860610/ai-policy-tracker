@@ -1,4 +1,4 @@
-Kimi 开放平台服务协议 - Kimi API 开放平台Documentation IndexFetch the complete documentation index at: /docs/llms.txtUse this file to discover all available pages before exploring further.Skip to main content🎉 Kimi K3 旗舰模型已正式发布，快来体验吧！Kimi API 开放平台 home page简体中文模型推理托管智能体 BetaAPI 参考模型与定价资源搜索...⌘K企业订阅联系销售用户中心Kimi API 开放平台 home page搜索或提问...Navigation条款与协议Kimi 开放平台服务协议条款与协议平台服务协议用户隐私协议用户服务协议充值协议条款与协议Kimi 开放平台服务协议了解 Kimi 开放平台的账号、API 使用、计费、数据与合规规则及双方权利义务。版本生效日期：2026年8月31日
+Kimi 开放平台服务协议 - Kimi API 开放平台Documentation IndexFetch the complete documentation index at: /docs/llms.txtUse this file to discover all available pages before exploring further.Skip to main content🎉 Kimi K3 旗舰模型已正式发布，快来体验吧！Kimi API 开放平台 home page简体中文模型推理托管智能体 BetaAPI 参考模型与定价资源搜索...⌘K企业订阅联系销售用户中心Kimi API 开放平台 home page搜索或提问...Navigation条款与协议Kimi 开放平台服务协议条款与协议平台服务协议用户隐私协议用户服务协议充值协议条款与协议Kimi 开放平台服务协议复制页面复制页面了解 Kimi 开放平台的账号、API 使用、计费、数据与合规规则及双方权利义务。复制页面复制页面版本生效日期：2026年8月31日
 版本更新日期：2026年8月24日
 欢迎使用”Kimi大模型开放平台”服务！
 Kimi大模型开放平台是由北京月之暗面科技股份有限公司及关联公司（简称”我们”或者”月之暗面”）提供的以生成式人工智能服务为核心功能的服务平台（简称”本服务”），本服务主要适用于您作为开发者使用我们提供的应用程序编程接口（API）或其他开发者工具，开发面向组织内部或终端用户的产品及服务的使用场景。

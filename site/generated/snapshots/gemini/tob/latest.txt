@@ -415,7 +415,7 @@ December 17, 2024
 Generative AI in Google Workspace Privacy Hub published
 Send feedback
 Except as otherwise noted, the content of this page is licensed under the Creative Commons Attribution 4.0 License, and code samples are licensed under the Apache 2.0 License. For details, see the Google Developers Site Policies. Java is a registered trademark of Oracle and/or its affiliates.
-Last updated 2026-09-16 UTC.
+Last updated 2026-09-18 UTC.
 Try Google Workspace
 Boost your productivity with AI at no cost
 Admin Community
