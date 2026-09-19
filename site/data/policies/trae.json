@@ -1,5 +1,6 @@
 {
   "id": "trae",
+  "fetch_method": "browser",
   "name": "Trae（AI IDE）",
   "company": "字节跳动",
   "region": "中国",

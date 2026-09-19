@@ -1,5 +1,6 @@
 {
   "id": "keling-api",
+  "fetch_method": "browser",
   "name": "可灵 AI 开放平台",
   "company": "快手",
   "region": "中国",

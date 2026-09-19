@@ -1,16 +1,22 @@
 {
   "id": "lingyi",
+  "fetch_method": "browser",
   "name": "零一万物（01.AI）",
   "company": "零一万物",
   "region": "中国",
   "icon": "01",
-  "description": "李开复创立；高管换血后转型 To B 企业 AI/Agent（'一号位AI'产品矩阵：老板AI、超级员工等）。据媒体报道（新浪财经/IT之家 2026-08-10）开放平台停服：2026-09-03 24:00 起全面停止模型体验与 API 调用；官网首页与开放平台页（JS 壳）未见官方公告原文，条款已无收集意义",
+  "description": "李开复创立；转型 To B 企业 AI/Agent（'一号位AI'产品矩阵）。据媒体报道（2026-08-10）开放平台于 2026-09-03 24:00 起停止模型体验与 API 调用，处于关停期；但隐私政策（platform.lingyiwanwu.com/privacypolicy）与用户协议（useragreement）页面 2026-09-19 复核仍可达，故纳入监控（低优先级，关停后可能失效）",
   "product_url": "https://www.lingyiwanwu.com/",
-  "policy_url": "https://www.lingyiwanwu.com/",
-  "toc_note": "零一万物官网未公开发布独立的产品隐私政策/用户协议页面；暂不纳入自动监控（monitor: false）",
-  "tob_note": "零一万物官网未公开发布独立的产品隐私政策/用户协议页面；暂不纳入自动监控（monitor: false）",
+  "policy_url": "https://platform.lingyiwanwu.com/privacypolicy",
+  "toc_note": "零一万物开放平台隐私政策/用户协议已定位（platform.lingyiwanwu.com，2026-09-19 检索），纳入监控；平台处于关停期，页面可能失效",
+  "tob_note": "零一万物开放平台隐私政策/用户协议已定位（platform.lingyiwanwu.com，2026-09-19 检索），纳入监控；平台处于关停期，页面可能失效",
   "last_verified": "2026-08-30",
-  "versions": {},
+  "versions": {
+    "tob": {
+      "label": "用户服务协议",
+      "policy_link": "https://platform.lingyiwanwu.com/useragreement"
+    }
+  },
   "analysis_summary": "李开复创立；转型 To B 企业 AI/Agent。已搜索（2026-08-30 复核）：开放平台停服（2026-09-03 24:00 全面停止 API）仅媒体信源佐证（官方页面无公告原文），条款已无收集意义；企业级'万智'平台条款未公开（官网列有产品、无条款链接）。占位记录。",
   "key_findings": [
     "转型 To B（钛媒体）",
@@ -19,6 +25,5 @@
   ],
   "recommendations": [
     "API 已停服，收录优先级最低"
-  ],
-  "monitor": false
+  ]
 }

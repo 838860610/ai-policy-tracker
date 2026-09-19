@@ -1,5 +1,6 @@
 {
   "id": "workbuddy",
+  "fetch_method": "browser",
   "name": "WorkBuddy（AI 办公智能体）",
   "company": "腾讯（腾讯云运营）",
   "region": "中国",

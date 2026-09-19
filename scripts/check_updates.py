@@ -83,6 +83,8 @@ RETRY_BACKOFF = 5        # 重试间隔基数（秒）
 # 正文最小长度：低于此值视为"空壳正文"（SPA / 反爬只返回标题骨架），
 # 不建基线也不报变更——否则既会漏报（正文由 JS 渲染）又会误报（标题微调）。
 MIN_BODY_CHARS = 500
+# 浏览器抓取的“明显完整正文”阈值：达到此长度即认为 SPA 已渲染完整，提前结束重试。
+FULL_RENDER_MIN_CHARS = 8000
 
 # 监控目标的中文名（控制台输出与 Issue 正文用）
 TARGET_LABELS = {"main": "主监控页", "toc": "个人版条款", "tob": "企业版条款"}
@@ -119,16 +121,59 @@ def load_previous_status():
     return {}
 
 
+# 文档站/反爬页常见的“非内容”UI 碎片（按钮文案、目录锚点、回到顶部等）。
+# 这些文本会随渲染时机或 UI 状态偶发出现/消失，导致正文哈希抖动而误报“已变更”
+# （例如 docs.trae.cn 偶发渲染出的“复制页面”按钮）。仅剔除明确属于 UI 控件、
+# 绝不会作为政策条款正文出现的固定短语，保守清单、避免误删真实条款。
+UI_NOISE_PHRASES = (
+    "复制页面", "复制代码", "复制链接",
+    "编辑此页", "编辑页面", "编辑文档",
+    "本页目录", "此页内容", "页面目录",
+    "回到顶部", "回到开头", "返回顶部",
+    "加载更多", "显示更多", "查看更多",
+    "On this page", "Back to top", "Copy page", "Copy code", "Copy link",
+    "Edit this page", "Table of contents",
+)
+
+# 阿里云帮助中心等文档模板会在正文之后异步注入“精选产品 / 精选解决方案 / 配置报价器”
+# 等推荐挂件；它们有时渲染有时不渲染，导致正文长度波动（qwenwork 实测 7341↔6066 字符）。
+# 这些挂件位于正文之后、永不作为政策条款，故从首个挂件标记起到文末整体剔除。
+ALIYUN_WIDGET_ANCHORS = ("精选产品", "精选解决方案", "配置报价器")
+
+# 站点页脚/版权站壳锚点（阿里云、trae 等文档站通用）：这些短语只出现在页脚，
+# 绝不会作为政策条款正文。从首个锚点到文末整体剔除，使哈希不受页脚渲染波动影响。
+FOOTER_ANCHORS = ("京公网安备", "京ICP备", "企业咨询热线", "营业执照",
+                 "关注微信公众号", "版权所有", "TRAE先一步体验未来")
+
+
 def extract_text(raw_html):
-    """剥离 script/style 等非正文标签，提取可见文本。"""
+    """剥离 script/style 等非正文标签，提取可见文本，并剔除 UI 噪音碎片。"""
     if BeautifulSoup is not None:
         soup = BeautifulSoup(raw_html, "html.parser")
         for tag in soup(["script", "style", "noscript", "template", "svg", "iframe"]):
             tag.decompose()
-        return soup.get_text()
-    text = re.sub(r"(?is)<(script|style|noscript|svg)\b.*?</\1>", " ", raw_html)
-    text = re.sub(r"(?s)<[^>]+>", " ", text)
-    return html_lib.unescape(text)
+        text = soup.get_text()
+    else:
+        text = re.sub(r"(?is)<(script|style|noscript|svg)\b.*?</\1>", " ", raw_html)
+        text = re.sub(r"(?s)<[^>]+>", " ", text)
+        text = html_lib.unescape(text)
+    for phrase in UI_NOISE_PHRASES:
+        text = text.replace(phrase, "")
+    # 剔除阿里云帮助中心等文档模板在正文后异步注入的推荐挂件（见 ALIYUN_WIDGET_ANCHORS）。
+    # 这些挂件有时渲染有时不渲染，若不剔除会导致正文哈希随抓取时机波动而误报“已变更”。
+    for anchor in ALIYUN_WIDGET_ANCHORS:
+        idx = text.find(anchor)
+        if idx != -1:
+            text = text[:idx]
+            break
+    # 剔除站点页脚/版权站壳（见 FOOTER_ANCHORS）。这些只出现在文末页脚、绝不作为政策条款，
+    # 从首个锚点到文末整体剔除，避免页脚渲染波动或版权年份变化污染正文哈希。
+    for anchor in FOOTER_ANCHORS:
+        idx = text.find(anchor)
+        if idx != -1:
+            text = text[:idx]
+            break
+    return text
 
 
 def normalize_text(text):
@@ -309,21 +354,42 @@ def fetch_browser(url, timeout=30):
                 "httpOnly": True,
             }])
         page = ctx.new_page()
-        try:
-            page.goto(url, wait_until="domcontentloaded", timeout=timeout * 1000)
-        except Exception:
-            pass  # 导航超时/跳转异常也尽量取已渲染内容
-        try:
-            # 等真实正文出现（挑战页正文极短）；超时也继续，交由 MIN_BODY_CHARS 判 suspicious
-            page.wait_for_function(
-                "document.body && document.body.innerText.length > 800",
-                timeout=timeout * 1000,
-            )
-        except Exception:
-            pass
-        html = page.content()
+        # SPA 文档页正文为异步渲染，单次抓取偶发只渲染一半或只剩页脚壳（如 trae/tob
+        # 出现过正文缺失、仅剩 footer 的坏渲染）。因此最多重试 3 次，并始终返回
+        # 正文最长（最完整）的那次，避免残缺页污染哈希、造成永久误报“已变更”。
+        best_html, best_len = None, -1
+        for attempt in range(3):
+            try:
+                page.goto(url, wait_until="domcontentloaded", timeout=timeout * 1000)
+            except Exception:
+                pass  # 导航超时/跳转异常也尽量取已渲染内容
+            try:
+                # 等真实正文出现（挑战页正文极短）；超时也继续，交由 MIN_BODY_CHARS 判 suspicious
+                page.wait_for_function(
+                    "document.body && document.body.innerText.length > 800",
+                    timeout=timeout * 1000,
+                )
+            except Exception:
+                pass
+            try:
+                # 给懒加载章节一点时间，再取正文长度判断渲染完整度
+                page.wait_for_timeout(600)
+            except Exception:
+                pass
+            inner = ""
+            try:
+                inner = page.evaluate("document.body ? document.body.innerText : ''")
+            except Exception:
+                pass
+            nlen = len(normalize_text(inner)) if inner else 0
+            html = page.content()
+            if nlen > best_len:
+                best_len, best_html = nlen, html
+            # 已渲染出明显完整的正文（远超挑战页/壳页），提前结束
+            if nlen >= FULL_RENDER_MIN_CHARS:
+                break
         browser.close()
-        return html, False
+        return best_html, False
 
 
 def collect_targets(policy):

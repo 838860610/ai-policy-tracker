@@ -7,11 +7,11 @@
   "description": "智谱旗下 GitHub 开源项目解读工具。截至 2026-08-30 复核未见独立用户协议/隐私政策页面（疑似适用智谱开放平台条款体系，待核实）；注意：zread.ai 对 curl/WebFetch 返回 TLS 连接重置（反爬），需浏览器访问",
   "product_url": "https://zread.ai/",
   "policy_url": "https://zread.ai/",
-  "toc_note": "Zread.ai 未公开发布独立的隐私政策页面；暂不纳入自动监控（monitor: false）",
-  "tob_note": "Zread.ai 未公开发布独立的隐私政策页面；暂不纳入自动监控（monitor: false）",
+  "toc_note": "Zread.ai（智谱 GitHub 解读工具）无专属政策页；2026-09-19 复核：首页仅 App UI 无法务链接、/privacy 404，zread.app 为无关 iOS EPUB 阅读器，docs.z.ai 通用条款非本产品专属，故无独立公开政策页可监控（monitor: false）",
+  "tob_note": "Zread.ai（智谱 GitHub 解读工具）无专属政策页；2026-09-19 复核：首页仅 App UI 无法务链接、/privacy 404，zread.app 为无关 iOS EPUB 阅读器，docs.z.ai 通用条款非本产品专属，故无独立公开政策页可监控（monitor: false）",
   "last_verified": "2026-08-30",
   "versions": {},
-  "analysis_summary": "Zread.ai 为智谱旗下 GitHub 项目解读工具，未见独立公开条款。已搜索（2026-08-30 复核：站点反爬致 curl 不可达，浏览器确认首页无法务链接、/privacy 404）。按铁律不推测适用文件，占位待核实。",
+  "analysis_summary": "Zread.ai 为智谱旗下 GitHub 项目解读工具，未见独立公开条款。已搜索（2026-08-30 复核：站点反爬致 curl 不可达，浏览器确认首页无法务链接、/privacy 404；2026-09-19 再核：zread.app 为无关 iOS EPUB 阅读器、docs.z.ai 通用条款非本产品专属）。按铁律不推测适用文件，占位待核实。",
   "key_findings": [
     "智谱旗下 GitHub 项目解读工具",
     "官网页脚无法务链接、/privacy 为 404（2026-08-30 浏览器复核；curl 因 TLS 重置不可达）"

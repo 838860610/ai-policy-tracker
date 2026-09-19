@@ -1,5 +1,6 @@
 {
   "id": "yuanqi",
+  "fetch_method": "browser",
   "name": "腾讯元器",
   "company": "腾讯",
   "region": "中国",
