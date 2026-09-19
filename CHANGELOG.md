@@ -11,6 +11,8 @@
 
 ### Changed
 
+- **监控/核实流程重构（端到端）**：CI 不再做 AI 分析、不再自动建 Issue。`monitor.yml` 只保留 `check_updates.py` 检测 + 快照入库 + 写 `pending_verification.json` 待核实队列；核实与改数据全部在本地由 `policy-change-verify` skill 完成。移除 `scripts/analyze_changes.py` 与 `OPENAI_API_KEY` 依赖
+- **基线方案无关化**：变更检测改以"已入库快照文本"为准（哈希仅作快速路径），哈希方案升级（text-v2→text-v3 等）时不再整库误报/失明；快照 `site/generated/snapshots/` 由 `.gitignore` 忽略改为入库，作为跨环境（CI↔本地）共享的持久历史；日期存档加保留策略（默认 12 份）
 - **站点整体迁入 `site/`（方案 D）**：`site/` 即站点根，内含 `index.html`、`detail.html`、`404.html`、`robots.txt`、`sitemap.xml`、`css/`、`js/`、`data/`、`generated/`、`docs/`；仓库根只留文档与工具（21 → 12 项）
 - **部署改用 GitHub Actions**：新增 `.github/workflows/deploy.yml`，发布 `site/` 目录；Pages 设置需一次性改为 *Settings → Pages → Source: GitHub Actions*（原因：分支发布只支持 `/(root)` 或 `/docs`，无法指定 `site/`）
 - 部署触发用 `workflow_run`（监听「数据校验」「政策更新监控」完成）而非 `push`——bot 用 `GITHUB_TOKEN` 提交的 commit 不会再触发 `push` 事件，否则自动生成的产物发布不出去

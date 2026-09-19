@@ -8,10 +8,13 @@ __pycache__/
 .venv/
 venv/
 
-# 政策正文快照（监控脚本生成：体积大、每次运行都可能变动，不入库）
-# site/generated/ 下其余产物（bundle.json / update_status.json / change_reports / og-card.png）
-# 需要入库——首页与 OG 标签直接引用它们，由 CI 生成后提交，最终由部署工作流发布
-site/generated/snapshots/
+# 政策正文快照（监控脚本生成）：现入库——
+# 它们是"检测→核实"回路的唯一持久历史，CI 与本地 agent 都靠 git 共享；
+# 脚本已对日期存档做保留（prune_dated，默认保留最近 12 份）避免无限膨胀。
+# site/generated/ 下其余产物（bundle.json / update_status.json / og-card.png）
+# 需要入库——首页与 OG 标签直接引用它们，由 CI 生成后提交，最终由部署工作流发布。
+# change_reports/ 为已废弃的 analyze_changes.py 产物，忽略。
+site/generated/change_reports/
 
 # 内部工作底稿（核实报告、优化清单等维护用文档，不对外发布，也不会进入部署产物）
 # 注意：site/docs/ 下的 methodology / update-monitoring 是线上站点引用页面，必须入库，勿整体忽略

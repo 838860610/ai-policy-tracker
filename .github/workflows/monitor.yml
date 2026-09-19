@@ -1,7 +1,9 @@
 name: 政策更新监控
 
 # 每周一北京时间 09:00（UTC 01:00）自动检查各产品政策页面变化（含个人版/企业版独立条款链接），
-# 结果与正文快照提交入库；检测到变更时自动创建/更新核实 Issue——首页会读取展示监控状态。
+# 检测结果与正文快照提交入库——首页会读取展示监控状态。
+# 变更核实不再在 CI 内自动完成：检测到变化后，由本地仓库调用 policy-change-verify skill
+# 逐条人工核实并更新 site/data/policies/{id}.json（含 timeline），不再自动建 Issue。
 on:
   schedule:
     - cron: "0 1 * * 1" # 每周一 09:00 北京时间
@@ -14,7 +16,6 @@ concurrency:
 
 permissions:
   contents: write
-  issues: write
 
 jobs:
   check-updates:
@@ -31,96 +32,33 @@ jobs:
       - name: 安装依赖
         run: pip install -r requirements.txt
 
+      - name: 安装浏览器抓取依赖（fetch_method=browser 的产品需要，如 ChatGPT/OpenAI 被 Cloudflare 拦截）
+        run: pip install -r requirements-browser.txt
+
+      - name: 缓存 Playwright 浏览器二进制
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-chromium-v1
+
+      - name: 安装无头浏览器
+        run: playwright install --with-deps chromium
+
       - name: 运行政策更新检查
+        # 所有产品均监控：普通站点走 requests；fetch_method=browser 的（如 ChatGPT）走无头浏览器。
+        # 可选增强：仓库 Secrets 里配置 OPENAI_CF_CLEARANCE（真人浏览器过验证后导出的令牌）可提升过
+        # Cloudflare 概率；但该令牌绑 IP 且短时效，CI 数据中心 IP 仍可能被挑战——此时 ChatGPT 会被
+        # 标记为 suspicious（空壳）而非误报 changed，不会污染待核实队列。
+        env:
+          OPENAI_CF_CLEARANCE: ${{ secrets.OPENAI_CF_CLEARANCE }}
         run: python scripts/check_updates.py
 
-      - name: 提交监控状态与快照
+      - name: 提交监控状态、快照与待核实队列
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          # update_status.json 已入库（首页读取展示监控状态）；snapshots/ 仍在 .gitignore 中，需 -f
-          git add site/generated/update_status.json
-          if [ -d site/generated/snapshots ]; then git add -f site/generated/snapshots; fi
+          # update_status.json / snapshots/ 已入库（首页展示监控状态 + 核实回路的持久历史）；
+          # pending_verification.json 是检测→核实的跨轮交接物。三者一并提交。
+          git add site/generated/update_status.json site/generated/pending_verification.json
+          git add site/generated/snapshots
           git diff --cached --quiet || (git commit -m "monitor: 政策更新检查 $(date -u +%F)" && git push)
-
-      - name: AI 辅助变更分析
-        env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          OPENAI_BASE_URL: ${{ secrets.OPENAI_BASE_URL }}
-          OPENAI_MODEL: ${{ secrets.OPENAI_MODEL }}
-        run: |
-          python scripts/analyze_changes.py || true
-          # 提交分析报告（change_reports/ 不在 .gitignore，正常 add）
-          if [ -d site/generated/change_reports ]; then
-            git add site/generated/change_reports/
-            git diff --cached --quiet || (git commit -m "monitor: AI 变更分析报告 $(date -u +%F)" && git push)
-          fi
-
-      - name: 检测到变更时创建/更新 Issue
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          python3 - <<'PYEOF'
-          import json, os
-
-          with open("site/generated/update_status.json", encoding="utf-8") as f:
-              status = json.load(f)
-
-          changed = {pid: info for pid, info in status.get("products", {}).items()
-                     if info.get("status") == "changed"}
-
-          if not changed:
-              print("未检测到政策变更，跳过 Issue 创建")
-              raise SystemExit(0)
-
-          labels = {"main": "主监控页", "toc": "个人版条款", "tob": "企业版条款"}
-          meta = status.get("meta", {})
-          lines = [
-              f"政策监控于 `{str(meta.get('last_run', ''))[:16]}` 检测到 **{len(changed)} 个产品**的官方政策页面发生变化。",
-              "",
-          ]
-
-          # 如果有 AI 分析报告，嵌入摘要
-          summary_path = "site/generated/change_reports/_summary.md"
-          has_summary = os.path.exists(summary_path) and os.path.getsize(summary_path) > 0
-          if has_summary:
-              with open(summary_path, encoding="utf-8") as f:
-                  lines.append(f.read())
-              lines.append("")
-          else:
-              lines.append("核实指引：对比 `site/generated/snapshots/{产品}/{目标}/` 下的日期存档与 latest.txt（正文快照已随本次检查自动留档），确认变更内容后更新 `site/data/policies/{id}.json` 并补充 timeline。")
-              lines.append("")
-
-          # 无论有没有 AI 摘要，都逐条列出变更产品：摘要是给人看的，
-          # 列表是保底的——避免摘要为空/异常时 Issue 里一个产品都不出现
-          for pid, info in changed.items():
-              lines.append(f"## {pid}")
-              for key, t in (info.get("targets") or {}).items():
-                  if t.get("status") == "changed":
-                      lines.append(f"- **{labels.get(key, key)}** 可能已变更：<{t.get('url', '')}>")
-              lines.append("")
-
-          with open("issue_body.md", "w", encoding="utf-8") as f:
-              f.write("\n".join(lines))
-
-          with open("changed_flag", "w") as f:
-              f.write(" ".join(changed.keys()))
-          print(f"检测到 {len(changed)} 个产品变更：{' '.join(changed.keys())}")
-          PYEOF
-
-          if [ ! -f changed_flag ]; then exit 0; fi
-
-          # 确保标签存在（--force：已存在则更新定义，不报错）
-          # --force：已存在则更新定义；|| true：token 无权建标签时不中断后续建 Issue
-          gh label create "政策变更" --color E99695 --description "监控检测到官方政策页面变化，待人工核实" --force || true
-
-          # 去重：已有同标签的开放 Issue 则追加评论，否则新建
-          OPEN_NUM=$(gh issue list --label "政策变更" --state open --json number --jq '.[0].number // empty')
-          TITLE="⚠️ 政策变更待核实（$(date -u +%F)）"
-          if [ -n "$OPEN_NUM" ]; then
-            gh issue comment "$OPEN_NUM" --body "$(printf '%s\n---\n本轮变更产品：%s（%s）\n' "$(cat issue_body.md)" "$(cat changed_flag)" "$(date -u +%F)")"
-            echo "已评论到现有 Issue #$OPEN_NUM"
-          else
-            gh issue create --title "$TITLE" --body-file issue_body.md --label "政策变更"
-            echo "已创建新 Issue"
-          fi

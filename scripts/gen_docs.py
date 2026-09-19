@@ -34,7 +34,7 @@ DOC_META = {
     "update-monitoring": {
         "title": "政策更新监控",
         "subtitle": "AI 用户政策追踪器 · 自动化政策变更监控说明",
-        "description": "AI 用户政策追踪器政策更新监控说明：变化检测、快照留档与 AI 辅助变更分析。",
+        "description": "AI 用户政策追踪器政策更新监控说明：变化检测、快照留档与本地 skill 核实。",
     },
 }
 

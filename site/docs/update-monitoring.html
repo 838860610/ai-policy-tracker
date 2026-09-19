@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="AI 用户政策追踪器政策更新监控说明：变化检测、快照留档与 AI 辅助变更分析。">
+  <meta name="description" content="AI 用户政策追踪器政策更新监控说明：变化检测、快照留档与本地 skill 核实。">
   <title>政策更新监控 - AI 用户政策追踪器</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%9B%A1%EF%B8%8F%3C/text%3E%3C/svg%3E">
   <link rel="stylesheet" href="../css/style.css?v=20260919-2">
@@ -19,8 +19,9 @@
 <h2>概述</h2>
 <p>本项目采用两层监控机制：</p>
 <ul>
-<li><strong>第一层·变化检测</strong>（<code>scripts/check_updates.py</code>）：定期检测各 AI 产品的隐私政策页面是否发生变化（正文归一化哈希 + 条件请求）。检测结果写入 <code>site/generated/update_status.json</code>，<strong>首页读取并展示监控状态</strong>——检测到变更时在表格上方显示告警横幅并在对应产品名旁标注 ⚠️。</li>
-<li><strong>第二层·AI 辅助分析</strong>（<code>scripts/analyze_changes.py</code>）：检测到变更后，自动对比新旧政策快照，调用 LLM 提取训练政策/退出机制/留存期限等维度的变化，生成结构化报告写入 <code>site/generated/change_reports/</code>，并将分析摘要嵌入 GitHub Issue。</li>
+<li><strong>检测层</strong>（<code>scripts/check_updates.py</code>）：定期检测各 AI 产品的隐私政策页面是否发生变化（正文归一化哈希 + 条件请求）。检测结果写入 <code>site/generated/update_status.json</code>，<strong>首页读取并展示监控状态</strong>——检测到变更时在表格上方显示告警横幅并在对应产品名旁标注 ⚠️。正文快照留档到 <code>site/generated/snapshots/</code> 并入库，作为跨环境共享的持久历史。</li>
+<li><strong>待核实队列</strong>：本轮检测为 <code>changed</code> 的目标写入 <code>site/generated/pending_verification.json</code>，作为"检测 → 核实"的跨轮交接物（不再用 GitHub Issue）。</li>
+<li><strong>核实层（本地）</strong>：维护者在本地调用 <code>policy-change-verify</code> skill，提取新旧快照 diff、判断是实质性条款变化还是噪声，并起草对 <code>site/data/policies/{id}.json</code> 的修改供人工确认。</li>
 </ul>
 <h2>检测原理</h2>
 <p>为避免误报，脚本不会直接对原始 HTML 做哈希（政策页面普遍含有时间戳、CSRF token、A/B 实验等动态内容，裸哈希几乎每次运行都会误报"已变更"），而是：</p>
@@ -76,7 +77,7 @@ python3 -m venv .venv
 <pre><code>============================================================
 AI 政策更新监控脚本
 运行时间：2026-08-29 09:00:00
-哈希方案：text-v1（正文文本归一化）
+哈希方案：text-v3-bs4（正文文本归一化，含提取器标识）
 ============================================================
 
 共 50 个产品需要检查
@@ -175,7 +176,7 @@ WantedBy=timers.target
 <pre><code class="language-json">{
   &quot;meta&quot;: {
     &quot;last_run&quot;: &quot;2026-08-29T09:00:00&quot;,
-    &quot;hash_scheme&quot;: &quot;text-v1&quot;,
+    &quot;hash_scheme&quot;: &quot;text-v3-bs4&quot;,
     &quot;total_products&quot;: 12,
     &quot;changed&quot;: 1,
     &quot;failed&quot;: 0,
@@ -184,7 +185,7 @@ WantedBy=timers.target
   &quot;products&quot;: {
     &quot;chatgpt&quot;: {
       &quot;url&quot;: &quot;https://openai.com/policies/terms-of-use&quot;,
-      &quot;hash_scheme&quot;: &quot;text-v1&quot;,
+      &quot;hash_scheme&quot;: &quot;text-v3-bs4&quot;,
       &quot;current_hash&quot;: &quot;a1b2c3d4e5f6...&quot;,
       &quot;content_etag&quot;: &quot;\&quot;abc123\&quot;&quot;,
       &quot;content_last_modified&quot;: &quot;Mon, 24 Aug 2026 10:00:00 GMT&quot;,
@@ -195,7 +196,7 @@ WantedBy=timers.target
     },
     &quot;gemini&quot;: {
       &quot;url&quot;: &quot;https://policies.google.com/terms&quot;,
-      &quot;hash_scheme&quot;: &quot;text-v1&quot;,
+      &quot;hash_scheme&quot;: &quot;text-v3-bs4&quot;,
       &quot;current_hash&quot;: &quot;f6e5d4c3b2a1...&quot;,
       &quot;content_etag&quot;: null,
       &quot;content_last_modified&quot;: null,
@@ -287,11 +288,12 @@ WantedBy=timers.target
    b. 携带 ETag / If-Modified-Since 发起条件请求（失败自动重试）
    c. 服务端返回 304 → 内容未变化
    d. 否则提取正文文本、归一化空白、计算 SHA256
-   e. 与上次记录的 hash 对比（hash_scheme 不一致时重建基线）
+   e. 与已入库的基线快照文本对比（哈希仅作快速路径；哈希方案升级时只要文本未变就判未变，不会整库误报）
    f. 记录检查结果与新 ETag / Last-Modified
    g. 等待 --delay 秒再检查下一个（礼貌抓取）
 5. 写入 site/generated/update_status.json（首页读取展示）
-6. 输出告警信息
+6. 将 changed 目标合并写入 site/generated/pending_verification.json（待核实队列，跨轮持久交接）
+7. 输出告警信息
 </code></pre>
 <h2>首页如何展示监控结果</h2>
 <p>首页 <code>site/js/app.js</code> 会尝试加载 <code>site/generated/update_status.json</code>：</p>
@@ -301,94 +303,22 @@ WantedBy=timers.target
 <li><strong>检测到变更</strong>：显示醒目的告警横幅，列出可能已更新的产品（可点击进入详情），对应产品的名称旁也会标注 ⚠️</li>
 </ul>
 <blockquote>
-<p>注意：<code>site/generated/update_status.json</code> 由监控流程生成，但<strong>会入库</strong>——首页与 Pages 直接读取它展示监控状态，<code>monitor.yml</code> 每次运行后自动提交。同目录下的 <code>site/generated/snapshots/</code> 因体积大、变动频繁而保留在 <code>.gitignore</code> 中，需要时用 <code>git add -f</code> 强制提交。</p>
+<p>注意：<code>site/generated/update_status.json</code> 与 <code>site/generated/snapshots/</code> 都由监控流程生成并<strong>入库</strong>——前者首页与 Pages 直接读取展示监控状态，后者作为跨环境共享的持久历史供本地 agent 做 diff。<code>monitor.yml</code> 每次运行后自动提交这两者与 <code>pending_verification.json</code>。</p>
 </blockquote>
-<h2>第二层 AI 辅助分析</h2>
-<h3>已实现（2026-09-09）</h3>
-<p>当检测到政策页面变化后，<code>scripts/analyze_changes.py</code> 自动对比新旧快照并调用 LLM 提取关键变化点：</p>
+<h2>本地核实（policy-change-verify skill）</h2>
+<p>监控只负责"发现变化 + 留档"，<strong>不再在 CI 内做 AI 分析、也不再自动建 Issue</strong>。核实与改数据全部在本地由 <code>policy-change-verify</code> skill 完成（项目级 skill，克隆仓库即可用）。</p>
+<p>当 <code>update_status.json</code> 出现 <code>changed</code>，或 <code>pending_verification.json</code> 有待核实项时：</p>
 <ol>
-<li><strong>新旧快照对比</strong>：从 <code>site/generated/snapshots/{id}/{target}/</code> 取 <code>latest.txt</code>（新版）和上一个日期存档或 git 历史（旧版）</li>
-<li><strong>AI 对比分析</strong>：调用 OpenAI 兼容 API，按结构化 prompt 提取训练政策/退出机制/留存期限/知识产权等维度的变化</li>
-<li><strong>结构化报告</strong>：分析结果写入 <code>site/generated/change_reports/{id}_{target}_{date}.json</code>，Markdown 摘要写入 <code>_summary.md</code></li>
-<li><strong>Issue 嵌入</strong>：CI 中自动将分析摘要嵌入"政策变更待核实"Issue，人工直接在 Issue 中看到分析结论</li>
-<li><strong>降级模式</strong>：未配置 <code>OPENAI_API_KEY</code> 时自动降级为纯文本 diff，仍输出可读报告</li>
+<li><strong>列出待核实项</strong>：<code>python3 .codebuddy/skills/policy-change-verify/scripts/policy_verify.py --list</code></li>
+<li><strong>查看某项目新旧 diff</strong>：<code>python3 .codebuddy/skills/policy-change-verify/scripts/policy_verify.py &lt;product_id&gt; [main|toc|tob]</code><br />
+   - 脚本从 <code>prev.txt</code> / 日期存档 / git 历史中取回旧快照（自动跳过内容相同的重基线提交），与 <code>latest.txt</code> 做 unified diff<br />
+   - 同时输出该产品当前的 <code>site/data/policies/{id}.json</code>，供判断</li>
+<li><strong>判断变更性质</strong>：按 <code>references/verification_workflow.md</code> 清单区分——训练政策/退出机制/留存期限等条款文字实质变化为<strong>实质性</strong>；页脚版权年、时间戳、导航重排、A/B 文案、抓取失败（<code>failed</code>）/空壳（<code>suspicious</code>）为<strong>噪声</strong></li>
+<li><strong>起草补丁</strong>：对实质性变更，按 <code>references/policy_schema.md</code> 起草对 <code>versions.&lt;tier&gt;</code> 字段与 <code>timeline</code> 的修改，<strong>必须等人工确认才写入</strong></li>
+<li><strong>收尾</strong>：核实并更新数据后，<code>python3 .codebuddy/skills/policy-change-verify/scripts/policy_verify.py --resolve &lt;product_id&gt;</code> 从待核实队列移除该项</li>
 </ol>
-<h3>流程</h3>
-<pre><code>check_updates.py 检测到 hash 变化
-  → analyze_changes.py 取新旧快照
-  → LLM 分析新旧内容差异（无 API key 时降级为文本 diff）
-  → 提取关键变化点（训练政策、退出机制、留存期限等）
-  → 生成结构化报告 site/generated/change_reports/{id}_{target}_{date}.json
-  → 生成 Markdown 摘要 _summary.md
-  → CI 自动提交报告 + 嵌入 Issue
-  → 人工确认后更新 site/data/policies/{id}.json
-</code></pre>
-<h3>配置</h3>
-<p>在 GitHub 仓库 Settings → Secrets and variables → Actions 中添加：</p>
-<table>
-<thead>
-<tr>
-<th>Secret</th>
-<th>说明</th>
-<th>示例</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>OPENAI_API_KEY</code></td>
-<td>LLM API 密钥</td>
-<td><code>sk-...</code></td>
-</tr>
-<tr>
-<td><code>OPENAI_BASE_URL</code></td>
-<td>API 端点（可选，默认 OpenAI）</td>
-<td><code>https://api.openai.com/v1</code></td>
-</tr>
-<tr>
-<td><code>OPENAI_MODEL</code></td>
-<td>模型名（可选，默认 gpt-4o-mini）</td>
-<td><code>gpt-4o</code></td>
-</tr>
-</tbody>
-</table>
-<p>支持任何 OpenAI 兼容 API（OpenAI / DeepSeek / 智谱 / Moonshot 等）。未配置 <code>OPENAI_API_KEY</code> 时自动降级为纯文本 diff 模式。</p>
-<h3>手动运行</h3>
-<pre><code class="language-bash"># 降级模式（纯 diff，无需 API key）
-.venv/bin/python scripts/analyze_changes.py
-
-# 指定产品
-.venv/bin/python scripts/analyze_changes.py --product kimi
-
-# 使用 LLM 分析
-OPENAI_API_KEY=sk-... .venv/bin/python scripts/analyze_changes.py
-</code></pre>
-<h3>分析报告格式</h3>
-<p><code>site/generated/change_reports/{id}_{target}_{date}.json</code>：</p>
-<pre><code class="language-json">{
-  &quot;pid&quot;: &quot;kimi&quot;,
-  &quot;name&quot;: &quot;Kimi&quot;,
-  &quot;target&quot;: &quot;main&quot;,
-  &quot;label&quot;: &quot;主监控页&quot;,
-  &quot;url&quot;: &quot;https://platform.kimi.com/docs/agreement/userservice&quot;,
-  &quot;has_old_snapshot&quot;: true,
-  &quot;analysis_date&quot;: &quot;2026-09-09T14:10:00&quot;,
-  &quot;text_diff&quot;: &quot;...&quot;,
-  &quot;llm_analysis&quot;: {
-    &quot;has_substantive_change&quot;: true,
-    &quot;change_summary&quot;: &quot;训练授权表述从'模型训练'改为'模型服务优化'&quot;,
-    &quot;training_policy&quot;: {&quot;changed&quot;: true, &quot;old&quot;: &quot;...&quot;, &quot;new&quot;: &quot;...&quot;},
-    &quot;opt_out_mechanism&quot;: {&quot;changed&quot;: false, &quot;detail&quot;: null},
-    &quot;data_retention&quot;: {&quot;changed&quot;: false, &quot;detail&quot;: null},
-    &quot;other_changes&quot;: [],
-    &quot;risk_assessment&quot;: &quot;风险等级可能需要从 red 调整为 yellow&quot;,
-    &quot;recommended_actions&quot;: [&quot;更新 key_clauses 中的条款引用&quot;, &quot;复核 risk_level&quot;]
-  },
-  &quot;has_substantive_change&quot;: true,
-  &quot;change_summary&quot;: &quot;训练授权表述从'模型训练'改为'模型服务优化'&quot;
-}
-</code></pre>
 <blockquote>
-<p>注意：AI 分析结果仅供参考，不自动修改 <code>site/data/policies/{id}.json</code>。人工确认分析结论后再更新数据文件。</p>
+<p>注意：核实结论仅供参考，不自动修改 <code>site/data/policies/{id}.json</code>。人工确认后再更新数据文件，并同步 <code>last_verified</code> 与 <code>timeline</code>。</p>
 </blockquote>
   </div>
 

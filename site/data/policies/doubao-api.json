@@ -6,7 +6,7 @@
   "icon": "🛠️",
   "description": "火山引擎火山方舟平台提供的豆包大模型 API 服务。纯开发者产品（个人/企业开发者统一条款，协议无个人与企业区分），从豆包条目拆分独立",
   "product_url": "https://www.volcengine.com/product/doubao",
-  "policy_url": "https://docs.volcengine.com/docs/82379/1142195",
+  "policy_url": "https://docs.volcengine.com/docs/ark/doubao-model-service-agreement?lang=zh",
   "toc_note": "纯开发者产品（API），无消费端条款；本条目仅含开发者服务条款块。原为豆包条目 ToB 块，2026-08-29 按产品粒度拆分独立",
   "last_verified": "2026-08-29",
   "versions": {
@@ -27,7 +27,7 @@
         "4.2 为履行法定合规要求，火山引擎有权采取技术手段对您使用本服务的行为及信息进行审查，包括对您提交给服务或使用服务输出的内容进行自动化过滤审核，建立和改进风险过滤机制、违法违规内容特征库等。（4.2）",
         "2.4 您不得将服务、提示词和通过服务生成的内容用于服务之外的新模型或其他模型的开发、训练、标注、微调、优化、迭代，不得利用本服务开发、训练或改善与火山引擎存在竞争关系的算法、模型。（2.4）"
       ],
-      "policy_link": "https://docs.volcengine.com/docs/82379/1142195",
+      "policy_link": "https://docs.volcengine.com/docs/ark/doubao-model-service-agreement?lang=zh",
       "last_verified": "2026-08-29"
     }
   },

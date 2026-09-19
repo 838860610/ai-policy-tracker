@@ -4,8 +4,9 @@
 
 本项目采用两层监控机制：
 
-- **第一层·变化检测**（`scripts/check_updates.py`）：定期检测各 AI 产品的隐私政策页面是否发生变化（正文归一化哈希 + 条件请求）。检测结果写入 `site/generated/update_status.json`，**首页读取并展示监控状态**——检测到变更时在表格上方显示告警横幅并在对应产品名旁标注 ⚠️。
-- **第二层·AI 辅助分析**（`scripts/analyze_changes.py`）：检测到变更后，自动对比新旧政策快照，调用 LLM 提取训练政策/退出机制/留存期限等维度的变化，生成结构化报告写入 `site/generated/change_reports/`，并将分析摘要嵌入 GitHub Issue。
+- **检测层**（`scripts/check_updates.py`）：定期检测各 AI 产品的隐私政策页面是否发生变化（正文归一化哈希 + 条件请求）。检测结果写入 `site/generated/update_status.json`，**首页读取并展示监控状态**——检测到变更时在表格上方显示告警横幅并在对应产品名旁标注 ⚠️。正文快照留档到 `site/generated/snapshots/` 并入库，作为跨环境共享的持久历史。
+- **待核实队列**：本轮检测为 `changed` 的目标写入 `site/generated/pending_verification.json`，作为"检测 → 核实"的跨轮交接物（不再用 GitHub Issue）。
+- **核实层（本地）**：维护者在本地调用 `policy-change-verify` skill，提取新旧快照 diff、判断是实质性条款变化还是噪声，并起草对 `site/data/policies/{id}.json` 的修改供人工确认。
 
 ## 检测原理
 
@@ -57,7 +58,7 @@ cd /path/to/ai-policy-tracker
 ============================================================
 AI 政策更新监控脚本
 运行时间：2026-08-29 09:00:00
-哈希方案：text-v1（正文文本归一化）
+哈希方案：text-v3-bs4（正文文本归一化，含提取器标识）
 ============================================================
 
 共 50 个产品需要检查
@@ -153,7 +154,7 @@ sudo systemctl enable --now ai-policy-check.timer
 {
   "meta": {
     "last_run": "2026-08-29T09:00:00",
-    "hash_scheme": "text-v1",
+    "hash_scheme": "text-v3-bs4",
     "total_products": 12,
     "changed": 1,
     "failed": 0,
@@ -162,7 +163,7 @@ sudo systemctl enable --now ai-policy-check.timer
   "products": {
     "chatgpt": {
       "url": "https://openai.com/policies/terms-of-use",
-      "hash_scheme": "text-v1",
+      "hash_scheme": "text-v3-bs4",
       "current_hash": "a1b2c3d4e5f6...",
       "content_etag": "\"abc123\"",
       "content_last_modified": "Mon, 24 Aug 2026 10:00:00 GMT",
@@ -173,7 +174,7 @@ sudo systemctl enable --now ai-policy-check.timer
     },
     "gemini": {
       "url": "https://policies.google.com/terms",
-      "hash_scheme": "text-v1",
+      "hash_scheme": "text-v3-bs4",
       "current_hash": "f6e5d4c3b2a1...",
       "content_etag": null,
       "content_last_modified": null,
@@ -217,11 +218,12 @@ sudo systemctl enable --now ai-policy-check.timer
    b. 携带 ETag / If-Modified-Since 发起条件请求（失败自动重试）
    c. 服务端返回 304 → 内容未变化
    d. 否则提取正文文本、归一化空白、计算 SHA256
-   e. 与上次记录的 hash 对比（hash_scheme 不一致时重建基线）
+   e. 与已入库的基线快照文本对比（哈希仅作快速路径；哈希方案升级时只要文本未变就判未变，不会整库误报）
    f. 记录检查结果与新 ETag / Last-Modified
    g. 等待 --delay 秒再检查下一个（礼貌抓取）
 5. 写入 site/generated/update_status.json（首页读取展示）
-6. 输出告警信息
+6. 将 changed 目标合并写入 site/generated/pending_verification.json（待核实队列，跨轮持久交接）
+7. 输出告警信息
 ```
 
 ## 首页如何展示监控结果
@@ -232,85 +234,20 @@ sudo systemctl enable --now ai-policy-check.timer
 - **全部无变化**：表格上方显示一行"政策监控上次运行：…，未检测到政策变更"
 - **检测到变更**：显示醒目的告警横幅，列出可能已更新的产品（可点击进入详情），对应产品的名称旁也会标注 ⚠️
 
-> 注意：`site/generated/update_status.json` 由监控流程生成，但**会入库**——首页与 Pages 直接读取它展示监控状态，`monitor.yml` 每次运行后自动提交。同目录下的 `site/generated/snapshots/` 因体积大、变动频繁而保留在 `.gitignore` 中，需要时用 `git add -f` 强制提交。
+> 注意：`site/generated/update_status.json` 与 `site/generated/snapshots/` 都由监控流程生成并**入库**——前者首页与 Pages 直接读取展示监控状态，后者作为跨环境共享的持久历史供本地 agent 做 diff。`monitor.yml` 每次运行后自动提交这两者与 `pending_verification.json`。
 
-## 第二层 AI 辅助分析
+## 本地核实（policy-change-verify skill）
 
-### 已实现（2026-09-09）
+监控只负责"发现变化 + 留档"，**不再在 CI 内做 AI 分析、也不再自动建 Issue**。核实与改数据全部在本地由 `policy-change-verify` skill 完成（项目级 skill，克隆仓库即可用）。
 
-当检测到政策页面变化后，`scripts/analyze_changes.py` 自动对比新旧快照并调用 LLM 提取关键变化点：
+当 `update_status.json` 出现 `changed`，或 `pending_verification.json` 有待核实项时：
 
-1. **新旧快照对比**：从 `site/generated/snapshots/{id}/{target}/` 取 `latest.txt`（新版）和上一个日期存档或 git 历史（旧版）
-2. **AI 对比分析**：调用 OpenAI 兼容 API，按结构化 prompt 提取训练政策/退出机制/留存期限/知识产权等维度的变化
-3. **结构化报告**：分析结果写入 `site/generated/change_reports/{id}_{target}_{date}.json`，Markdown 摘要写入 `_summary.md`
-4. **Issue 嵌入**：CI 中自动将分析摘要嵌入"政策变更待核实"Issue，人工直接在 Issue 中看到分析结论
-5. **降级模式**：未配置 `OPENAI_API_KEY` 时自动降级为纯文本 diff，仍输出可读报告
+1. **列出待核实项**：`python3 .codebuddy/skills/policy-change-verify/scripts/policy_verify.py --list`
+2. **查看某项目新旧 diff**：`python3 .codebuddy/skills/policy-change-verify/scripts/policy_verify.py <product_id> [main|toc|tob]`
+   - 脚本从 `prev.txt` / 日期存档 / git 历史中取回旧快照（自动跳过内容相同的重基线提交），与 `latest.txt` 做 unified diff
+   - 同时输出该产品当前的 `site/data/policies/{id}.json`，供判断
+3. **判断变更性质**：按 `references/verification_workflow.md` 清单区分——训练政策/退出机制/留存期限等条款文字实质变化为**实质性**；页脚版权年、时间戳、导航重排、A/B 文案、抓取失败（`failed`）/空壳（`suspicious`）为**噪声**
+4. **起草补丁**：对实质性变更，按 `references/policy_schema.md` 起草对 `versions.<tier>` 字段与 `timeline` 的修改，**必须等人工确认才写入**
+5. **收尾**：核实并更新数据后，`python3 .codebuddy/skills/policy-change-verify/scripts/policy_verify.py --resolve <product_id>` 从待核实队列移除该项
 
-### 流程
-
-```
-check_updates.py 检测到 hash 变化
-  → analyze_changes.py 取新旧快照
-  → LLM 分析新旧内容差异（无 API key 时降级为文本 diff）
-  → 提取关键变化点（训练政策、退出机制、留存期限等）
-  → 生成结构化报告 site/generated/change_reports/{id}_{target}_{date}.json
-  → 生成 Markdown 摘要 _summary.md
-  → CI 自动提交报告 + 嵌入 Issue
-  → 人工确认后更新 site/data/policies/{id}.json
-```
-
-### 配置
-
-在 GitHub 仓库 Settings → Secrets and variables → Actions 中添加：
-
-| Secret | 说明 | 示例 |
-|--------|------|------|
-| `OPENAI_API_KEY` | LLM API 密钥 | `sk-...` |
-| `OPENAI_BASE_URL` | API 端点（可选，默认 OpenAI） | `https://api.openai.com/v1` |
-| `OPENAI_MODEL` | 模型名（可选，默认 gpt-4o-mini） | `gpt-4o` |
-
-支持任何 OpenAI 兼容 API（OpenAI / DeepSeek / 智谱 / Moonshot 等）。未配置 `OPENAI_API_KEY` 时自动降级为纯文本 diff 模式。
-
-### 手动运行
-
-```bash
-# 降级模式（纯 diff，无需 API key）
-.venv/bin/python scripts/analyze_changes.py
-
-# 指定产品
-.venv/bin/python scripts/analyze_changes.py --product kimi
-
-# 使用 LLM 分析
-OPENAI_API_KEY=sk-... .venv/bin/python scripts/analyze_changes.py
-```
-
-### 分析报告格式
-
-`site/generated/change_reports/{id}_{target}_{date}.json`：
-
-```json
-{
-  "pid": "kimi",
-  "name": "Kimi",
-  "target": "main",
-  "label": "主监控页",
-  "url": "https://platform.kimi.com/docs/agreement/userservice",
-  "has_old_snapshot": true,
-  "analysis_date": "2026-09-09T14:10:00",
-  "text_diff": "...",
-  "llm_analysis": {
-    "has_substantive_change": true,
-    "change_summary": "训练授权表述从'模型训练'改为'模型服务优化'",
-    "training_policy": {"changed": true, "old": "...", "new": "..."},
-    "opt_out_mechanism": {"changed": false, "detail": null},
-    "data_retention": {"changed": false, "detail": null},
-    "other_changes": [],
-    "risk_assessment": "风险等级可能需要从 red 调整为 yellow",
-    "recommended_actions": ["更新 key_clauses 中的条款引用", "复核 risk_level"]
-  },
-  "has_substantive_change": true,
-  "change_summary": "训练授权表述从'模型训练'改为'模型服务优化'"
-}
-```
-
-> 注意：AI 分析结果仅供参考，不自动修改 `site/data/policies/{id}.json`。人工确认分析结论后再更新数据文件。
+> 注意：核实结论仅供参考，不自动修改 `site/data/policies/{id}.json`。人工确认后再更新数据文件，并同步 `last_verified` 与 `timeline`。

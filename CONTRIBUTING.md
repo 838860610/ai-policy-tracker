@@ -28,25 +28,24 @@ Questions are welcome via Issues — use the "数据纠错" template if you spot
 - **`site/data/policies/{id}.json` 是每个产品唯一的数据源**，包含该产品的名称、公司、版本政策、时间线等全部字段
 - `site/data/products.json` 只维护产品 ID 的排列顺序（定义首页/README 表格的展示顺序）与项目元信息，**不存储产品数据**
 - 修改产品数据只需要改 `site/data/policies/{id}.json` 一个文件，不存在需要同步的两份数据
-- **目录分层**：`data/` 只放人工维护的源数据（`products.json` + `policies/`）；脚本产出一律写入 `site/generated/`（`bundle.json`、`update_status.json`、`snapshots/`、`change_reports/`、`og-card.png`），**不要手工编辑**这些文件，改动会被下次 CI 覆盖
+- **目录分层**：`data/` 只放人工维护的源数据（`products.json` + `policies/`）；脚本产出一律写入 `site/generated/`（`bundle.json`、`update_status.json`、`pending_verification.json`、`snapshots/`、`og-card.png`），**不要手工编辑**这些文件，改动会被下次 CI 覆盖
 
 ## 如何贡献政策更新
 
 ### 1. 发现政策变更
 
-当监控检测到政策变更时，CI 会自动：
+当监控（`check_updates.py`）检测到政策变更时，CI 会自动：
 
-1. `check_updates.py` 检测到 hash 变化，保存新旧快照到 `site/generated/snapshots/{id}/{target}/`
-2. `analyze_changes.py` 对比新旧快照，调用 LLM 生成分析报告到 `site/generated/change_reports/`
-3. 创建/评论 GitHub Issue（标签"政策变更"），嵌入 AI 分析摘要
+1. 保存新旧快照到 `site/generated/snapshots/{id}/{target}/`（`latest.txt` 当前、`prev.txt` 变更前）
+2. 把 `changed` 目标写入 `site/generated/pending_verification.json`（待核实队列）
 
-**人工跟进步骤**（基于 AI 分析报告）：
+**人工跟进步骤**（在本地用 `policy-change-verify` skill）：
 
-1. 阅读 Issue 中的 AI 分析摘要，确认是否有实质政策变更
-2. 如有实质变更：访问该产品官方政策页面，更新 `site/data/policies/{id}.json`
-3. 更新文件内 `last_verified` 字段为当前核实日期
-4. 在 `timeline` 中添加变更记录
-5. 如 AI 分析为"非实质变更"（仅排版/导航变化）：无需更新数据文件
+1. 运行 `python3 .codebuddy/skills/policy-change-verify/scripts/policy_verify.py --list` 查看待核实项
+2. 对每项运行 `python3 .codebuddy/skills/policy-change-verify/scripts/policy_verify.py <product_id> [target]` 看新旧 diff
+3. 判断是实质性条款变更还是噪声（页脚年/时间戳/导航重排/抓取失败等属噪声）
+4. 如为实质变更：访问官方政策页面，更新 `site/data/policies/{id}.json`，同步 `last_verified` 与 `timeline`
+5. 核实并更新数据后，运行 `python3 .codebuddy/skills/policy-change-verify/scripts/policy_verify.py --resolve <product_id>` 从队列移除
 
 ### 2. 新增产品
 
@@ -230,11 +229,8 @@ python3 -m unittest discover -s tests -v
 # 生成社交分享卡片（需额外安装 Pillow：.venv/bin/pip install pillow）
 .venv/bin/python scripts/gen_og_image.py
 
-# 运行政策更新监控（检查各产品政策页面是否变化）
+# 运行政策更新监控（检查各产品政策页面是否变化，写待核实队列）
 .venv/bin/python scripts/check_updates.py
-
-# AI 辅助变更分析（对比新旧快照，调用 LLM 提取关键变化点）
-.venv/bin/python scripts/analyze_changes.py
 
 # 文档页生成：site/docs/*.md 是唯一源，*.html 由脚本渲染（不要手工改 html）
 .venv/bin/python scripts/gen_docs.py            # 重新生成
@@ -250,16 +246,8 @@ python3 -m unittest discover -s tests -v
 - 引用旧版协议字样（如"不可撤销""品牌推广"）时，检查是否需更新为新版表述
 - `risk_level` 变更时检查 `key_clauses` 佐证是否充分
 
-### AI 辅助分析配置
+### 变更核实（本地）
 
-第二层 AI 辅助分析需要配置 LLM API。在 GitHub 仓库 **Settings → Secrets and variables → Actions** 中添加：
-
-| Secret | 必需 | 说明 | 默认值 |
-|--------|------|------|--------|
-| `OPENAI_API_KEY` | 是 | LLM API 密钥 | — |
-| `OPENAI_BASE_URL` | 否 | API 端点 | `https://api.openai.com/v1` |
-| `OPENAI_MODEL` | 否 | 模型名 | `gpt-4o-mini` |
-
-支持任何 OpenAI 兼容 API（OpenAI / DeepSeek / 智谱 / Moonshot 等）。未配置 `OPENAI_API_KEY` 时自动降级为纯文本 diff 模式（仍输出可读报告，CI 不会失败）。
+政策变更核实不再在 CI 内运行 LLM，也不依赖仓库 secret。核实与起草补丁全部在本地由 `policy-change-verify` skill 完成——详见 `site/docs/update-monitoring.md` 的"本地核实"一节与 skill 自带 `SKILL.md`。
 
 感谢您的贡献！

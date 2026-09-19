@@ -16,7 +16,7 @@
 - **搜索**：支持按产品名称或公司搜索
 - **详情页面**：每个产品提供详细的政策分析、关键条款摘录、时间线
 - **更新监控**：Python 脚本自动检测政策页面变化（正文归一化哈希 + 条件请求，避免动态内容误报），检测结果直接展示在首页
-- **AI 辅助分析**：检测到政策变更后，自动对比新旧快照并调用 LLM 提取关键变化点（训练政策/退出机制/留存期限等），生成结构化报告嵌入 Issue
+- **本地核实流程**：检测到政策变更后，由本地 `policy-change-verify` skill 提取新旧快照 diff、判断变更是实质性条款变化还是噪声，并起草对 `site/data/policies/{id}.json` 的修改供人工确认（CI 不再自动分析或建 Issue）
 - **可访问性**：表格行支持键盘导航（Tab + Enter）
 - **纯前端**：无需后端、无需构建工具，开箱即用
 
@@ -81,15 +81,14 @@ ai-policy-tracker/
 │   ├── generated/          # 全部自动生成物，一律不手工编辑
 │   │   ├── bundle.json     # 合并数据包（gen_data_bundle.py，首页加速，CI 提交）
 │   │   ├── update_status.json # 监控状态（check_updates.py，首页读取展示）
-│   │   ├── snapshots/      # 政策正文快照（.gitignore 忽略）
-│   │   ├── change_reports/ # AI 变更分析报告（analyze_changes.py）
+│   │   ├── pending_verification.json # 待核实队列（changed 目标的跨轮交接物）
+│   │   ├── snapshots/      # 政策正文快照（入库，作为跨环境核实的持久历史）
 │   │   └── og-card.png     # Open Graph 分享卡片（gen_og_image.py）
 │   └── docs/               # 对外发布文档（methodology / update-monitoring）
 │       │                   #   注意：站点与 sitemap 直接引用这些页面，必须入库
 │       └── internal/       # 内部工作底稿（核实报告、优化清单，.gitignore 忽略）
 ├── scripts/
-│   ├── check_updates.py    # 政策更新监控脚本（第一层：hash 变化检测）
-│   ├── analyze_changes.py  # AI 辅助变更分析（第二层：LLM 对比新旧快照）
+│   ├── check_updates.py    # 政策更新监控脚本（检测 + 快照入库 + 写待核实队列）
 │   ├── validate_data.py    # 数据校验脚本
 │   ├── gen_readme_table.py # README 汇总表生成脚本
 │   ├── gen_data_bundle.py  # 数据合并包生成脚本（首页加速）
@@ -112,14 +111,14 @@ ai-policy-tracker/
 
 > **数据模型**：`site/data/policies/{id}.json` 是每个产品唯一的数据源（含名称、公司、版本政策、时间线等全部字段），`site/data/products.json` 只维护产品 ID 的排列顺序。修改产品数据只需要改一个文件。
 >
-> **源数据 vs 生成物**：`site/data/` 下只有人工维护的源数据；`site/generated/` 下全部由脚本产出（`bundle.json`、`update_status.json`、`snapshots/`、`change_reports/`、`og-card.png`），**不要手工编辑**，改了也会被下次 CI 覆盖。
+> **源数据 vs 生成物**：`site/data/` 下只有人工维护的源数据；`site/generated/` 下全部由脚本产出（`bundle.json`、`update_status.json`、`pending_verification.json`、`snapshots/`、`og-card.png`），**不要手工编辑**，改了也会被下次 CI 覆盖（其中 `snapshots/` 为监控历史、`pending_verification.json` 为待核实队列）。
 
 ## 对比汇总表
 
 <!-- TABLE:START -->
-**风险分布**（按个人版条款，共 50 款）：🔴 高风险 17 款 · 🟡 中风险 22 款 · 🟢 低风险 0 款 · 未评定 11 款
+**风险分布**（按个人版条款，共 48 款）：🔴 高风险 16 款 · 🟡 中风险 22 款 · 🟢 低风险 0 款 · 未评定 10 款
 
-国内平台（46 款产品，按厂商拼音排序）：
+国内平台（44 款产品，按厂商拼音排序）：
 
 | 产品 | 厂商 | 个人版训练 | 退出机制 | 企业版训练 | 风险等级 |
 |------|------|-----------|---------|-----------|---------|
@@ -133,7 +132,6 @@ ai-policy-tracker/
 | 文心快码（Baidu Comate） | 百度 | ❌ 否 | 撤回同意 / 企业管理关闭 | ❌ 否 | 🟡 中 |
 | 百度智能云千帆 | 百度 | — | — | ❌ 否 | — |
 | 文心（原文心一言/文小言） | 百度 | ❌ 否 | 未明示退出机制 | — | 🟡 中 |
-| 华为盘古大模型 | 华为 | — | — | ❌ 否 | — |
 | 小艺（华为 HarmonyOS） | 华为 | ✅ 是 | 未明示退出机制 | — | 🔴 高 |
 | 阶跃开放平台 | 阶跃星辰 | — | — | ✅ 是 | — |
 | 阶跃 AI（原跃问） | 阶跃星辰 | ✅ 是 | ✅ 支持 | — | 🟡 中 |
@@ -144,7 +142,6 @@ ai-policy-tracker/
 | 可灵 AI 开放平台 | 快手 | — | — | ❌ 否 | — |
 | Mureka（昆仑万维音乐） | 昆仑万维 | ❌ 否 | ⚠️ 需邮件申请 | — | 🟡 中 |
 | SkyProduction（昆仑万维） | 昆仑万维 | ✅ 是 | ⚠️ 需邮件申请 | — | 🔴 高 |
-| SkyReels（昆仑万维短剧） | 昆仑万维 | ✅ 是 | 未明示退出机制 | — | 🔴 高 |
 | 天工（昆仑万维） | 昆仑万维 | ✅ 是 | 未明示独立退出开关 | — | 🟡 中 |
 | 零一万物（01.AI） | 零一万物 | — | — | — | — |
 | MiniMax（海螺 AI / 开放平台） | MiniMax（上海稀宇科技） | ✅ 是 | 联系撤回 | ❌ 否 | 🔴 高 |
@@ -188,7 +185,7 @@ ai-policy-tracker/
 
 ## 更新监控
 
-项目包含自动化的政策更新监控脚本，可定期检测政策页面变化。所有 Python 脚本统一使用项目虚拟环境 `.venv` 运行（不污染系统 Python，也规避新版 Python 禁止直接 pip 装包的限制）：
+项目内置自动化的政策更新监控，定时检测政策页面变化，但**只负责"发现变化 + 留档"**，不判断、不改数据、不建 Issue；判断与改数据都在本地由 `policy-change-verify` skill 完成（见下方"本地核实流程"）。所有 Python 脚本统一使用项目虚拟环境 `.venv` 运行（不污染系统 Python，也规避新版 Python 禁止直接 pip 装包的限制）：
 
 ```bash
 # 方式一：用 start.sh 一键准备（创建 .venv 并安装依赖，已就绪则秒过）
@@ -198,13 +195,26 @@ ai-policy-tracker/
 python3 -m venv .venv
 .venv/bin/pip install -r requirements.txt
 
-# 运行监控脚本（无需激活，直接用 .venv 的解释器）
+# 运行监控脚本（每周一由 CI 自动跑；也可本地手动）
 .venv/bin/python scripts/check_updates.py
 ```
 
 脚本对政策页面正文（剥离 script/style、归一化空白后）计算哈希，并使用 ETag/If-Modified-Since 条件请求，避免页面动态内容导致的误报。检测结果写入 `site/generated/update_status.json`，**首页会自动展示监控状态**：无变化时显示上次运行时间，检测到变更时在表格上方展示告警横幅并在对应产品旁标注 ⚠️。
 
-监控按产品逐条覆盖独立条款链接（顶层 policy_url + 个人版/企业版各自的 policy_link，URL 去重）。变更时正文快照自动留档到 `site/generated/snapshots/`（`latest.txt` 为当前内容，日期文件为基线/变更存档，可用 diff 直接对比"到底改了什么"），并在仓库自动创建"政策变更待核实" Issue 提醒维护者核实。
+监控按产品逐条覆盖独立条款链接（顶层 policy_url + 个人版/企业版各自的 policy_link，URL 去重）。正文快照留档到 `site/generated/snapshots/`（`latest.txt` 为当前内容，`prev.txt` 为变更前的旧快照，日期文件为历史存档）并**入库**作为跨环境共享的持久历史——本地 agent 正是靠 git 拉到这些快照来做 diff。本轮检测为 `changed` 的目标会被写入 `site/generated/pending_verification.json`（待核实队列），作为"检测 → 核实"的跨轮交接物（不再用 Issue）。
+
+### 本地核实流程（替代原"AI 自动分析 + 建 Issue"）
+
+检测到变更后，**不在 CI 内自动分析**，而是由维护者在本地调用 `policy-change-verify` skill：
+
+```bash
+# 列出待核实队列 + 所有被标记目标（优先看队列）
+python3 .codebuddy/skills/policy-change-verify/scripts/policy_verify.py --list
+# 查看某产品某个目标的旧→新 diff 与当前政策数据
+python3 .codebuddy/skills/policy-change-verify/scripts/policy_verify.py <product_id> [main|toc|tob]
+```
+
+skill 提取新旧快照 diff、判断是实质性条款变化还是噪声（页脚年/时间戳/导航重排/抓取失败等属噪声），并**起草**对 `site/data/policies/{id}.json` 的字段 + timeline 修改，**必须等人工确认才写入**。核实并更新数据后，用 `--resolve <product_id>` 从待核实队列移除该项。
 
 其他校验与维护脚本：
 
@@ -216,7 +226,7 @@ python3 -m unittest discover -s tests -v     # 回归测试（无需第三方依
 
 仓库内置 GitHub Actions 工作流：
 
-- `.github/workflows/monitor.yml`——每周一北京时间 09:00 自动运行监控脚本，检测到变更时运行 AI 辅助分析并提交状态、快照、分析报告，创建/评论 Issue 告警（推送到 GitHub 后生效，也可在 Actions 页手动触发）
+- `.github/workflows/monitor.yml`——每周一北京时间 09:00 自动运行 `check_updates.py`：检测变化、提交 `update_status.json` + 快照 + 待核实队列（推送到 GitHub 后生效，也可在 Actions 页手动触发）。**不含** AI 分析 / 建 Issue 步骤
 - `.github/workflows/ci.yml`——PR 与主分支推送时自动运行回归测试、数据校验和汇总表一致性检查；main 推送后重新生成 `site/generated/bundle.json` 和 OG 图片（写权限仅授予该发布 job）
 - `.github/workflows/deploy.yml`——在上述工作流跑完后把 `site/` 目录部署到 GitHub Pages（也可手动触发）
 - `.github/dependabot.yml`——每周检查 GitHub Actions 与 pip 依赖更新

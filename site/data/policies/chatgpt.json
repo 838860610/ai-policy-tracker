@@ -5,6 +5,8 @@
   "region": "美国",
   "description": "免费用户对话数据默认用于模型训练（可关闭）；Team/Enterprise/Business 版不训练（除非客户明确同意）",
   "policy_url": "https://openai.com/policies/terms-of-use",
+  "monitor": true,
+  "fetch_method": "browser",
   "last_verified": "2026-08-30",
   "versions": {
     "toc": {

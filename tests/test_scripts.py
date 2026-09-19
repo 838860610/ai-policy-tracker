@@ -363,12 +363,14 @@ class TestSiteConsistency(unittest.TestCase):
                 self.assertNotIn("key_clauses", version, "bundle 不应包含长条款原文")
 
     def test_published_docs_have_no_stale_wording(self):
-        """第二层 AI 分析已上线，文档页不能再写"未来功能"。"""
+        """文档页须反映新流程：提及本地 skill，不得残留 analyze_changes/change_reports/未来功能。"""
         path = os.path.join(SITE_DIR, "docs", "update-monitoring.html")
         with open(path, encoding="utf-8") as f:
             content = f.read()
         self.assertNotIn("未来功能", content)
-        self.assertIn("analyze_changes", content)
+        self.assertNotIn("analyze_changes", content)
+        self.assertNotIn("change_reports", content)
+        self.assertIn("policy-change-verify", content)
 
 
 if __name__ == "__main__":

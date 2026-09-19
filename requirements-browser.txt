@@ -1,0 +1,17 @@
+# 可选依赖：仅当产品 fetch_method=browser（如 ChatGPT / OpenAI 政策页被 Cloudflare 拦截）时需要。
+# 安装：
+#   pip install -r requirements-browser.txt
+#   playwright install chromium        # 下载无头浏览器二进制（约 150MB）
+# 注意：官方下载 CDN（cdn.playwright.dev）在部分区域会被墙（307 跳转到不可达主机）。
+#       若安装失败，改用国内镜像：
+#         PLAYWRIGHT_DOWNLOAD_HOST=https://cdn.npmmirror.com/binaries/playwright \
+#           playwright install chromium
+#       （已实测该镜像可用）
+# 使用：
+#   本地补抓反爬站点：.venv/bin/python scripts/check_updates.py
+#   可选增强（大幅提升通过率）：先真人浏览器过一次验证，导出 cf_clearance 后
+#     export OPENAI_CF_CLEARANCE=<token>
+#     .venv/bin/python scripts/check_updates.py
+# 注意：cf_clearance 绑 IP + User-Agent 且短时效，CI（数据中心 IP）通常不保证可用，
+#       故 CI 默认带 --no-browser 跳过这类产品。
+playwright>=1.40
