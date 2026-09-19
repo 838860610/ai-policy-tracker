@@ -5,6 +5,9 @@ updates:
     directory: "/"
     schedule:
       interval: monthly
+    # 依赖更新不紧急，关闭自动开 PR（interval 最低只到 monthly，仍嫌频繁）；
+    # 依赖关系图与安全告警照常工作，需要升级时在 main 手动 bump 即可。
+    open-pull-requests-limit: 0
     labels:
       - dependencies
 
@@ -13,5 +16,8 @@ updates:
     directory: "/"
     schedule:
       interval: monthly
+    # 依赖更新不紧急，关闭自动开 PR（interval 最低只到 monthly，仍嫌频繁）；
+    # 依赖关系图与安全告警照常工作，需要升级时在 main 手动 bump 即可。
+    open-pull-requests-limit: 0
     labels:
       - dependencies
