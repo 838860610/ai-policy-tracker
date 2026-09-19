@@ -56,6 +56,21 @@ Questions are welcome via Issues — use the "数据纠错" template if you spot
 3. 确保所有必填字段都已填写
 4. 运行 `python3 scripts/gen_readme_table.py` 重新生成 README 汇总表
 
+### 增删产品后必须同步生成产物
+
+新增或删除产品（即改动 `site/data/products.json` 的 `products` 数组）后，**必须重新生成/同步站点产物**，否则 CI 的回归测试会直接红灯：
+
+```bash
+# 重新生成 site/generated/bundle.json（首页数据合并包，由 products.json + 全部 policies 重建）
+.venv/bin/python scripts/gen_data_bundle.py
+```
+
+`site/sitemap.xml` 目前是入库的静态文件（不由脚本自动生成），增删产品时需手工同步：在 `<url>` 列表中加入或删除对应的 `<loc>…/detail.html?id=<id></loc>` 条目。测试 `test_sitemap_matches_products` 会校验 sitemap 与 `products.json` 的 id 集合**完全一致**，多一个少一个都失败。
+
+> 实战踩坑：曾删除 `pangu`/`skyreels` 两个产品后漏了重新生成上述两个产物，导致 `test_bundle_is_slim_and_complete` 与 `test_sitemap_matches_products` 双双失败、CI 红灯。记住——`products.json` 一变，这两个文件必须跟着变。
+
+> 注：`update_status.json` / `pending_verification.json` / `snapshots/` 由监控脚本每轮从当前索引重建，已删除产品的旧条目会在下一轮监控后自动消失，无需手工清理。
+
 ### 3. 提交 PR
 
 ```bash

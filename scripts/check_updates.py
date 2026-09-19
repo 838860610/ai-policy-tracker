@@ -633,6 +633,11 @@ def main():
 
     pending_count = update_pending_verification(new_status)
 
+    # 防御性裁剪：仅保留当前索引中的产品，避免历史运行中残留的已删除产品条目进入产物。
+    # new_status 本就只含当前 pids，这里兜底，防止后续改动引入 prev 合并时 reintroduce 残留。
+    current_ids = set(pids)
+    new_status = {pid: info for pid, info in new_status.items() if pid in current_ids}
+
     status_data = {
         "meta": {
             "last_run": datetime.datetime.now().isoformat(),
