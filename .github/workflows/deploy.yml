@@ -43,6 +43,11 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: 安装 CJK 字体（确保 OG 卡片中文正常渲染）
+        # 运行器默认不带中文矢量字体，缺字会让 gen_og_image.py 回退到默认位图字体、
+        # 导致 OG 卡片中文变成豆腐块；显式安装 Noto CJK 后脚本才能正确渲染中文。
+        run: sudo apt-get update && sudo apt-get install -y fonts-noto-cjk
+
       - name: 安装依赖（生成 OG 社交卡片）
         run: pip install --quiet pillow
 
