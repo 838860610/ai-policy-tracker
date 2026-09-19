@@ -59,7 +59,7 @@ jobs:
       - uses: actions/configure-pages@v6
 
       # 只发布 site/：它是站点根，因此 site/index.html → /、site/robots.txt → /robots.txt
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-pages-artifact@v5
         with:
           path: site/
 
