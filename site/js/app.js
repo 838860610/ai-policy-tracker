@@ -4,6 +4,7 @@
 
   var allProducts = [];      // policy JSON 对象，顺序与 data/products.json 索引一致
   var monitorStatus = null;  // generated/update_status.json（可能不存在）
+  var productsMeta = null;   // data/products.json 的 meta（静态回退字段）
   var state = { q: "", region: "all", training: "all", risk: "all" };
 
   /* 厂商归一化与排序键：与 scripts/gen_readme_table.py 的 VENDOR_RULES/VENDOR_SORT 保持同步 */
@@ -58,6 +59,24 @@
     return fetchJson("generated/update_status.json")
       .then(function (s) { monitorStatus = s; })
       .catch(function () { monitorStatus = null; });
+  }
+
+  /* 数据最后更新日期：优先用监控实际运行时间，回退到 products.json 静态字段 */
+  function effectiveLastUpdated() {
+    if (monitorStatus && monitorStatus.meta && monitorStatus.meta.last_run) {
+      return String(monitorStatus.meta.last_run).slice(0, 10);
+    }
+    if (productsMeta && productsMeta.last_updated) {
+      return productsMeta.last_updated;
+    }
+    return "";
+  }
+
+  function updateDataDate() {
+    var el = document.getElementById("updateDate");
+    if (!el) return;
+    var d = effectiveLastUpdated();
+    if (d) el.textContent = "数据最后更新日期：" + d;
   }
 
   function changedProductIds() {
@@ -360,7 +379,8 @@
     setNum("statTotal", total);
     setNum("statTrain", trainCount);
     setNum("statHigh", highCount);
-    setNum("statUpdated", meta && meta.last_updated ? meta.last_updated.slice(5) : "—");
+    var upd = effectiveLastUpdated();
+    setNum("statUpdated", upd ? upd.slice(5) : "—");
     var hs = document.getElementById("heroStats");
     if (hs) hs.removeAttribute("aria-hidden");
   }
@@ -412,16 +432,15 @@
     bindFilter("riskFilter", "data-risk", "risk");
     initRowEvents();
     fetchMonitorStatus().then(function () {
+      updateDataDate();
       if (allProducts.length) renderMonitorStatus();
     });
     fetchAllProducts()
       .then(function (result) {
         allProducts = result.policies;
-        var el = document.getElementById("updateDate");
-        if (result.meta && result.meta.last_updated) {
-          el.textContent = "数据最后更新日期：" + result.meta.last_updated;
-        }
-        renderHeroStats(result.meta);
+        productsMeta = result.meta || null;
+        updateDataDate();
+        renderHeroStats(productsMeta);
         renderMonitorStatus();
         render();
         document.getElementById("loading").style.display = "none";
