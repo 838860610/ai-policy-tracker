@@ -145,6 +145,18 @@ ALIYUN_WIDGET_ANCHORS = ("精选产品", "精选解决方案", "配置报价器"
 FOOTER_ANCHORS = ("京公网安备", "京ICP备", "企业咨询热线", "营业执照",
                  "关注微信公众号", "版权所有", "TRAE先一步体验未来")
 
+# 谷歌帮助中心在文末注入的 UI 尾巴（"Need more help? ..." → 语言选择器 →
+# Enable Dark Mode → 反馈区），其中嵌有一个每次加载都重新生成的长数字令牌
+# （实测 Gemini 隐私页两次抓取：2706528264544687043 → 14347482587443921844，
+# 且全文 483 行仅此一处不同）。它会让哈希每次抓取都变、永久误报"已变更"。
+# 该尾巴实测出现在全文 97.3% 处、绝不作为政策条款，故从首个标记起到文末整体剔除。
+GOOGLE_HELP_UI_ANCHORS = ("Need more help?", "Enable Dark Mode")
+
+# 各类页面注入的旋转型长数字令牌（会话 / 反伪造 / 资源标识），长度 ≥16 位。
+# 政策条款正文不会出现 16 位以上的裸数字，置空后可消除其抖动。
+# 实测影响面：全库仅 gemini/toc 与 xunfei-xinghuo/main 命中。
+LONG_TOKEN_RE = re.compile(r"\b\d{16,}\b")
+
 
 def extract_text(raw_html):
     """剥离 script/style 等非正文标签，提取可见文本，并剔除 UI 噪音碎片。"""
@@ -173,6 +185,15 @@ def extract_text(raw_html):
         if idx != -1:
             text = text[:idx]
             break
+    # 剔除谷歌帮助中心等页面文末注入的 UI 尾巴（见 GOOGLE_HELP_UI_ANCHORS）：
+    # 其中含每次加载都变的旋转令牌，不剔除会导致该目标永久误报"已变更"。
+    for anchor in GOOGLE_HELP_UI_ANCHORS:
+        idx = text.find(anchor)
+        if idx != -1:
+            text = text[:idx]
+            break
+    # 剔除注入的旋转型长数字令牌（见 LONG_TOKEN_RE），消除逐次抓取的哈希抖动。
+    text = LONG_TOKEN_RE.sub("", text)
     return text
 
 
