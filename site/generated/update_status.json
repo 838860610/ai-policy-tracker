@@ -4,7 +4,7 @@
     "hash_scheme": "text-v3-bs4",
     "total_products": 48,
     "total_targets": 66,
-    "changed": 2,
+    "changed": 0,
     "failed": 0,
     "suspicious": 5,
     "skipped": 1
@@ -369,21 +369,22 @@
       }
     },
     "chatgpt": {
-      "status": "changed",
+      "status": "ok",
       "url": "https://openai.com/policies/terms-of-use",
-      "message": "⚠️ 政策可能已更新，待核实（主监控页）",
+      "message": "内容未变化（本次核实后已确认）",
       "last_checked": "2026-09-21T05:59:46.253853",
       "targets": {
         "main": {
           "url": "https://openai.com/policies/terms-of-use",
           "hash_scheme": "text-v3-bs4",
           "last_checked": "2026-09-21T05:59:41.806310",
-          "last_changed_date": "2026-09-21T05:59:41.772640",
+          "last_changed_date": null,
           "current_hash": "3de969752bd05d7ea6fcd13064a912a366f4a73317f48945bde8cda621ff8a04",
-          "status": "changed",
-          "message": "⚠️ 政策可能已更新，待核实",
+          "status": "ok",
+          "message": "已人工核实（policy_verify --resolve）",
           "content_etag": null,
-          "content_last_modified": null
+          "content_last_modified": null,
+          "resolved_at": "2026-09-23T00:14:20.345949"
         },
         "tob": {
           "url": "https://openai.com/policies/business-terms/",
@@ -399,9 +400,9 @@
       }
     },
     "claude": {
-      "status": "changed",
+      "status": "ok",
       "url": "https://www.anthropic.com/legal/consumer-terms",
-      "message": "⚠️ 政策可能已更新，待核实（个人版条款）",
+      "message": "内容未变化（本次核实后已确认）",
       "last_checked": "2026-09-21T05:59:51.984787",
       "targets": {
         "main": {
@@ -419,12 +420,13 @@
           "url": "https://privacy.claude.com/en/articles/12109829-how-do-i-change-my-model-improvement-privacy-settings",
           "hash_scheme": "text-v3-bs4",
           "last_checked": "2026-09-21T05:59:50.094498",
-          "last_changed_date": "2026-09-21T05:59:49.577375",
+          "last_changed_date": null,
           "current_hash": "50e63c566ed37e1c1fd424e2e587b7e4346ca036c104245f0b9394b4568d0fc3",
-          "status": "changed",
-          "message": "⚠️ 政策可能已更新，待核实",
+          "status": "ok",
+          "message": "已人工核实（policy_verify --resolve）",
           "content_etag": null,
-          "content_last_modified": null
+          "content_last_modified": null,
+          "resolved_at": "2026-09-23T00:14:20.482101"
         },
         "tob": {
           "url": "https://www.anthropic.com/legal/commercial-terms",
