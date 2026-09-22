@@ -209,9 +209,9 @@ python3 -m venv .venv
 
 ```bash
 # 列出待核实队列 + 所有被标记目标（优先看队列）
-python3 .codebuddy/skills/policy-change-verify/scripts/policy_verify.py --list
+python3 skills/policy-change-verify/scripts/policy_verify.py --list
 # 查看某产品某个目标的旧→新 diff 与当前政策数据
-python3 .codebuddy/skills/policy-change-verify/scripts/policy_verify.py <product_id> [main|toc|tob]
+python3 skills/policy-change-verify/scripts/policy_verify.py <product_id> [main|toc|tob]
 ```
 
 skill 提取新旧快照 diff、判断是实质性条款变化还是噪声（页脚年/时间戳/导航重排/抓取失败等属噪声），并**起草**对 `site/data/policies/{id}.json` 的字段 + timeline 修改，**必须等人工确认才写入**。核实并更新数据后，用 `--resolve <product_id>` 从待核实队列移除该项。

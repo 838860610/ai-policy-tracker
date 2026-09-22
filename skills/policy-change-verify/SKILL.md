@@ -38,11 +38,11 @@ Issue），对每个被标记的产品目标提取新旧快照 diff，判断变�
 对每个（产品, 目标）运行本 skill 附带的脚本（**从仓库根目录运行**）：
 ```bash
 # 一次列出所有被标记项（推荐先看这个）
-python3 .codebuddy/skills/policy-change-verify/scripts/policy_verify.py --list
+python3 skills/policy-change-verify/scripts/policy_verify.py --list
 # 查看单个产品的某个目标
-python3 .codebuddy/skills/policy-change-verify/scripts/policy_verify.py <product_id> [target]
+python3 skills/policy-change-verify/scripts/policy_verify.py <product_id> [target]
 # 查看单个产品的全部目标
-python3 .codebuddy/skills/policy-change-verify/scripts/policy_verify.py <product_id> --all-targets
+python3 skills/policy-change-verify/scripts/policy_verify.py <product_id> --all-targets
 ```
 脚本输出：目标 URL、旧快照来源（`prev.txt` / `dated:YYYY-MM-DD` / `git:<sha>`）、
 旧→新 unified diff（超长截断）、以及该产品当前的 `site/data/policies/{id}.json` 全文。
@@ -74,7 +74,7 @@ python3 .codebuddy/skills/policy-change-verify/scripts/policy_verify.py <product
 ### 步骤 5：处理噪声 / 失败项
 - 噪声或 `failed` / `suspicious`：在回复中标注"误报 / 需人工打开 URL 确认"，不修改数据。
 - 某项已核实并更新数据后，运行
-  `python3 .codebuddy/skills/policy-change-verify/scripts/policy_verify.py --resolve <product_id> [target]`
+  `python3 skills/policy-change-verify/scripts/policy_verify.py --resolve <product_id> [target]`
   从待核实队列移除（这是检测→核实跨轮持久交接的收尾）。
 
 ## 资源

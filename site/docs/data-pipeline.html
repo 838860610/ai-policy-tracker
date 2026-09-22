@@ -251,7 +251,6 @@ python3 skills/policy-change-verify/scripts/policy_verify.py --resolve &lt;produ
 <p>二者可能失同步（例如只清了队列而没改状态，页面告警就会一直挂着），因此 <code>--resolve</code> 设计为同时处理两者。</p>
 <h2>当前已知问题</h2>
 <ol>
-<li><strong>skill 文档路径过期</strong>：<code>skills/policy-change-verify/SKILL.md</code> 中的命令示例仍指向迁移前的 <code>.codebuddy/skills/...</code> 路径，实际目录已迁至仓库根 <code>skills/</code>。</li>
 <li><strong>队列与告警可能失同步</strong>：历史上曾出现队列被清空但 <code>update_status.json</code> 仍标记 <code>changed</code> 的情况（页面告警持续显示）。<code>--resolve</code> 已覆盖两者，但存量状态需手动对齐。</li>
 </ol>
   </div>

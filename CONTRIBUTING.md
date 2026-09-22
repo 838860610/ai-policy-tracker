@@ -41,11 +41,11 @@ Questions are welcome via Issues — use the "数据纠错" template if you spot
 
 **人工跟进步骤**（在本地用 `policy-change-verify` skill）：
 
-1. 运行 `python3 .codebuddy/skills/policy-change-verify/scripts/policy_verify.py --list` 查看待核实项
-2. 对每项运行 `python3 .codebuddy/skills/policy-change-verify/scripts/policy_verify.py <product_id> [target]` 看新旧 diff
+1. 运行 `python3 skills/policy-change-verify/scripts/policy_verify.py --list` 查看待核实项
+2. 对每项运行 `python3 skills/policy-change-verify/scripts/policy_verify.py <product_id> [target]` 看新旧 diff
 3. 判断是实质性条款变更还是噪声（页脚年/时间戳/导航重排/抓取失败等属噪声）
 4. 如为实质变更：访问官方政策页面，更新 `site/data/policies/{id}.json`，同步 `last_verified` 与 `timeline`
-5. 核实并更新数据后，运行 `python3 .codebuddy/skills/policy-change-verify/scripts/policy_verify.py --resolve <product_id>` 从队列移除
+5. 核实并更新数据后，运行 `python3 skills/policy-change-verify/scripts/policy_verify.py --resolve <product_id>` 从队列移除
 
 ### 2. 新增产品
 

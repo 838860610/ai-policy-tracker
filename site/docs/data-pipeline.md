@@ -143,5 +143,4 @@ python3 skills/policy-change-verify/scripts/policy_verify.py --resolve <product_
 
 ## 当前已知问题
 
-1. **skill 文档路径过期**：`skills/policy-change-verify/SKILL.md` 中的命令示例仍指向迁移前的 `.codebuddy/skills/...` 路径，实际目录已迁至仓库根 `skills/`。
-2. **队列与告警可能失同步**：历史上曾出现队列被清空但 `update_status.json` 仍标记 `changed` 的情况（页面告警持续显示）。`--resolve` 已覆盖两者，但存量状态需手动对齐。
+1. **队列与告警可能失同步**：历史上曾出现队列被清空但 `update_status.json` 仍标记 `changed` 的情况（页面告警持续显示）。`--resolve` 已覆盖两者，但存量状态需手动对齐。

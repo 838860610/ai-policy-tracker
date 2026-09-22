@@ -309,13 +309,13 @@ WantedBy=timers.target
 <p>监控只负责"发现变化 + 留档"，<strong>不再在 CI 内做 AI 分析、也不再自动建 Issue</strong>。核实与改数据全部在本地由 <code>policy-change-verify</code> skill 完成（项目级 skill，克隆仓库即可用）。</p>
 <p>当 <code>update_status.json</code> 出现 <code>changed</code>，或 <code>pending_verification.json</code> 有待核实项时：</p>
 <ol>
-<li><strong>列出待核实项</strong>：<code>python3 .codebuddy/skills/policy-change-verify/scripts/policy_verify.py --list</code></li>
-<li><strong>查看某项目新旧 diff</strong>：<code>python3 .codebuddy/skills/policy-change-verify/scripts/policy_verify.py &lt;product_id&gt; [main|toc|tob]</code><br />
+<li><strong>列出待核实项</strong>：<code>python3 skills/policy-change-verify/scripts/policy_verify.py --list</code></li>
+<li><strong>查看某项目新旧 diff</strong>：<code>python3 skills/policy-change-verify/scripts/policy_verify.py &lt;product_id&gt; [main|toc|tob]</code><br />
    - 脚本从 <code>prev.txt</code> / 日期存档 / git 历史中取回旧快照（自动跳过内容相同的重基线提交），与 <code>latest.txt</code> 做 unified diff<br />
    - 同时输出该产品当前的 <code>site/data/policies/{id}.json</code>，供判断</li>
 <li><strong>判断变更性质</strong>：按 <code>references/verification_workflow.md</code> 清单区分——训练政策/退出机制/留存期限等条款文字实质变化为<strong>实质性</strong>；页脚版权年、时间戳、导航重排、A/B 文案、抓取失败（<code>failed</code>）/空壳（<code>suspicious</code>）为<strong>噪声</strong></li>
 <li><strong>起草补丁</strong>：对实质性变更，按 <code>references/policy_schema.md</code> 起草对 <code>versions.&lt;tier&gt;</code> 字段与 <code>timeline</code> 的修改，<strong>必须等人工确认才写入</strong></li>
-<li><strong>收尾</strong>：核实并更新数据后，<code>python3 .codebuddy/skills/policy-change-verify/scripts/policy_verify.py --resolve &lt;product_id&gt;</code> 从待核实队列移除该项</li>
+<li><strong>收尾</strong>：核实并更新数据后，<code>python3 skills/policy-change-verify/scripts/policy_verify.py --resolve &lt;product_id&gt;</code> 从待核实队列移除该项</li>
 </ol>
 <blockquote>
 <p>注意：核实结论仅供参考，不自动修改 <code>site/data/policies/{id}.json</code>。人工确认后再更新数据文件，并同步 <code>last_verified</code> 与 <code>timeline</code>。</p>

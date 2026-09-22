@@ -242,12 +242,12 @@ sudo systemctl enable --now ai-policy-check.timer
 
 当 `update_status.json` 出现 `changed`，或 `pending_verification.json` 有待核实项时：
 
-1. **列出待核实项**：`python3 .codebuddy/skills/policy-change-verify/scripts/policy_verify.py --list`
-2. **查看某项目新旧 diff**：`python3 .codebuddy/skills/policy-change-verify/scripts/policy_verify.py <product_id> [main|toc|tob]`
+1. **列出待核实项**：`python3 skills/policy-change-verify/scripts/policy_verify.py --list`
+2. **查看某项目新旧 diff**：`python3 skills/policy-change-verify/scripts/policy_verify.py <product_id> [main|toc|tob]`
    - 脚本从 `prev.txt` / 日期存档 / git 历史中取回旧快照（自动跳过内容相同的重基线提交），与 `latest.txt` 做 unified diff
    - 同时输出该产品当前的 `site/data/policies/{id}.json`，供判断
 3. **判断变更性质**：按 `references/verification_workflow.md` 清单区分——训练政策/退出机制/留存期限等条款文字实质变化为**实质性**；页脚版权年、时间戳、导航重排、A/B 文案、抓取失败（`failed`）/空壳（`suspicious`）为**噪声**
 4. **起草补丁**：对实质性变更，按 `references/policy_schema.md` 起草对 `versions.<tier>` 字段与 `timeline` 的修改，**必须等人工确认才写入**
-5. **收尾**：核实并更新数据后，`python3 .codebuddy/skills/policy-change-verify/scripts/policy_verify.py --resolve <product_id>` 从待核实队列移除该项
+5. **收尾**：核实并更新数据后，`python3 skills/policy-change-verify/scripts/policy_verify.py --resolve <product_id>` 从待核实队列移除该项
 
 > 注意：核实结论仅供参考，不自动修改 `site/data/policies/{id}.json`。人工确认后再更新数据文件，并同步 `last_verified` 与 `timeline`。
