@@ -7,13 +7,15 @@ policy-change-verify skill 的本地核实助手。
 （含 failed/suspicious）找出需要核实的产品与目标，对每个目标用 prev.txt / 日期存档 /
 git 历史可靠地取回"旧快照"（自动跳过内容相同的重基线提交），
 与 latest.txt（新快照）做 unified diff，并输出该产品的当前政策 JSON，
-供 agent 判断实质变更并起草补丁。核实完成并更新数据后，用 --resolve 清除队列项。
+供 agent 判断实质变更并起草补丁。核实完成并更新数据后，用 --resolve 做收尾：
+清除待核实队列项，并同步把 update_status.json 中对应目标改为 ok，使页面上的
+"待核实"告警立即消失（页面告警只读 update_status.json，与队列互不影响）。
 
 用法（从仓库根目录运行）：
   python3 policy_verify.py --list
   python3 policy_verify.py <product_id> [target]
   python3 policy_verify.py <product_id> --all-targets
-  python3 policy_verify.py --resolve <product_id> [target]   # 从待核实队列移除
+  python3 policy_verify.py --resolve <product_id> [target]   # 核实收尾：清队列 + 清页面告警
 
   --repo PATH   仓库根目录（默认当前工作目录）
   --list        列出 update_status.json 中所有被标记的产品与目标
@@ -110,6 +112,72 @@ def resolve_pending(root, pid, key):
               (pid, ("/" + key) if key else " 全部目标"))
     else:
         print("[提示] 队列中没有 %s%s 的项。" % (pid, ("/" + key) if key else ""))
+
+
+def clear_page_alert(root, pid, key):
+    """清除页面上的"待核实"告警：把该产品（默认全部 changed 目标）在
+    update_status.json 中标记为 ok，并重算产品级状态与全局计数。
+
+    页面 banner 只读 update_status.json，与 pending_verification 队列互不影响，
+    因此只清队列不足以让告警消失，必须同步改动这里。
+    只处理 changed（failed/suspicious 属监控异常，交给各自的修复流程，不在此掩盖）。
+    """
+    path = os.path.join(root, "site", "generated", "update_status.json")
+    if not os.path.exists(path):
+        print("[提示] 没有 update_status.json，无需清除页面告警。")
+        return
+    with open(path, encoding="utf-8") as f:
+        data = json.load(f)
+
+    products = data.get("products") or {}
+    prod = products.get(pid)
+    if not prod:
+        print("[提示] update_status.json 中没有产品 %s，页面告警已忽略。" % pid)
+        return
+
+    now = datetime.datetime.now().isoformat()
+    cleared = []
+    for k, t in (prod.get("targets") or {}).items():
+        if key and k != key:
+            continue
+        if t.get("status") != "changed":
+            continue
+        t["status"] = "ok"
+        t["message"] = "已人工核实（policy_verify --resolve）"
+        t["resolved_at"] = now
+        t["last_changed_date"] = None
+        cleared.append(k)
+
+    if not cleared:
+        print("[提示] %s%s 在 update_status.json 中没有 changed 目标（或已处理）。" %
+              (pid, ("/" + key) if key else ""))
+        return
+
+    statuses = [t.get("status") for t in (prod.get("targets") or {}).values()]
+    prod["status"] = ("changed" if "changed" in statuses else
+                      "failed" if "failed" in statuses else
+                      "suspicious" if "suspicious" in statuses else
+                      "skipped" if "skipped" in statuses else "ok")
+    if prod["status"] == "ok":
+        prod["message"] = "内容未变化（本次核实后已确认）"
+
+    counts = {"changed": 0, "failed": 0, "suspicious": 0, "skipped": 0}
+    for p in products.values():
+        s = p.get("status")
+        if s in counts:
+            counts[s] += 1
+    meta = data.get("meta") or {}
+    meta.update(counts)
+    meta["total_products"] = len(products)
+    data["meta"] = meta
+
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+
+    print("[完成] 已清除 %s 的页面告警（目标：%s），产品状态 → %s；"
+          "全局计数 changed=%d failed=%d suspicious=%d。" %
+          (pid, "、".join(cleared), prod["status"],
+           meta.get("changed", 0), meta.get("failed", 0), meta.get("suspicious", 0)))
 
 
 def list_flagged(root, status):
@@ -256,6 +324,7 @@ def main():
 
     if args.resolve:
         resolve_pending(root, args.resolve, args.target)
+        clear_page_alert(root, args.resolve, args.target)
         return
 
     status = load_status(root)
