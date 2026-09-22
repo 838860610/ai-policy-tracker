@@ -145,12 +145,24 @@ ALIYUN_WIDGET_ANCHORS = ("精选产品", "精选解决方案", "配置报价器"
 FOOTER_ANCHORS = ("京公网安备", "京ICP备", "企业咨询热线", "营业执照",
                  "关注微信公众号", "版权所有", "TRAE先一步体验未来")
 
-# 谷歌帮助中心在文末注入的 UI 尾巴（"Need more help? ..." → 语言选择器 →
-# Enable Dark Mode → 反馈区），其中嵌有一个每次加载都重新生成的长数字令牌
-# （实测 Gemini 隐私页两次抓取：2706528264544687043 → 14347482587443921844，
-# 且全文 483 行仅此一处不同）。它会让哈希每次抓取都变、永久误报"已变更"。
-# 该尾巴实测出现在全文 97.3% 处、绝不作为政策条款，故从首个标记起到文末整体剔除。
-GOOGLE_HELP_UI_ANCHORS = ("Need more help?", "Enable Dark Mode")
+# 帮助中心类页面在文末注入的 UI 尾巴，会随渲染时机变化而误报"已变更"：
+# - 谷歌帮助中心："Need more help? ..." → 语言选择器 → Enable Dark Mode → 反馈区，
+#   其中嵌有每次加载都重新生成的长数字令牌（Gemini 隐私页两次抓取
+#   2706528264544687043 → 14347482587443921844，483 行正文仅此一处不同），
+#   实测位于全文 97.3%；
+# - Anthropic 帮助中心：文末 "Related Articles" 推荐阅读区块，其中的链接标题
+#   顺序/有无会随抓取变化（claude/toc 实测 2736 ↔ 2710 字，差异仅在该区块），
+#   实测位于全文 83.4%。
+# 这些尾巴绝不作为政策条款，故从首个标记起到文末整体剔除。
+HELP_UI_ANCHORS = ("Need more help?", "Enable Dark Mode", "Related Articles")
+
+# 部分站点把导航 / 语言选择器渲染在正文之前，且该区块是否渲染会随抓取时机变化
+# （实测 chatgpt/main 旧 6356 → 新 5842 字，差异全部落在头部导航与语言列表，
+# 条款正文零差异，且"使用条款生效日期 2026 年 1 月 1 日"新旧一致）。
+# 以正文起始标记 "Published: YYYY年" 为界切掉其之前的导航。
+# 位置护栏：仅当标记出现在全文前 15% 时才切——避免将来某页正文里出现该词时被误删。
+LEAD_IN_MARKER_RE = re.compile(r"Published:\s*\d{4}\s*年")
+LEAD_IN_MAX_RATIO = 0.15
 
 # 各类页面注入的旋转型长数字令牌（会话 / 反伪造 / 资源标识），长度 ≥16 位。
 # 政策条款正文不会出现 16 位以上的裸数字，置空后可消除其抖动。
@@ -185,13 +197,18 @@ def extract_text(raw_html):
         if idx != -1:
             text = text[:idx]
             break
-    # 剔除谷歌帮助中心等页面文末注入的 UI 尾巴（见 GOOGLE_HELP_UI_ANCHORS）：
-    # 其中含每次加载都变的旋转令牌，不剔除会导致该目标永久误报"已变更"。
-    for anchor in GOOGLE_HELP_UI_ANCHORS:
+    # 剔除帮助中心类页面文末注入的 UI 尾巴（见 HELP_UI_ANCHORS）：
+    # 其中含每次加载都变的旋转令牌或推荐区块，不剔除会导致该目标反复误报"已变更"。
+    for anchor in HELP_UI_ANCHORS:
         idx = text.find(anchor)
         if idx != -1:
             text = text[:idx]
             break
+    # 剔除正文之前的站点导航（见 LEAD_IN_MARKER_RE）：命中且位于全文前段时才切，
+    # 位置护栏防止正文里出现同名词时误删条款。
+    m = LEAD_IN_MARKER_RE.search(text)
+    if m and m.start() < len(text) * LEAD_IN_MAX_RATIO:
+        text = text[m.start():]
     # 剔除注入的旋转型长数字令牌（见 LONG_TOKEN_RE），消除逐次抓取的哈希抖动。
     text = LONG_TOKEN_RE.sub("", text)
     return text
