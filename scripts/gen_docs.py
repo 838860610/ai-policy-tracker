@@ -36,6 +36,11 @@ DOC_META = {
         "subtitle": "AI 用户政策追踪器 · 自动化政策变更监控说明",
         "description": "AI 用户政策追踪器政策更新监控说明：变化检测、快照留档与本地 skill 核实。",
     },
+    "data-pipeline": {
+        "title": "数据流水线",
+        "subtitle": "AI 用户政策追踪器 · 从数据到页面的完整闭环",
+        "description": "AI 用户政策追踪器数据流水线：数据层、检测、构建校验、部署、展示到本地核实的完整闭环与各脚本职责。",
+    },
 }
 
 FAVICON = ("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'"

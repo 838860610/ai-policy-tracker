@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="AI 用户政策追踪器数据流水线：数据层、检测、构建校验、部署、展示到本地核实的完整闭环与各脚本职责。">
+  <title>数据流水线 - AI 用户政策追踪器</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%9B%A1%EF%B8%8F%3C/text%3E%3C/svg%3E">
+  <link rel="stylesheet" href="../css/style.css?v=20260919-2">
+</head>
+<body>
+  <div class="header">
+    <h1>数据流水线</h1>
+    <p class="subtitle">AI 用户政策追踪器 · 从数据到页面的完整闭环</p>
+  </div>
+
+  <div class="docs-body">
+<h1>数据流水线：从数据到页面的完整闭环</h1>
+<h2>概述</h2>
+<p>本项目的运转是一条<strong>端到端闭环</strong>：人工维护的政策数据 → CI 自动检测政策页变化 → 构建校验 → 部署到 GitHub Pages → 页面展示并提示"待核实" → 本地核实后回写数据 → 重新进入下一轮。</p>
+<pre><code>   ①数据层(人工真源)        ②检测层(CI 每周一)        ③构建/校验(CI)
+  site/data/*.json     ──▶  check_updates.py    ──▶  gen_data_bundle.py
+   products.json            抓取+去噪+比对+落快照       gen_docs.py
+   policies/{id}.json       生成 update_status        生成 bundle.json
+        ▲                   生成 pending 队列               │
+        │                         │                         ▼
+        │                         │                  ④部署(GitHub Pages)
+        │                         │                  deploy.yml 发布 site/
+        │                         ▼                         │
+        │                ⑤展示层(site/index.html)  ◀────────┘
+        │                  app.js 读 bundle + update_status
+        │                  渲染表格 / 监控 banner
+        │                         │
+        │                         ▼ (人看到&quot;待核实&quot;告警)
+        │                ⑥核实层(本地 agent + 人工)
+        │                  policy_verify.py 出 diff
+        │                  判断实质变更 vs 噪声
+        │                         │
+        └───实质变更:改 policies/{id}.json(人工确认后)──┘
+             噪声:修 extract_text 去噪 + 重新基线
+             收尾:--resolve 清队列 + 清 banner
+</code></pre>
+<p>各阶段使用的脚本、产物与衔接关系如下。</p>
+<h2>① 数据层：唯一真源（人工维护）</h2>
+<table>
+<thead>
+<tr>
+<th>文件</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>site/data/products.json</code></td>
+<td>产品 ID 索引（决定展示顺序）与 <code>meta</code> 信息</td>
+</tr>
+<tr>
+<td><code>site/data/policies/{id}.json</code></td>
+<td>单产品政策分析：<code>versions.toc</code> / <code>versions.tob</code> 的训练、留存、退出、风险字段，<code>key_clauses</code> 原文引文，<code>last_verified</code>，<code>timeline</code>，以及监控配置（目标 URL、<code>fetch_method</code>）</td>
+</tr>
+</tbody>
+</table>
+<p>这一层<strong>只由人工或经人工确认后修改</strong>，是后续所有展示与比对的源头。</p>
+<h2>② 检测层：<code>scripts/check_updates.py</code>（CI 每周一 09:00 北京时间）</h2>
+<ul>
+<li><strong>触发</strong>：<code>.github/workflows/monitor.yml</code>，<code>cron: "0 1 * * 1"</code>，也支持 Actions 页面手动触发。</li>
+<li><strong>范围</strong>：每个产品的每个监控目标 <code>main</code>（主页面）/ <code>toc</code>（个人版条款）/ <code>tob</code>（企业版条款）。</li>
+<li><strong>流程</strong>：抓取页面 → <code>extract_text</code> 去噪 → 空白归一化 → 计算 SHA256 → 与基线快照 <code>snapshots/{id}/{key}/latest.txt</code> 比对。</li>
+</ul>
+<p>去噪是避免误报的关键，脚本按序剔除：UI 控件短语、阿里云推荐挂件、页脚站壳、帮助中心文末 UI 尾巴（含推荐阅读区块）、正文之前的站点导航（带位置护栏，避免误删条款）、以及 16 位以上的旋转型数字令牌（会话/反伪造标识）。</p>
+<table>
+<thead>
+<tr>
+<th>判定</th>
+<th>含义</th>
+<th>副作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ok</code></td>
+<td>文本与基线一致（或服务端返回 304）</td>
+<td>无</td>
+</tr>
+<tr>
+<td><code>changed</code></td>
+<td>文本发生变化</td>
+<td>写入 <code>latest.txt</code>，旧内容转存 <code>prev.txt</code>，另存 <code>{YYYY-MM-DD}.txt</code> 存档</td>
+</tr>
+<tr>
+<td><code>suspicious</code></td>
+<td>正文过短，疑似 JS 渲染或反爬空壳</td>
+<td><strong>不建立基线</strong>，避免污染后续比对</td>
+</tr>
+<tr>
+<td><code>failed</code></td>
+<td>请求失败/超时</td>
+<td>不误报为"已变更"</td>
+</tr>
+<tr>
+<td><code>skipped</code></td>
+<td>该产品未启用监控</td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<p>被 Cloudflare 等拦截的产品走无头浏览器抓取（<code>fetch_method: "browser"</code>，CI 会安装 Playwright）。</p>
+<p><strong>产出三件套</strong>（由 bot 自动 commit 回 main）：</p>
+<table>
+<thead>
+<tr>
+<th>产物</th>
+<th>用途</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>site/generated/update_status.json</code></td>
+<td><strong>网页告警的唯一数据源</strong>：每产品聚合状态 + 各目标明细 + <code>meta</code> 计数</td>
+</tr>
+<tr>
+<td><code>site/generated/snapshots/**</code></td>
+<td>正文快照，跨环境共享的持久基线与历史，核实阶段用来做 diff</td>
+</tr>
+<tr>
+<td><code>site/generated/pending_verification.json</code></td>
+<td>待核实队列：检测 → 核实的跨轮交接物（合并式，只增不减，直到显式 <code>--resolve</code>）</td>
+</tr>
+</tbody>
+</table>
+<h2>③ 构建与校验：<code>.github/workflows/ci.yml</code></h2>
+<p>每次 PR 或 push 到 main 触发，依次执行：</p>
+<ol>
+<li><code>python -m unittest discover -s tests</code>（回归测试）</li>
+<li><code>scripts/validate_data.py</code>（数据结构完整性校验）</li>
+<li><code>scripts/gen_readme_table.py --check</code>（README 汇总表与数据一致）</li>
+<li><code>scripts/gen_docs.py --check</code>（文档页为最新）</li>
+</ol>
+<p>校验通过后，<code>publish</code> job 生成并提交产物：</p>
+<ul>
+<li><code>scripts/gen_data_bundle.py</code> → <code>site/generated/bundle.json</code>：把索引与全部政策合并为单个请求（首页优先加载，白名单裁剪后约 20KB）</li>
+<li><code>scripts/gen_docs.py</code> → <code>site/docs/*.md</code> 渲染为 <code>.html</code>（<code>.md</code> 为唯一源，避免两份手工副本漂移）</li>
+</ul>
+<h2>④ 部署：<code>.github/workflows/deploy.yml</code> → GitHub Pages</h2>
+<ul>
+<li>采用 <code>workflow_run</code> 监听「数据校验」「政策更新监控」完成，而<strong>不是</strong>监听 push —— 因为 bot 使用 <code>GITHUB_TOKEN</code> 提交不会触发 push 事件，改用 <code>workflow_run</code> 才能覆盖 bot 提交的产物。</li>
+<li>部署时现场生成社交分享卡片（<code>gen_og_image.py</code>，并显式安装 Noto CJK 字体以免中文变豆腐块），然后只上传 <code>site/</code> 作为站点根。</li>
+</ul>
+<h2>⑤ 展示层：前端读取什么</h2>
+<table>
+<thead>
+<tr>
+<th>读取文件</th>
+<th>用途</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>generated/bundle.json</code>（优先，缺失时回退 <code>products.json</code> + <code>policies/*.json</code>）</td>
+<td>对比表格、筛选、顶部指标</td>
+</tr>
+<tr>
+<td><code>generated/update_status.json</code></td>
+<td>监控 banner「⚠️ 政策监控于 X 检测到 N 个…待人工核实」，以及顶部「数据最后更新日期」（取 <code>meta.last_run</code>，缺失时回退 <code>products.json</code> 的静态字段）</td>
+</tr>
+<tr>
+<td><code>data/policies/{id}.json</code>（详情页 <code>detail.js</code>）</td>
+<td>单产品详情与长条款原文</td>
+</tr>
+</tbody>
+</table>
+<p>注意：前端<strong>不读取</strong> <code>pending_verification.json</code>，该文件只服务于本地核实流程。</p>
+<h2>⑥ 核实层：<code>skills/policy-change-verify</code>（本地 agent + 人工）</h2>
+<ul>
+<li><strong>触发</strong>：维护者看到页面 banner，或主动要求核实某个产品的变更。</li>
+<li><strong>脚本</strong>：<code>skills/policy-change-verify/scripts/policy_verify.py</code>（从仓库根目录运行）</li>
+</ul>
+<pre><code class="language-bash"># 列出待核实队列与被标记的产品/目标
+python3 skills/policy-change-verify/scripts/policy_verify.py --list
+# 查看单个产品的某个目标（输出旧→新 diff 与当前政策 JSON）
+python3 skills/policy-change-verify/scripts/policy_verify.py &lt;product_id&gt; [target]
+# 核实收尾：清除队列项 + 清除页面告警
+python3 skills/policy-change-verify/scripts/policy_verify.py --resolve &lt;product_id&gt; [target]
+</code></pre>
+<p>旧快照按 <code>prev.txt</code> → 日期存档 → git 历史依次回溯，并自动跳过"内容相同的重基线提交"，避免全库重建基线造成的假差异。</p>
+<p><strong>判断变更性质</strong>：</p>
+<ul>
+<li><strong>实质性变更</strong>（训练政策、留存期限、版权归属、责任限制等条款实质变化）→ 起草对 <code>site/data/policies/{id}.json</code> 的修改：更新对应字段、<code>last_verified</code> 置为当天，必要时向 <code>timeline</code> 追加条目。<strong>必须先作为提议交给人工确认再落盘。</strong></li>
+<li><strong>噪声</strong>（页脚版权年、cookie 横幅、"最后更新"时间戳、旋转令牌，以及 <code>failed</code> / <code>suspicious</code>）→ 不修改数据。若属于抓取类噪声（例如页面每次加载都变化的令牌），需修复 <code>extract_text</code> 的去噪规则并<strong>重新基线</strong> <code>latest.txt</code>，否则下一轮仍会误报。</li>
+</ul>
+<p><code>--resolve</code> 会同时清除待核实队列项与 <code>update_status.json</code> 中的 <code>changed</code> 状态（重算产品级状态与全局计数），使页面告警立即消失——因为页面只读 <code>update_status.json</code>，只清队列并不会让告警消失。</p>
+<p>核实并回写数据后 push，CI 会重新生成 bundle 并部署，告警消失，<strong>闭环回到 ①</strong>。</p>
+<h2>脚本职责速查</h2>
+<table>
+<thead>
+<tr>
+<th>脚本</th>
+<th>阶段</th>
+<th>职责</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>scripts/check_updates.py</code></td>
+<td>②</td>
+<td>抓取、去噪、哈希比对，写状态/快照/队列</td>
+</tr>
+<tr>
+<td><code>scripts/validate_data.py</code></td>
+<td>③</td>
+<td>校验数据结构完整性</td>
+</tr>
+<tr>
+<td><code>scripts/gen_data_bundle.py</code></td>
+<td>③</td>
+<td>生成首页用的 <code>bundle.json</code></td>
+</tr>
+<tr>
+<td><code>scripts/gen_docs.py</code></td>
+<td>③</td>
+<td><code>docs/*.md</code> → <code>.html</code></td>
+</tr>
+<tr>
+<td><code>scripts/gen_readme_table.py</code></td>
+<td>③</td>
+<td>README 汇总表与数据同步</td>
+</tr>
+<tr>
+<td><code>scripts/gen_og_image.py</code></td>
+<td>④</td>
+<td>部署时生成社交分享卡片</td>
+</tr>
+<tr>
+<td><code>scripts/extract_clauses.py</code></td>
+<td>人工辅助</td>
+<td>从协议 HTML 按同义词组提取条款上下文（避免漏掉"优化模型"这类表述）</td>
+</tr>
+<tr>
+<td><code>skills/.../policy_verify.py</code></td>
+<td>⑥</td>
+<td>提取新旧快照 diff + 核实收尾</td>
+</tr>
+</tbody>
+</table>
+<h2>两个交接物的区别</h2>
+<p><code>update_status.json</code> 与 <code>pending_verification.json</code> 都记录"待核实"，但服务对象不同：</p>
+<ul>
+<li><code>update_status.json</code>：<strong>每次 monitor 运行整体重算</strong>，是网页告警的数据源。产品状态由目标聚合得出（优先级 <code>changed</code> &gt; <code>failed</code> &gt; <code>suspicious</code> &gt; <code>ok</code>）。</li>
+<li><code>pending_verification.json</code>：<strong>跨轮合并式累积</strong>，只入队 <code>changed</code>，历史项保留不删，直到本地 <code>--resolve</code> 显式清除。它让每周只跑一次的 CI 与本地核实之间可以可靠交接。</li>
+</ul>
+<p>二者可能失同步（例如只清了队列而没改状态，页面告警就会一直挂着），因此 <code>--resolve</code> 设计为同时处理两者。</p>
+<h2>当前已知问题</h2>
+<ol>
+<li><strong>skill 文档路径过期</strong>：<code>skills/policy-change-verify/SKILL.md</code> 中的命令示例仍指向迁移前的 <code>.codebuddy/skills/...</code> 路径，实际目录已迁至仓库根 <code>skills/</code>。</li>
+<li><strong>队列与告警可能失同步</strong>：历史上曾出现队列被清空但 <code>update_status.json</code> 仍标记 <code>changed</code> 的情况（页面告警持续显示）。<code>--resolve</code> 已覆盖两者，但存量状态需手动对齐。</li>
+</ol>
+  </div>
+
+  <div class="docs-body">
+    <p><a href="../index.html">返回首页</a> | <a href="methodology.html">方法论</a> | <a href="update-monitoring.html">政策更新监控</a></p>
+  </div>
+</body>
+</html>
