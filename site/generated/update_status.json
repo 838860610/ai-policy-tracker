@@ -4,7 +4,7 @@
     "hash_scheme": "text-v3-bs4",
     "total_products": 48,
     "total_targets": 66,
-    "changed": 1,
+    "changed": 0,
     "failed": 0,
     "suspicious": 2,
     "skipped": 1
@@ -440,9 +440,9 @@
       }
     },
     "gemini": {
-      "status": "changed",
+      "status": "ok",
       "url": "https://policies.google.com/terms",
-      "message": "⚠️ 政策可能已更新，待核实（个人版条款）",
+      "message": "内容未变化（本次核实后已确认）",
       "last_checked": "2026-09-19T19:05:29.471201",
       "targets": {
         "main": {
@@ -460,12 +460,13 @@
           "url": "https://support.google.com/gemini/answer/13594961?hl=en",
           "hash_scheme": "text-v3-bs4",
           "last_checked": "2026-09-19T19:05:27.413983",
-          "last_changed_date": "2026-09-19T19:05:27.074456",
+          "last_changed_date": null,
           "current_hash": "a9504cd9feb794b25a8327c0b4c278c1c12efc141ceadf0deb6737d867567aeb",
-          "status": "changed",
-          "message": "⚠️ 政策可能已更新，待核实",
+          "status": "ok",
+          "message": "已人工核实（policy_verify --resolve）",
           "content_etag": null,
-          "content_last_modified": null
+          "content_last_modified": null,
+          "resolved_at": "2026-09-22T17:32:26.811216"
         },
         "tob": {
           "url": "https://knowledge.workspace.google.com/admin/generative-ai/generative-ai-in-google-workspace-privacy-hub",
