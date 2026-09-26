@@ -4,7 +4,7 @@
     "hash_scheme": "text-v4-bs4",
     "total_products": 48,
     "total_targets": 70,
-    "changed": 4,
+    "changed": 0,
     "failed": 0,
     "suspicious": 3,
     "skipped": 1,
@@ -219,27 +219,28 @@
     },
     "doubao-api": {
       "name": "豆包大模型 API（火山方舟）",
-      "status": "changed",
+      "status": "ok",
       "health": "ok",
       "health_issues": 0,
       "url": "https://docs.volcengine.com/docs/ark/doubao-model-service-agreement?lang=zh",
-      "message": "⚠️ 政策可能已更新，待核实（主监控页）",
+      "message": "内容未变化（本次核实后已确认）",
       "last_checked": "2026-09-26T16:40:41.237336",
       "targets": {
         "main": {
           "url": "https://docs.volcengine.com/docs/ark/doubao-model-service-agreement?lang=zh",
           "hash_scheme": "text-v4-bs4",
           "last_checked": "2026-09-26T16:40:41.237013",
-          "last_changed_date": "2026-09-26T16:40:41.165131",
+          "last_changed_date": null,
           "last_good_at": "2026-09-26T16:40:41.165131",
           "health": "ok",
           "current_hash": "76b6f5ffd18b6ebc0c76d8c6b0fafb7f430a0d2fb8c07a5714b6c487ebeba9ab",
-          "status": "changed",
-          "message": "⚠️ 政策可能已更新，待核实",
+          "status": "ok",
+          "message": "已人工核实（policy_verify --resolve）",
           "health_reason": null,
           "fetch_method": "browser",
           "content_etag": null,
-          "content_last_modified": null
+          "content_last_modified": null,
+          "resolved_at": "2026-09-27T00:52:55.413934"
         }
       }
     },
@@ -405,27 +406,28 @@
     },
     "qwenwork": {
       "name": "千问办公（QwenWork）",
-      "status": "changed",
+      "status": "ok",
       "health": "ok",
       "health_issues": 0,
       "url": "https://help.aliyun.com/zh/qwenwork/privacy-security",
-      "message": "⚠️ 政策可能已更新，待核实（主监控页）",
+      "message": "内容未变化（本次核实后已确认）",
       "last_checked": "2026-09-26T16:42:09.832618",
       "targets": {
         "main": {
           "url": "https://help.aliyun.com/zh/qwenwork/privacy-security",
           "hash_scheme": "text-v4-bs4",
           "last_checked": "2026-09-26T16:42:09.832519",
-          "last_changed_date": "2026-09-26T16:42:09.736938",
+          "last_changed_date": null,
           "last_good_at": "2026-09-26T16:42:09.736938",
           "health": "ok",
           "current_hash": "30519f4125a896348cdb79b2805de8004161897ca4e9a6cc88f25e5b12b74f97",
-          "status": "changed",
-          "message": "⚠️ 政策可能已更新，待核实",
+          "status": "ok",
+          "message": "已人工核实（policy_verify --resolve）",
           "health_reason": null,
           "fetch_method": "browser",
           "content_etag": null,
-          "content_last_modified": null
+          "content_last_modified": null,
+          "resolved_at": "2026-09-27T00:52:55.288568"
         }
       }
     },
@@ -674,27 +676,28 @@
     },
     "qianfan": {
       "name": "百度智能云千帆",
-      "status": "changed",
+      "status": "ok",
       "health": "ok",
       "health_issues": 0,
       "url": "https://cloud.baidu.com/doc/qianfan/s/Cmh4stmpy",
-      "message": "⚠️ 政策可能已更新，待核实（主监控页）",
+      "message": "内容未变化（本次核实后已确认）",
       "last_checked": "2026-09-26T16:44:16.566357",
       "targets": {
         "main": {
           "url": "https://cloud.baidu.com/doc/qianfan/s/Cmh4stmpy",
           "hash_scheme": "text-v4-bs4",
           "last_checked": "2026-09-26T16:44:16.565411",
-          "last_changed_date": "2026-09-26T16:44:08.003868",
+          "last_changed_date": null,
           "last_good_at": "2026-09-26T16:44:08.003868",
           "health": "ok",
           "current_hash": "fb0301ee18568f559c363356b921a8937b9089c979d8ba12eb8e56dd1e9ea029",
-          "status": "changed",
-          "message": "⚠️ 政策可能已更新，待核实",
+          "status": "ok",
+          "message": "已人工核实（policy_verify --resolve）",
           "health_reason": null,
           "fetch_method": "requests",
           "content_etag": null,
-          "content_last_modified": null
+          "content_last_modified": null,
+          "resolved_at": "2026-09-27T00:52:54.966507"
         }
       }
     },
@@ -1430,27 +1433,28 @@
     },
     "qihoo-zhinao": {
       "name": "360 智脑",
-      "status": "changed",
+      "status": "ok",
       "health": "ok",
       "health_issues": 0,
       "url": "https://ai.360.com/open/zh/terms",
-      "message": "⚠️ 政策可能已更新，待核实（主监控页）",
+      "message": "内容未变化（本次核实后已确认）",
       "last_checked": "2026-09-26T16:47:21.229607",
       "targets": {
         "main": {
           "url": "https://ai.360.com/open/zh/terms",
           "hash_scheme": "text-v4-bs4",
           "last_checked": "2026-09-26T16:47:16.689925",
-          "last_changed_date": "2026-09-26T16:47:14.389936",
+          "last_changed_date": null,
           "last_good_at": "2026-09-26T16:47:14.389936",
           "health": "ok",
           "current_hash": "7ed280b37a3099ffc7b25a07a92c1bdeec02e661fc6b6cc8c405783a4bf2b247",
-          "status": "changed",
-          "message": "⚠️ 政策可能已更新，待核实",
+          "status": "ok",
+          "message": "已人工核实（policy_verify --resolve）",
           "health_reason": null,
           "fetch_method": "requests",
           "content_etag": null,
-          "content_last_modified": null
+          "content_last_modified": null,
+          "resolved_at": "2026-09-27T00:52:55.156639"
         },
         "toc": {
           "url": "https://browser.360.cn/se/ai/agreement/privacy.html",
