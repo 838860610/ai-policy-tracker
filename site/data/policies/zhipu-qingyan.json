@@ -38,5 +38,10 @@
   ],
   "icon": "🧊",
   "product_url": "https://chatglm.cn",
-  "tob_note": "开发者服务（开放平台）已拆分为独立条目 bigmodel（2026-08-29）。智谱清言企业版有无待核实"
+  "tob_note": "开发者服务（开放平台）已拆分为独立条目 bigmodel（2026-08-29）。智谱清言企业版有无待核实",
+  "targets": {
+    "main": {
+      "fetch_method": "browser"
+    }
+  }
 }

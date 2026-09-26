@@ -5,6 +5,14 @@
   "region": "中国",
   "description": "在去标识化后用于服务优化，明确披露训练数据来源",
   "policy_url": "https://cdn.deepseek.com/policies/zh-CN/deepseek-privacy-policy.html",
+  "sources": [
+    {
+      "id": "model_disclosure",
+      "role": "methodology",
+      "url": "https://cdn.deepseek.com/policies/zh-CN/model-algorithm-disclosure.html",
+      "monitored": true
+    }
+  ],
   "last_verified": "2026-08-30",
   "versions": {
     "toc": {

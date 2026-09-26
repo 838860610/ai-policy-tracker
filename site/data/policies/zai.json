@@ -36,6 +36,7 @@
     "tob": {
       "label": "企业版（API）",
       "used_for_training": false,
+      "training_status": "default_off_opt_in",
       "training_note": "条款 IV.7：企业与开发者使用 API 服务时'除非您明确同意，我们不会将您的用户内容用于开发或改进服务'（加入式 opt-in）；API 附加条款 3.b 同款且方括号强调；DPA 约定内容处理（附加条款 2.a）",
       "default_state": "默认不用于开发/改进服务（加入式：需明确同意才参与）",
       "opt_out": "无需退出（默认不使用）",

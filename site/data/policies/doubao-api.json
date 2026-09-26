@@ -41,5 +41,11 @@
   "recommendations": [
     "企业用户无需数据训练场景下保持默认配置即可",
     "如参与协作奖励计划或签署数据授权协议，数据将被用于训练，签约前应评估"
-  ]
+  ],
+  "targets": {
+    "main": {
+      "fetch_method": "browser",
+      "content_selector": "#app-content"
+    }
+  }
 }

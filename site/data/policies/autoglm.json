@@ -12,6 +12,7 @@
     "toc": {
       "label": "个人版",
       "used_for_training": false,
+      "training_status": "default_off_opt_in",
       "training_note": "用户协议：应用初始化阶段自愿加入'优化提升计划'后，去标识化的输入信息、生成内容和使用情况才用于模型训练与优化（加入式 opt-in）；不参与可联系《AutoGLM隐私政策》注明的联系方式撤回",
       "default_state": "默认关闭（自愿加入'优化提升计划'）",
       "opt_out": "设置开关（初始化时选择）+ 联系撤回",
@@ -40,5 +41,10 @@
     "商业用途需另行与智谱约定并支付对价",
     "不希望训练则初始化时不加入优化提升计划"
   ],
-  "tob_note": "AutoGLM 为个人 Agent 产品（生成内容限非商业个人研究学习使用），未见独立企业版协议；企业场景由智谱开放平台团队套餐承接（见 glm-coding-plan 条目）"
+  "tob_note": "AutoGLM 为个人 Agent 产品（生成内容限非商业个人研究学习使用），未见独立企业版协议；企业场景由智谱开放平台团队套餐承接（见 glm-coding-plan 条目）",
+  "targets": {
+    "main": {
+      "fetch_method": "browser"
+    }
+  }
 }

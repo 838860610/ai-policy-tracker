@@ -42,5 +42,10 @@
   "recommendations": [
     "知识库内容及时本地备份（历史记录 90 天限制）",
     "分享 AI 问答记录前注意内容可见性"
-  ]
+  ],
+  "targets": {
+    "main": {
+      "fetch_method": "browser"
+    }
+  }
 }

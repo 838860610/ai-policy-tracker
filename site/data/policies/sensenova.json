@@ -7,11 +7,20 @@
   "description": "商汤大模型 API 平台（承载于商汤大装置 SenseCore，16 款全模态 API）。《大装置用户服务协议》对'用户数据用于训练'保持沉默：训练相关表述仅见于平台服务能力描述，个人信息处理由商汤个人信息保护政策另行规范",
   "product_url": "https://www.sensenova.cn/",
   "policy_url": "https://signin.sensecore.cn/html/zh-CN/UserAgreement.html",
+  "sources": [
+    {
+      "id": "privacy_policy",
+      "role": "privacy",
+      "url": "https://sensetime.com/cn/personal_clause",
+      "monitored": true
+    }
+  ],
   "last_verified": "2026-08-30",
   "versions": {
     "toc": {
       "label": "开发者服务（统一条款）",
       "used_for_training": false,
+      "training_status": "unknown",
       "training_note": "《商汤大装置用户服务协议》（2024-11-30）对训练保持沉默：检索'训练'仅命中平台 AI 研发服务能力描述，未见将用户数据用于训练的授权或禁止条款——数据使用边界由商汤个人信息保护政策及商务合同约定（2026-08-30 探测：sensetime.com/cn/personal_clause 返回官网导航页而非政策原文，该政策线上原文仍未定位，待核）",
       "default_state": "未明示（协议对训练沉默）",
       "opt_out": "未明示",

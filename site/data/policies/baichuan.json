@@ -41,5 +41,10 @@
     "在意内容授权范围的用户谨慎使用",
     "医疗场景使用注意健康数据的敏感个人信息属性"
   ],
-  "tob_note": "百川开放平台（platform.baichuan-ai.com）另有充值扣费指引与隐私政策，API 场景条款待收集；公司战略聚焦 AI 医疗"
+  "tob_note": "百川开放平台（platform.baichuan-ai.com）另有充值扣费指引与隐私政策，API 场景条款待收集；公司战略聚焦 AI 医疗",
+  "targets": {
+    "main": {
+      "fetch_method": "browser"
+    }
+  }
 }

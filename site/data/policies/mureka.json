@@ -9,11 +9,12 @@
   "policy_url": "https://www.mureka.cn/static/terms-cn-20250829.pdf",
   "toc_note": null,
   "tob_note": "无法获取：API 服务协议为 PDF 且页面门控，无法抓取",
-  "last_verified": "2026-08-29",
+  "last_verified": "2026-08-30",
   "versions": {
     "toc": {
       "label": "个人版",
       "used_for_training": false,
+      "training_status": "unknown",
       "training_note": "协议对'将用户数据用于模型训练'保持沉默（同义词检索零命中；'训练'仅见于 6.2 免责表述'基于我们大模型训练时所使用的有限数据'，'机器学习'仅见于定义与 5.6 唯一性免责；6.3 反馈评价帮助'改善和优化模型'为自愿反馈而非自动使用）。注意：隐私政策与付费服务协议在协议中被援引，但站内未见公开链接（2026-08-30 检索），若其中含训练授权需更新本条目",
       "default_state": "—（无训练授权条款；内容使用授权默认生效）",
       "opt_out": "邮件申请",

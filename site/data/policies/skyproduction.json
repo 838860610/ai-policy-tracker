@@ -9,7 +9,7 @@
   "policy_url": "https://www.skyproduction.cn/terms",
   "toc_note": null,
   "tob_note": "企业版为主要形态",
-  "last_verified": "2026-08-29",
+  "last_verified": "2026-08-30",
   "versions": {
     "toc": {
       "label": "个人版（个人/企业统一条款，18+）",
@@ -43,5 +43,10 @@
   "recommendations": [
     "工业化内容生产的企业用户注意：统一条款下训练默认参与，退出需邮件申请，建议合同另约数据边界",
     "发布内容即授出跨平台推广利用权（含肖像），发布前谨慎评估"
-  ]
+  ],
+  "targets": {
+    "main": {
+      "fetch_method": "browser"
+    }
+  }
 }

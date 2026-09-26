@@ -13,6 +13,7 @@
     "toc": {
       "label": "个人开发者版",
       "used_for_training": false,
+      "training_status": "unknown",
       "training_note": "《腾讯元器服务协议》检索'训练'仅见于竞争限制条款（不得用生成内容研发与混元/优图竞争的模型）——未见平台将开发者数据用于训练的授权条款，协议对训练沉默",
       "default_state": "未明示（协议对训练沉默）",
       "opt_out": "未明示",
@@ -32,6 +33,7 @@
     "tob": {
       "label": "企业版（代表企业授权条款）",
       "used_for_training": false,
+      "training_status": "unknown",
       "training_note": "同个人开发者版：协议对训练沉默；企业代表使用需获得充分授权",
       "default_state": "未明示",
       "opt_out": "未明示",

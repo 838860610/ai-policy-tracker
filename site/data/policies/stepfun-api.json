@@ -9,11 +9,12 @@
   "policy_url": "https://platform.stepfun.com/docs/zh/agreement/userservice.md",
   "toc_note": "纯开发者产品（API），无消费端条款；开放平台条款对个人与企业开发者统一适用（见企业版块）",
   "tob_note": "同左，待收集",
-  "last_verified": "2026-08-29",
+  "last_verified": "2026-08-30",
   "versions": {
     "tob": {
       "label": "开发者服务（个人/企业统一条款）",
       "used_for_training": true,
+      "training_status": "inferred",
       "training_note": "未明示'模型训练'字样，按实质口径涵盖：用户协议 6.5 授权'为提供、诊断、改善、优化、升级本服务之目的使用、处理您使用本平台服务产生的相关数据'（同意协议即授权）；隐私政策第一条第10款(1)：匿名化后可进行数据分析'并可能予以商业化的利用'且未提供退出方式（同纳米AI/讯飞判定口径）",
       "default_state": "默认开启（同意协议即授权）",
       "opt_out": "未明示退出机制",

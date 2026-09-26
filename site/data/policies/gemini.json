@@ -28,7 +28,8 @@
       "label": "个人版",
       "verification_notes": [
         "2026-09-19 逐字复核：引文出自 Gemini Apps Privacy Hub（support.google.com/gemini/answer/13594961，最后更新 2026-08-10），非 13278892（该页为活动记录管理操作页）。toc 第 1 条原为截断句，已补全 unless you choose to send Google feedback 与 72 小时保留句；第 3 条原为意译，已替换为原文整句。tob 两条与 Generative AI in Google Workspace Privacy Hub 逐字一致，无需修改。"
-      ]
+      ],
+      "fetch_method": "browser"
     },
     "tob": {
       "used_for_training": false,
@@ -47,7 +48,8 @@
       ],
       "policy_link": "https://knowledge.workspace.google.com/admin/generative-ai/generative-ai-in-google-workspace-privacy-hub",
       "last_verified": "2026-08-30",
-      "label": "Google Workspace版"
+      "label": "Google Workspace版",
+      "fetch_method": "browser"
     }
   },
   "timeline": [],
@@ -61,5 +63,10 @@
     "建议关闭活动记录并设置自动删除。"
   ],
   "icon": "♊",
-  "product_url": "https://gemini.google.com"
+  "product_url": "https://gemini.google.com",
+  "targets": {
+    "main": {
+      "fetch_method": "browser"
+    }
+  }
 }

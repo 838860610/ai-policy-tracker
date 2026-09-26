@@ -42,5 +42,10 @@
     "敏感场景谨慎使用：授权不可撤销且含推广用途",
     "可改用自备第三方 API 模式（数据按第三方协议处理）"
   ],
-  "tob_note": "未设 ToB 块：AutoClaw 为个人桌面智能体（积分制，账号与 AutoGLM 系列通用），未见独立企业版条款；企业智能体场景由智谱开放平台/HiAgent 类产品承接，待核实"
+  "tob_note": "未设 ToB 块：AutoClaw 为个人桌面智能体（积分制，账号与 AutoGLM 系列通用），未见独立企业版条款；企业智能体场景由智谱开放平台/HiAgent 类产品承接，待核实",
+  "targets": {
+    "main": {
+      "fetch_method": "browser"
+    }
+  }
 }

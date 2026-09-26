@@ -7,6 +7,15 @@
   "description": "海螺 AI（视频/对话，ToC）与 MiniMax 开放平台（API）。海螺：去标识化输入输出明确用于模型训练，且用户协议授予永久、可转让、全球范围许可（含品牌推广），退出需联系官方；开放平台用户协议对训练沉默（隐私政策未抓取，待核）",
   "product_url": "https://hailuoai.com/",
   "policy_url": "https://hailuoai.com/doc/zh/privacy-policy.html",
+  "sources": [
+    {
+      "id": "platform_privacy",
+      "role": "privacy",
+      "url": "https://platform.minimaxi.com/protocol/privacy-policy",
+      "monitored": true,
+      "fetch_method": "browser"
+    }
+  ],
   "last_verified": "2026-08-30",
   "versions": {
     "toc": {
@@ -33,6 +42,7 @@
     "tob": {
       "label": "开发者服务（个人/企业统一条款）",
       "used_for_training": false,
+      "training_status": "unknown",
       "training_note": "《MiniMax开放平台用户协议》检索'训练''改进'零命中——对训练保持沉默（内容权属归用户、账号保密义务为主要条款）。注意：《MiniMax开放平台隐私政策》未抓取，该隐私政策已于 2026-08-30 抓取核验（版本 SHXY-YS2023，更新 2023-03-18，platform.minimaxi.com/protocol/privacy-policy）：全文'训练''模型优化''改进'均 0 命中——对训练沉默的判定在隐私政策层面成立；但载有匿名化信息'保存及使用无需另行通知和征得您的同意'的一般条款（未明示用于训练）",
       "default_state": "未明示（用户协议对训练沉默）",
       "opt_out": "未明示",
@@ -48,7 +58,8 @@
         "您的个人信息经匿名化处理后将可以使用及流通，我们对此类匿名化处理后的信息的保存及使用无需另行通知和征得您的同意。（MiniMax开放平台隐私政策(三)2，版本 SHXY-YS2023，2026-08-30 抓取核验）"
       ],
       "policy_link": "https://platform.minimaxi.com/protocol/user-agreement",
-      "last_verified": "2026-08-30"
+      "last_verified": "2026-08-30",
+      "fetch_method": "browser"
     }
   },
   "timeline": [],

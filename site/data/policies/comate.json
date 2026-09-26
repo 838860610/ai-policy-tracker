@@ -59,5 +59,10 @@
   "recommendations": [
     "代码敏感场景可引用隐私协议 1.2.3 条款",
     "注意协议更新日期为 2024-06，建议关注新版本"
-  ]
+  ],
+  "targets": {
+    "main": {
+      "fetch_method": "browser"
+    }
+  }
 }
