@@ -4,7 +4,7 @@
   "company": "Google",
   "region": "美国",
   "description": "用户对话数据可能用于训练，可通过关闭活动记录阻止",
-  "policy_url": "https://policies.google.com/terms",
+  "policy_url": "https://policies.google.com/terms?gl=US&hl=zh-CN",
   "last_verified": "2026-08-30",
   "versions": {
     "toc": {
@@ -23,11 +23,12 @@
         "You can change your auto-delete setting in Gemini Apps Activity from the default of 18 months to 3 months, 36 months, or indefinite. You can also manually delete your Gemini Apps chats anytime.（Gemini Apps Privacy Hub·How long we retain your data，最后更新 2026-08-10）",
         "Chats reviewed by human reviewers (and related data like your language, device type, location info, or feedback) are not deleted when you delete your activity. Instead, they are retained for up to three years.（Gemini Apps Privacy Hub·How long we retain your data）"
       ],
-      "policy_link": "https://support.google.com/gemini/answer/13594961?hl=en",
+      "policy_link": "https://support.google.com/gemini/answer/13594961?hl=zh-CN&gl=US",
       "last_verified": "2026-08-30",
       "label": "个人版",
       "verification_notes": [
-        "2026-09-19 逐字复核：引文出自 Gemini Apps Privacy Hub（support.google.com/gemini/answer/13594961，最后更新 2026-08-10），非 13278892（该页为活动记录管理操作页）。toc 第 1 条原为截断句，已补全 unless you choose to send Google feedback 与 72 小时保留句；第 3 条原为意译，已替换为原文整句。tob 两条与 Generative AI in Google Workspace Privacy Hub 逐字一致，无需修改。"
+        "2026-09-19 逐字复核：引文出自 Gemini Apps Privacy Hub（support.google.com/gemini/answer/13594961，最后更新 2026-08-10），非 13278892（该页为活动记录管理操作页）。toc 第 1 条原为截断句，已补全 unless you choose to send Google feedback 与 72 小时保留句；第 3 条原为意译，已替换为原文整句。tob 两条与 Generative AI in Google Workspace Privacy Hub 逐字一致，无需修改。",
+        "2026-09-26 监控稳定性：两个 URL 加 gl=US&hl=zh-CN 锁定地区与语言。起因是 Google 按访问来源 IP 切换版本——本地（中国 IP）取到新加坡版、CI（美国 runner）取到美国版，导致每次换网络环境都报 changed 且 --resolve 只能掩盖。锁定 US 是因为监控实际运行在 GitHub 美国 runner 上（monitor.yml），锁定 zh-CN 是为与中文读者定位一致（hl 影响远大于 gl：toc 英文版 56422 字符 vs 中文版 24854 字符）。锁定前实测三地区对比结论：main 的 CN 与 SG 版仅差页面上的「国家/地区版本」标签、正文一字不差，toc 的 CN 与 SG 版哈希完全相同（地区不敏感），CN/SG 与 US 版的核心政策表述逐条一致（默认 18 个月留存、3/36 个月选项、人工审核、训练新模型均相同），US 版与 CN/SG 版的差异为翻译措辞（实测 55 处 1562 字符，非政策实质差异）。故锁任一地区均不改变本表记录的政策结论。"
       ],
       "fetch_method": "browser"
     },
@@ -49,7 +50,10 @@
       "policy_link": "https://knowledge.workspace.google.com/admin/generative-ai/generative-ai-in-google-workspace-privacy-hub",
       "last_verified": "2026-08-30",
       "label": "Google Workspace版",
-      "fetch_method": "browser"
+      "fetch_method": "browser",
+      "verification_notes": [
+        "2026-09-26 监控稳定性：两个 URL 加 gl=US&hl=zh-CN 锁定地区与语言。起因是 Google 按访问来源 IP 切换版本——本地（中国 IP）取到新加坡版、CI（美国 runner）取到美国版，导致每次换网络环境都报 changed 且 --resolve 只能掩盖。锁定 US 是因为监控实际运行在 GitHub 美国 runner 上（monitor.yml），锁定 zh-CN 是为与中文读者定位一致（hl 影响远大于 gl：toc 英文版 56422 字符 vs 中文版 24854 字符）。锁定前实测三地区对比结论：main 的 CN 与 SG 版仅差页面上的「国家/地区版本」标签、正文一字不差，toc 的 CN 与 SG 版哈希完全相同（地区不敏感），CN/SG 与 US 版的核心政策表述逐条一致（默认 18 个月留存、3/36 个月选项、人工审核、训练新模型均相同），US 版与 CN/SG 版的差异为翻译措辞（实测 55 处 1562 字符，非政策实质差异）。故锁任一地区均不改变本表记录的政策结论。"
+      ]
     }
   },
   "timeline": [],
