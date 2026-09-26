@@ -1,6 +1,40 @@
 {
-  "updated_at": "2026-09-26T16:13:18.850142",
+  "updated_at": "2026-09-26T16:47:22.159738",
   "items": {
+    "tencent-yuanbao:main": {
+      "pid": "tencent-yuanbao",
+      "name": "腾讯元宝",
+      "key": "main",
+      "label": "主监控页",
+      "url": "https://rule.tencent.com/rule/202403110001",
+      "health": "degraded",
+      "health_reason": "empty_body",
+      "status": "suspicious",
+      "message": "抓取正文过短（0 字符 < 500），疑似 JS 渲染或反爬，已保留上次有效快照",
+      "last_checked": "2026-09-26T16:36:10.795237",
+      "last_good_at": "2026-09-26T16:05:06.242321",
+      "consecutive_runs": 1,
+      "first_seen": "2026-09-26T16:47:22.159738",
+      "last_seen": "2026-09-26T16:47:22.159738",
+      "next_action": "已保留上次有效快照；用 --only <pid>:<key> 单独重试并确认正文"
+    },
+    "workbuddy:main": {
+      "pid": "workbuddy",
+      "name": "WorkBuddy（AI 办公智能体）",
+      "key": "main",
+      "label": "主监控页",
+      "url": "https://rule.tencent.com/rule/202603180001",
+      "health": "degraded",
+      "health_reason": "empty_body",
+      "status": "suspicious",
+      "message": "抓取正文过短（0 字符 < 500），疑似 JS 渲染或反爬，已保留上次有效快照",
+      "last_checked": "2026-09-26T16:39:54.121718",
+      "last_good_at": "2026-09-26T16:06:05.007452",
+      "consecutive_runs": 1,
+      "first_seen": "2026-09-26T16:47:22.159738",
+      "last_seen": "2026-09-26T16:47:22.159738",
+      "next_action": "已保留上次有效快照；用 --only <pid>:<key> 单独重试并确认正文"
+    },
     "trae:main": {
       "pid": "trae",
       "name": "Trae（AI IDE）",
@@ -11,11 +45,11 @@
       "health_reason": "empty_body",
       "status": "suspicious",
       "message": "抓取正文过短（0 字符 < 500），疑似 JS 渲染或反爬，已保留上次有效快照",
-      "last_checked": "2026-09-26T16:08:00.518519",
+      "last_checked": "2026-09-26T16:41:46.829718",
       "last_good_at": "2026-09-26T23:38:42.502276",
-      "consecutive_runs": 1,
+      "consecutive_runs": 2,
       "first_seen": "2026-09-26T16:13:18.850142",
-      "last_seen": "2026-09-26T16:13:18.850142",
+      "last_seen": "2026-09-26T16:47:22.159738",
       "next_action": "已保留上次有效快照；用 --only <pid>:<key> 单独重试并确认正文"
     }
   }

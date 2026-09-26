@@ -1,4 +1,45 @@
 {
-  "updated_at": "2026-09-27T00:16:09.949785",
-  "items": {}
+  "updated_at": "2026-09-26T16:47:22.154561",
+  "items": {
+    "doubao-api:main": {
+      "pid": "doubao-api",
+      "name": "豆包大模型 API（火山方舟）",
+      "key": "main",
+      "label": "主监控页",
+      "url": "https://docs.volcengine.com/docs/ark/doubao-model-service-agreement?lang=zh",
+      "status": "changed",
+      "first_seen": "2026-09-26T16:47:22.154561",
+      "last_seen": "2026-09-26T16:47:22.154561"
+    },
+    "qwenwork:main": {
+      "pid": "qwenwork",
+      "name": "千问办公（QwenWork）",
+      "key": "main",
+      "label": "主监控页",
+      "url": "https://help.aliyun.com/zh/qwenwork/privacy-security",
+      "status": "changed",
+      "first_seen": "2026-09-26T16:47:22.154561",
+      "last_seen": "2026-09-26T16:47:22.154561"
+    },
+    "qianfan:main": {
+      "pid": "qianfan",
+      "name": "百度智能云千帆",
+      "key": "main",
+      "label": "主监控页",
+      "url": "https://cloud.baidu.com/doc/qianfan/s/Cmh4stmpy",
+      "status": "changed",
+      "first_seen": "2026-09-26T16:47:22.154561",
+      "last_seen": "2026-09-26T16:47:22.154561"
+    },
+    "qihoo-zhinao:main": {
+      "pid": "qihoo-zhinao",
+      "name": "360 智脑",
+      "key": "main",
+      "label": "主监控页",
+      "url": "https://ai.360.com/open/zh/terms",
+      "status": "changed",
+      "first_seen": "2026-09-26T16:47:22.154561",
+      "last_seen": "2026-09-26T16:47:22.154561"
+    }
+  }
 }
