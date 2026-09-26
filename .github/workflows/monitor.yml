@@ -63,6 +63,9 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          # 运行期间可能有人 push了新提交（本地核实、CI 再生成等），
+          # 直接 push 会被拒（fetch first）。先 rebase 到最新 main。
+          git pull --rebase --autostash origin main
           # update_status.json / snapshots/ 已入库（首页展示监控状态 + 核实回路的持久历史）；
           # pending_verification.json 是检测→核实的跨轮交接物；
           # monitor_health.json 是抓取健康队列（政策没变但抓取已坏的独立信号）。四者一并提交。

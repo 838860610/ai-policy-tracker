@@ -83,5 +83,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          # 运行期间可能有人 push了新提交，直接 push 会被拒（fetch first）
+          git pull --rebase --autostash origin main
           git add site/generated/bundle.json site/docs/*.html
           git diff --cached --quiet || (git commit -m "chore: CI 重新生成 bundle.json 与文档页" && git push)
