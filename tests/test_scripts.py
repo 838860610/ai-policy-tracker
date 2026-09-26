@@ -429,6 +429,36 @@ class TestResponseDecoding(unittest.TestCase):
         text = CHECK_UPDATES.extract_text(raw)
         self.assertIn("训练与数据使用条款继续有效", text[:200])
 
+    def test_dynamic_update_timestamp_does_not_change_hash(self):
+        """回归：阿里云帮助中心标题旁的"更新时间：2026-09-10 15:03:51"含时分秒，
+        每次页面重新发布都变（实测 15:03:51 → 07:03:51），正文零差异却误报 changed。"""
+        body = "隐私与安全 说明 我们如何处理您的数据。" * 200
+        variants = ["2026-09-10 15:03:51", "2026-09-10 07:03:51",
+                    "2026-09-12", "2026年9月10日 15:03", "2026/09/10 15:03:51"]
+        hashes = set()
+        for stamp in variants:
+            raw = f"<html><body><main>更新时间：{stamp} 复制 MD 格式 {body}</main></body></html>"
+            hashes.add(CHECK_UPDATES.compute_text_hash(CHECK_UPDATES.extract_text(raw)))
+        self.assertEqual(len(hashes), 1, "带标签的更新时间元信息应被剥离")
+
+    def test_legal_dates_in_body_are_preserved(self):
+        """去噪只针对带标签的元信息，条款里的日期必须原样保留。"""
+        for sentence in ("本政策自2026年1月1日起施行。",
+                         "最后更新时间为2025年12月1日。",
+                         "数据留存期限为180天。"):
+            raw = f"<html><body><main>{sentence}</main></body></html>"
+            self.assertIn(sentence, CHECK_UPDATES.extract_text(raw))
+
+    def test_help_center_feedback_ui_does_not_change_hash(self):
+        """回归：Google 帮助中心文末"该内容对您有帮助吗？"反馈区渲染时机不定
+        （gemini/tob 实测 +22 字符），它是文末 UI，从该锚点起整体剔除。"""
+        body = "最后更新时间 (UTC)：2026-09-26。 " + "条款正文内容。" * 300
+        with_feedback = f"<html><body><main>{body} 该内容对您有帮助吗？ 有用 无用</main></body></html>"
+        without = f"<html><body><main>{body}</main></body></html>"
+        self.assertEqual(
+            CHECK_UPDATES.compute_text_hash(CHECK_UPDATES.extract_text(with_feedback)),
+            CHECK_UPDATES.compute_text_hash(CHECK_UPDATES.extract_text(without)))
+
     def test_hash_scheme_covers_extractor_variant(self):
         """哈希方案必须带提取器标识：bs4 与正则回退剥离的标签不同，
         若共用 scheme，一旦依赖缺失就会全库哈希漂移 → 批量误报。"""

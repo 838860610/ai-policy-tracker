@@ -1,45 +1,4 @@
 {
-  "updated_at": "2026-09-26T16:13:18.844967",
-  "items": {
-    "doubao-api:main": {
-      "pid": "doubao-api",
-      "name": "豆包大模型 API（火山方舟）",
-      "key": "main",
-      "label": "主监控页",
-      "url": "https://docs.volcengine.com/docs/ark/doubao-model-service-agreement?lang=zh",
-      "status": "changed",
-      "first_seen": "2026-09-26T16:13:18.844967",
-      "last_seen": "2026-09-26T16:13:18.844967"
-    },
-    "qwenwork:main": {
-      "pid": "qwenwork",
-      "name": "千问办公（QwenWork）",
-      "key": "main",
-      "label": "主监控页",
-      "url": "https://help.aliyun.com/zh/qwenwork/privacy-security",
-      "status": "changed",
-      "first_seen": "2026-09-26T16:13:18.844967",
-      "last_seen": "2026-09-26T16:13:18.844967"
-    },
-    "gemini:main": {
-      "pid": "gemini",
-      "name": "Gemini",
-      "key": "main",
-      "label": "主监控页",
-      "url": "https://policies.google.com/terms",
-      "status": "changed",
-      "first_seen": "2026-09-26T16:13:18.844967",
-      "last_seen": "2026-09-26T16:13:18.844967"
-    },
-    "gemini:tob": {
-      "pid": "gemini",
-      "name": "Gemini",
-      "key": "tob",
-      "label": "企业版条款",
-      "url": "https://knowledge.workspace.google.com/admin/generative-ai/generative-ai-in-google-workspace-privacy-hub",
-      "status": "changed",
-      "first_seen": "2026-09-26T16:13:18.844967",
-      "last_seen": "2026-09-26T16:13:18.844967"
-    }
-  }
+  "updated_at": "2026-09-27T00:16:09.949785",
+  "items": {}
 }

@@ -191,7 +191,21 @@ FOOTER_ANCHORS = ("京公网安备", "京ICP备", "企业咨询热线", "营业�
 #   顺序/有无会随抓取变化（claude/toc 实测 2736 ↔ 2710 字，差异仅在该区块），
 #   实测位于全文 83.4%。
 # 这些尾巴绝不作为政策条款，故从首个标记起到文末整体剔除。
-HELP_UI_ANCHORS = ("Need more help?", "Enable Dark Mode", "Related Articles")
+HELP_UI_ANCHORS = ("Need more help?", "Enable Dark Mode", "Related Articles",
+                   "该内容对您有帮助吗", "这页有帮助吗")
+
+# 文档站会在标题旁显示"更新时间：2026-09-10 15:03:51"这类元信息，其中的**时分秒**
+# 每次页面重新发布/缓存刷新都会变（阿里云帮助中心实测 15:03:51 → 07:03:51），
+# 会让正文完全一致的页面哈希不同。带"更新时间/更新于/Last updated"标签的
+# 时间戳属页面元信息而非政策条款，统一剥离。
+# 注意：只剥离带上述标签的元信息，正文里"自2025年1月1日起施行"之类不受影响；
+# 且政策真变更仍会通过条款文字变化被检出。
+DYNAMIC_TIMESTAMP_RE = re.compile(
+    r"(?:更新时间|更新于|最后更新[时间]?|Last updated|Updated at)"
+    r"\s*[:：]?\s*\d{4}\s*[-/年]\s*\d{1,2}\s*[-/月]\s*\d{1,2}\s*日?"
+    # 时分秒前的分隔符用 \s* 而非 \s+：前面的 \s*日? 已经可能吃掉空格，
+    # 用 \s+ 会导致整组匹配不到（实测 "15:03:51" 被漏掉）
+    r"(?:\s*\d{1,2}\s*:\s*\d{2}(?:\s*:\s*\d{2})?)?")
 
 # 部分站点把导航 / 语言选择器渲染在正文之前，且该区块是否渲染会随抓取时机变化
 # （实测 chatgpt/main 旧 6356 → 新 5842 字，差异全部落在头部导航与语言列表，
@@ -250,6 +264,7 @@ def extract_text(raw_html, content_selector=None):
         text = html_lib.unescape(text)
     for phrase in UI_NOISE_PHRASES:
         text = text.replace(phrase, "")
+    text = DYNAMIC_TIMESTAMP_RE.sub("", text)
     for anchor in ALIYUN_WIDGET_ANCHORS + FOOTER_ANCHORS + HELP_UI_ANCHORS:
         idx = text.find(anchor)
         if idx != -1 and idx >= len(text) * 0.6:

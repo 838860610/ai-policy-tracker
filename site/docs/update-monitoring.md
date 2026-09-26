@@ -503,14 +503,16 @@ sudo systemctl enable --now ai-policy-check.timer
 
 **优先配稳定的 `id`**。`doubao-api` 就是这么修好的：文档站页面结构会波动（有时把正文包进 `<main>`、有时不包），`extract_text` 的 root 因此在"仅正文 20951 字符"和"导航+正文 12500 字符"之间跳变，每轮都误报 changed。锁定 `#app-content`（id 由站点保证稳定）后连续多轮"内容未变化"。
 
-### browser 的 locale 会影响站点返回的语言
+### browser 的 locale 与访问地区会影响站点返回的版本
 
-`fetch_browser` 用 `locale="zh-CN"` 打开页面，多语言站点会据此切换语言，而 `requests` 路径没有这个行为。实测 Google 系页面因此从英文版变成中文版——同一份政策的不同语言版本，正文完全不同，会触发一次 changed。
+`fetch_browser` 用 `locale="zh-CN"` 打开页面，**多语言/多地区站点会据此切换返回版本**，而 `requests` 路径没有这个行为。两个已实测的后果：
 
-这不是 bug（中文读者看中文版更合适），但要意识到：**如果某目标的语言选择会翻转，就会持续误报**。两个处理办法：
+- **语言**：`policies.google.com` 从英文版变成中文版——同一份政策的不同语言版本，正文完全不同，会触发一次 changed。这不是 bug（中文读者看中文版更合适），确认语言稳定后 `--resolve` 承认即可；
+- **地区（更麻烦）**：`policies.google.com/terms` 会按访问来源 IP 切换国家版本条款。本地（中国 IP）取到的是**新加坡**版，CI（GitHub 美国 runner）取到的是**美国**版，正文有实质差异（服务提供者、适用法律等）。**这会导致每次在不同网络环境运行都报 changed，且无法靠 `--resolve` 根治。**
 
-- 确认语言稳定后 `--resolve` 承认当前语言版本（`locale` 在代码里固定，翻转风险低）；
-- 需要严格锁定时，在 URL 上显式加语言参数（如 `?hl=zh-CN`）——这会改动 `policy_url`，属于数据变更，要人工确认政策等价性后单独提交。
+唯一可靠解法是在 URL 上显式锁定地区与语言参数（Google 政策页支持 `gl` / `hl`，如 `?gl=US&hl=zh-CN`）。这会改动 `policy_url`，属于数据变更，需人工确认后单独提交——**不要靠反复 resolve 掩盖**，那只是让队列好看，下次换网络环境又会炸。
+
+相比之下，`support.google.com` 的帮助页不按地区变化（`gemini/toc` 只受渲染时机影响，已由 3 次取最长的机制解决）。
 
 
 ## 首页如何展示监控结果

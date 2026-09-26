@@ -4,7 +4,7 @@
     "hash_scheme": "text-v4-bs4",
     "total_products": 48,
     "total_targets": 70,
-    "changed": 3,
+    "changed": 0,
     "failed": 0,
     "suspicious": 1,
     "skipped": 1,
@@ -223,27 +223,28 @@
     },
     "doubao-api": {
       "name": "豆包大模型 API（火山方舟）",
-      "status": "changed",
+      "status": "ok",
       "health": "ok",
       "health_issues": 0,
       "url": "https://docs.volcengine.com/docs/ark/doubao-model-service-agreement?lang=zh",
-      "message": "⚠️ 政策可能已更新，待核实（主监控页）",
+      "message": "内容未变化（本次核实后已确认）",
       "last_checked": "2026-09-26T16:06:55.573573",
       "targets": {
         "main": {
           "url": "https://docs.volcengine.com/docs/ark/doubao-model-service-agreement?lang=zh",
           "hash_scheme": "text-v4-bs4",
           "last_checked": "2026-09-26T16:06:55.573315",
-          "last_changed_date": "2026-09-26T16:06:55.502591",
+          "last_changed_date": null,
           "last_good_at": "2026-09-26T16:06:55.502591",
           "health": "ok",
           "current_hash": "c0bc19ccc488e98cfe0400cde28591189ba50b9e063e5c1205a5c9e5e27849f5",
-          "status": "changed",
-          "message": "⚠️ 政策可能已更新，待核实",
+          "status": "ok",
+          "message": "已人工核实（policy_verify --resolve）",
           "health_reason": null,
           "fetch_method": "browser",
           "content_etag": null,
-          "content_last_modified": null
+          "content_last_modified": null,
+          "resolved_at": "2026-09-27T00:16:09.688639"
         }
       }
     },
@@ -409,27 +410,28 @@
     },
     "qwenwork": {
       "name": "千问办公（QwenWork）",
-      "status": "changed",
+      "status": "ok",
       "health": "ok",
       "health_issues": 0,
       "url": "https://help.aliyun.com/zh/qwenwork/privacy-security",
-      "message": "⚠️ 政策可能已更新，待核实（主监控页）",
+      "message": "内容未变化（本次核实后已确认）",
       "last_checked": "2026-09-26T16:08:25.848956",
       "targets": {
         "main": {
           "url": "https://help.aliyun.com/zh/qwenwork/privacy-security",
           "hash_scheme": "text-v4-bs4",
           "last_checked": "2026-09-26T16:08:25.848928",
-          "last_changed_date": "2026-09-26T16:08:25.748350",
+          "last_changed_date": null,
           "last_good_at": "2026-09-26T16:08:25.748350",
           "health": "ok",
           "current_hash": "458ff35beddb9fb2c5bee7b875885441470ba809bfd632ccfe05d45da5d1f664",
-          "status": "changed",
-          "message": "⚠️ 政策可能已更新，待核实",
+          "status": "ok",
+          "message": "已人工核实（policy_verify --resolve）",
           "health_reason": null,
           "fetch_method": "browser",
           "content_etag": null,
-          "content_last_modified": null
+          "content_last_modified": null,
+          "resolved_at": "2026-09-27T00:16:09.831982"
         }
       }
     },
@@ -601,27 +603,28 @@
     },
     "gemini": {
       "name": "Gemini",
-      "status": "changed",
+      "status": "ok",
       "health": "ok",
       "health_issues": 0,
       "url": "https://policies.google.com/terms",
-      "message": "⚠️ 政策可能已更新，待核实（主监控页、企业版条款）",
+      "message": "内容未变化（本次核实后已确认）",
       "last_checked": "2026-09-26T16:10:19.077504",
       "targets": {
         "main": {
           "url": "https://policies.google.com/terms",
           "hash_scheme": "text-v4-bs4",
           "last_checked": "2026-09-26T16:10:07.632029",
-          "last_changed_date": "2026-09-26T16:10:07.579624",
+          "last_changed_date": null,
           "last_good_at": "2026-09-26T16:10:07.579624",
           "health": "ok",
           "current_hash": "376bc3df7db56ed67b2a1d13481158e8bc98eac196361ff6485b8dedfc443a2c",
-          "status": "changed",
-          "message": "⚠️ 政策可能已更新，待核实",
+          "status": "ok",
+          "message": "已人工核实（policy_verify --resolve）",
           "health_reason": null,
           "fetch_method": "browser",
           "content_etag": null,
-          "content_last_modified": null
+          "content_last_modified": null,
+          "resolved_at": "2026-09-27T00:16:09.955662"
         },
         "toc": {
           "url": "https://support.google.com/gemini/answer/13594961?hl=en",
@@ -641,16 +644,17 @@
           "url": "https://knowledge.workspace.google.com/admin/generative-ai/generative-ai-in-google-workspace-privacy-hub",
           "hash_scheme": "text-v4-bs4",
           "last_checked": "2026-09-26T16:10:19.077471",
-          "last_changed_date": "2026-09-26T16:10:19.005708",
+          "last_changed_date": null,
           "last_good_at": "2026-09-26T16:10:19.005708",
           "health": "ok",
           "current_hash": "7865f2de9a5f324188a84f6fb1c26c2ec10e29b1253b3d473b9cf2a88a7b2c18",
-          "status": "changed",
-          "message": "⚠️ 政策可能已更新，待核实",
+          "status": "ok",
+          "message": "已人工核实（policy_verify --resolve）",
           "health_reason": null,
           "fetch_method": "browser",
           "content_etag": null,
-          "content_last_modified": null
+          "content_last_modified": null,
+          "resolved_at": "2026-09-27T00:16:09.955662"
         }
       }
     },
