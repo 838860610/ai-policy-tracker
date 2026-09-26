@@ -4,7 +4,7 @@
     "hash_scheme": "text-v4-bs4",
     "total_products": 48,
     "total_targets": 70,
-    "changed": 1,
+    "changed": 0,
     "failed": 0,
     "suspicious": 1,
     "skipped": 1,
@@ -223,27 +223,28 @@
     },
     "doubao-api": {
       "name": "豆包大模型 API（火山方舟）",
-      "status": "changed",
+      "status": "ok",
       "health": "ok",
       "health_issues": 0,
       "url": "https://docs.volcengine.com/docs/ark/doubao-model-service-agreement?lang=zh",
-      "message": "⚠️ 政策可能已更新，待核实（主监控页）",
+      "message": "内容未变化（本次核实后已确认）",
       "last_checked": "2026-09-26T19:09:21.870042",
       "targets": {
         "main": {
           "url": "https://docs.volcengine.com/docs/ark/doubao-model-service-agreement?lang=zh",
           "hash_scheme": "text-v4-bs4",
           "last_checked": "2026-09-26T19:09:21.870023",
-          "last_changed_date": "2026-09-26T19:09:21.835128",
+          "last_changed_date": null,
           "last_good_at": "2026-09-26T19:09:21.835128",
           "health": "ok",
           "current_hash": "5074c0766c1081ec3e003e1fa3fb2659d704adb74b7737c6324ae401f3ee68ce",
-          "status": "changed",
-          "message": "⚠️ 政策可能已更新，待核实",
+          "status": "ok",
+          "message": "已人工核实（policy_verify --resolve）",
           "health_reason": null,
           "fetch_method": "browser",
           "content_etag": null,
-          "content_last_modified": null
+          "content_last_modified": null,
+          "resolved_at": "2026-09-27T03:20:40.647883"
         }
       }
     },
