@@ -699,13 +699,14 @@ WantedBy=timers.target
 <h3>不要给构建产物 class 配 content_selector</h3>
 <p>文档站（SPA + CSS-in-JS）的正文容器 class 常带构建 hash（如 <code>contentFlex-Gj6M</code>），站点每次重新构建都会变。把它写进 <code>content_selector</code> 看似精确，实际会在下次构建后静默失效——<code>extract_text</code> 对未命中的选择器会回退到默认启发式，噪声又回来了。判断标准：class 名里带随机 hash 就不配。</p>
 <p><strong>优先配稳定的 <code>id</code></strong>。<code>doubao-api</code> 就是这么修好的：文档站页面结构会波动（有时把正文包进 <code>&lt;main&gt;</code>、有时不包），<code>extract_text</code> 的 root 因此在"仅正文 20951 字符"和"导航+正文 12500 字符"之间跳变，每轮都误报 changed。锁定 <code>#app-content</code>（id 由站点保证稳定）后连续多轮"内容未变化"。</p>
-<h3>browser 的 locale 会影响站点返回的语言</h3>
-<p><code>fetch_browser</code> 用 <code>locale="zh-CN"</code> 打开页面，多语言站点会据此切换语言，而 <code>requests</code> 路径没有这个行为。实测 Google 系页面因此从英文版变成中文版——同一份政策的不同语言版本，正文完全不同，会触发一次 changed。</p>
-<p>这不是 bug（中文读者看中文版更合适），但要意识到：<strong>如果某目标的语言选择会翻转，就会持续误报</strong>。两个处理办法：</p>
+<h3>browser 的 locale 与访问地区会影响站点返回的版本</h3>
+<p><code>fetch_browser</code> 用 <code>locale="zh-CN"</code> 打开页面，<strong>多语言/多地区站点会据此切换返回版本</strong>，而 <code>requests</code> 路径没有这个行为。两个已实测的后果：</p>
 <ul>
-<li>确认语言稳定后 <code>--resolve</code> 承认当前语言版本（<code>locale</code> 在代码里固定，翻转风险低）；</li>
-<li>需要严格锁定时，在 URL 上显式加语言参数（如 <code>?hl=zh-CN</code>）——这会改动 <code>policy_url</code>，属于数据变更，要人工确认政策等价性后单独提交。</li>
+<li><strong>语言</strong>：<code>policies.google.com</code> 从英文版变成中文版——同一份政策的不同语言版本，正文完全不同，会触发一次 changed。这不是 bug（中文读者看中文版更合适），确认语言稳定后 <code>--resolve</code> 承认即可；</li>
+<li><strong>地区（更麻烦）</strong>：<code>policies.google.com/terms</code> 会按访问来源 IP 切换国家版本条款。本地（中国 IP）取到的是<strong>新加坡</strong>版，CI（GitHub 美国 runner）取到的是<strong>美国</strong>版，正文有实质差异（服务提供者、适用法律等）。<strong>这会导致每次在不同网络环境运行都报 changed，且无法靠 <code>--resolve</code> 根治。</strong></li>
 </ul>
+<p>唯一可靠解法是在 URL 上显式锁定地区与语言参数（Google 政策页支持 <code>gl</code> / <code>hl</code>，如 <code>?gl=US&amp;hl=zh-CN</code>）。这会改动 <code>policy_url</code>，属于数据变更，需人工确认后单独提交——<strong>不要靠反复 resolve 掩盖</strong>，那只是让队列好看，下次换网络环境又会炸。</p>
+<p>相比之下，<code>support.google.com</code> 的帮助页不按地区变化（<code>gemini/toc</code> 只受渲染时机影响，已由 3 次取最长的机制解决）。</p>
 <h2>首页如何展示监控结果</h2>
 <p>首页 <code>site/js/app.js</code> 会尝试加载 <code>site/generated/update_status.json</code> 与 <code>site/generated/monitor_health.json</code>：</p>
 <ul>
