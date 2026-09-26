@@ -1,4 +1,22 @@
 {
-  "updated_at": "2026-09-26T23:42:14.088112",
-  "items": {}
+  "updated_at": "2026-09-26T16:13:18.850142",
+  "items": {
+    "trae:main": {
+      "pid": "trae",
+      "name": "Trae（AI IDE）",
+      "key": "main",
+      "label": "主监控页",
+      "url": "https://www.trae.cn/privacy-policy",
+      "health": "degraded",
+      "health_reason": "empty_body",
+      "status": "suspicious",
+      "message": "抓取正文过短（0 字符 < 500），疑似 JS 渲染或反爬，已保留上次有效快照",
+      "last_checked": "2026-09-26T16:08:00.518519",
+      "last_good_at": "2026-09-26T23:38:42.502276",
+      "consecutive_runs": 1,
+      "first_seen": "2026-09-26T16:13:18.850142",
+      "last_seen": "2026-09-26T16:13:18.850142",
+      "next_action": "已保留上次有效快照；用 --only <pid>:<key> 单独重试并确认正文"
+    }
+  }
 }
