@@ -6,8 +6,8 @@ AI 政策更新监控脚本
 功能：
   - 读取 site/data/products.json（ID 索引）与 site/data/policies/{id}.json
   - 每个产品监控多个目标 URL：顶层 policy_url（main）+ 各版本独立的 policy_link
-    （toc 个人版 / tob 企业版，与 main 去重后逐条检查）
-  - 抓取政策页面，剥离 script/style 后提取正文文本、归一化空白，计算 SHA256 哈希
+    （toc 个人版 / tob 企业版）+ sources[] 补充来源
+  - 抓取政策页面，按 HTML/PDF/文本类型提取正文、归一化空白，计算 SHA256 哈希
     （直接对原始 HTML 哈希会因时间戳、CSRF token 等动态内容产生大量误报）
   - 支持 ETag / If-Modified-Since 条件请求，页面未变化时服务端返回 304，零误报
   - 与 site/generated/update_status.json 中上次记录对比；哈希变化则标记"⚠️ 政策可能已更新，待核实"
@@ -17,14 +17,14 @@ AI 政策更新监控脚本
   - 结果写入 site/generated/update_status.json（首页会读取并展示监控状态），告警输出到控制台
 
 使用方法：
-  .venv/bin/python scripts/check_updates.py [--delay 秒] [--timeout 秒]
+  .venv/bin/python scripts/check_updates.py [--delay 秒] [--timeout 秒] [--no-browser] [--fail-on-error]
   （或先 source .venv/bin/activate 再 python3 scripts/check_updates.py）
 
 依赖安装：
   ./start.sh                                    # 自动创建 .venv 并安装依赖
   # 或手动：
   python3 -m venv .venv
-  .venv/bin/pip install -r requirements.txt    # requests + beautifulsoup4
+  .venv/bin/pip install -r requirements.txt    # requests + beautifulsoup4 + pypdf
 
   无头浏览器抓取（可选，仅 fetch_method=browser 的产品需要，如 ChatGPT/OpenAI
   政策页被 Cloudflare 拦截）：
@@ -43,19 +43,25 @@ Cron 配置示例（每周一早上 9 点运行）：
   site/generated/update_status.json - 每个产品的聚合检查状态 + 各目标 URL 明细（首页读取展示）
   site/generated/snapshots/         - 政策正文快照（latest.txt 为当前内容，日期文件为基线/变更存档）
 
-退出码：总是 0（只要状态文件写成功）。个别产品检查失败不视为脚本失败——
-结果中的 failed 计数、首页告警与待核实队列会反映失败/变更情况，CI 中失败不应阻塞状态提交。
+退出码：默认 0；使用 --fail-on-error 时存在产品检查失败返回非零。
 """
 
 import argparse
 import datetime
 import hashlib
 import html as html_lib
+import io
+import ipaddress
 import json
 import os
 import re
+import shutil
+import socket
 import sys
+import tempfile
+import threading
 import time
+from urllib.parse import urljoin, urlparse
 
 import requests
 
@@ -70,24 +76,44 @@ POLICIES_DIR = os.path.join(BASE_DIR, "site", "data", "policies")
 STATUS_FILE = os.path.join(BASE_DIR, "site", "generated", "update_status.json")
 SNAPSHOTS_DIR = os.path.join(BASE_DIR, "site", "generated", "snapshots")
 PENDING_FILE = os.path.join(BASE_DIR, "site", "generated", "pending_verification.json")
+HEALTH_FILE = os.path.join(BASE_DIR, "site", "generated", "monitor_health.json")
 
 # 哈希算法版本：提取/归一化逻辑变化时递增，旧状态会自动重建基线而不是误报"已变更"
 # - text-v2：修复响应解码（此前中文被 latin-1 回退解成 mojibake）
-# - text-v3：把"提取器变体"并入 scheme。BeautifulSoup 与正则回退剥离的标签集不同，
-#   同一页面两条路径产出的归一化文本也不同；不区分的话，一旦 bs4 缺失（未安装依赖）
-#   全库哈希会一次性漂移，造成批量误报。故 scheme 形如 text-v3-bs4 / text-v3-regex。
+# - text-v4：加入结构化正文选择、PDF 处理和更保守的动态节点过滤。
 EXTRACTOR = "bs4" if BeautifulSoup is not None else "regex"
-HASH_SCHEME = f"text-v3-{EXTRACTOR}"
+HASH_SCHEME = f"text-v4-{EXTRACTOR}"
 RETRY_TIMES = 2          # 网络类错误重试次数
 RETRY_BACKOFF = 5        # 重试间隔基数（秒）
 # 正文最小长度：低于此值视为"空壳正文"（SPA / 反爬只返回标题骨架），
 # 不建基线也不报变更——否则既会漏报（正文由 JS 渲染）又会误报（标题微调）。
 MIN_BODY_CHARS = 500
-# 浏览器抓取的“明显完整正文”阈值：达到此长度即认为 SPA 已渲染完整，提前结束重试。
-FULL_RENDER_MIN_CHARS = 8000
+ID_PATTERN = re.compile(r"^[a-z0-9-]+$")
+BROWSER_RENDER_ATTEMPTS = 3   # browser 抓取的渲染尝试次数，取正文最长的一次
+MAX_RESPONSE_BYTES = 10 * 1024 * 1024
+MAX_RETRY_AFTER_SECONDS = 300
+CONNECT_TIMEOUT_CAP = 5    # 连接阶段超时上限（秒）：域名不可达时快速失败
+RETRY_BUDGET_SECONDS = 120  # 单个目标网络重试的总时间上限（秒），避免不可达域名拖垮整轮
 
-# 监控目标的中文名（控制台输出与 Issue 正文用）
+# 监控目标的中文名（控制台输出与待核实队列用）
 TARGET_LABELS = {"main": "主监控页", "toc": "个人版条款", "tob": "企业版条款"}
+
+# 抓取健康状态（health）：与"政策是否变化"（status）正交。
+#   ok           正常，内容可信
+#   initialized  首次建立基线，尚无历史可比较（无需处理）
+#   rebaselined  因基线缺失/哈希方案升级而重建，需人工确认一次
+#   degraded     本轮抓取异常，但已保留上次有效快照（可继续对外展示）
+#   no_baseline  本轮抓取异常且无可验证基线（该产品暂无可靠正文）
+#   blocked      被反爬/限流/权限拒绝（403/429/401 等）
+HEALTH_QUEUED_STATES = ("degraded", "no_baseline", "blocked")
+HEALTH_SEVERITY = {"blocked": 3, "no_baseline": 2, "degraded": 1}
+HEALTH_ACTIONS = {
+    "blocked": "检查反爬/限流策略，必要时为该目标配置 fetch_method=browser 后重试",
+    "no_baseline": "确认页面是否 JS 渲染或反爬空壳，配置 content_selector / browser 后重试；"
+                    "若连接超时且本机网络无法访问该域名（常见于境外政策站点），"
+                    "以 GitHub Actions 监控结果为准",
+    "degraded": "已保留上次有效快照；用 --only <pid>:<key> 单独重试并确认正文",
+}
 
 USER_AGENT = (
     "Mozilla/5.0 (compatible; AI-Policy-Tracker/1.0; "
@@ -98,14 +124,20 @@ USER_AGENT = (
 def load_product_ids():
     with open(INDEX_FILE, encoding="utf-8") as f:
         index = json.load(f)
-    return index.get("products", [])
+    ids = index.get("products") if isinstance(index, dict) else None
+    if not isinstance(ids, list) or not ids:
+        raise ValueError("products.json 的 products 必须是非空 ID 数组")
+    if any(not isinstance(pid, str) or not ID_PATTERN.match(pid) for pid in ids):
+        raise ValueError("products.json 包含非法产品 ID")
+    return ids
 
 
 def load_policy(pid):
     path = os.path.join(POLICIES_DIR, pid + ".json")
     try:
         with open(path, encoding="utf-8") as f:
-            return json.load(f)
+            data = json.load(f)
+        return data if isinstance(data, dict) else {}
     except (IOError, json.JSONDecodeError) as e:
         print(f"  [错误] 无法读取 {path}：{e}")
         return {}
@@ -115,7 +147,8 @@ def load_previous_status():
     if os.path.exists(STATUS_FILE):
         try:
             with open(STATUS_FILE, encoding="utf-8") as f:
-                return json.load(f)
+                data = json.load(f)
+            return data if isinstance(data, dict) else {}
         except (json.JSONDecodeError, IOError):
             pass
     return {}
@@ -131,6 +164,9 @@ UI_NOISE_PHRASES = (
     "本页目录", "此页内容", "页面目录",
     "回到顶部", "回到开头", "返回顶部",
     "加载更多", "显示更多", "查看更多",
+    # 火山方舟等文档站的新手引导浮层按钮（doubao-api 实测 11564 ↔ 11593 字符，
+    # 差异仅此浮层的显示/隐藏状态）
+    "我知道了 不再提醒", "我知道了，不再提醒", "不再提醒",
     "On this page", "Back to top", "Copy page", "Copy code", "Copy link",
     "Edit this page", "Table of contents",
 )
@@ -159,58 +195,68 @@ HELP_UI_ANCHORS = ("Need more help?", "Enable Dark Mode", "Related Articles")
 # 部分站点把导航 / 语言选择器渲染在正文之前，且该区块是否渲染会随抓取时机变化
 # （实测 chatgpt/main 旧 6356 → 新 5842 字，差异全部落在头部导航与语言列表，
 # 条款正文零差异，且"使用条款生效日期 2026 年 1 月 1 日"新旧一致）。
-# 以正文起始标记 "Published: YYYY年" 为界切掉其之前的导航。
-# 位置护栏：仅当标记出现在全文前 15% 时才切——避免将来某页正文里出现该词时被误删。
-LEAD_IN_MARKER_RE = re.compile(r"Published:\s*\d{4}\s*年")
+# 以正文起始标记为界切掉其之前的导航。
+#   - chatgpt/tob：语言下拉列表（"OpenAI 输入语言 English (United States) العربية …"）
+#     展开与否导致 15147 ↔ 15752 字波动，其后紧跟 "Updated: YYYY年M月D日"（实测占比 4.1%）
+#
+# 标记只认 OpenAI/英文站的 "Published/Updated: YYYY年" 格式，**不要**加中文的
+# "生效日期："——腾讯系协议页开头是「文档标题 + 更新日期 + 生效日期」，
+# 用它做标记会把标题和更新日期一起切掉（实测 tencent-yuanbao 少 26 字符、
+# ima 少 62、yuanqi 少 28），而这些字段正是政策版本标识，必须保留。
+LEAD_IN_MARKER_RE = re.compile(
+    r"(?:Published|Updated)\s*:\s*\d{4}\s*年")
 LEAD_IN_MAX_RATIO = 0.15
 
-# 各类页面注入的旋转型长数字令牌（会话 / 反伪造 / 资源标识），长度 ≥16 位。
-# 政策条款正文不会出现 16 位以上的裸数字，置空后可消除其抖动。
-# 实测影响面：全库仅 gemini/toc 与 xunfei-xinghuo/main 命中。
+# 动态长数字仅在父节点明确标记为 token/session/nonce 等资源节点时移除。
 LONG_TOKEN_RE = re.compile(r"\b\d{16,}\b")
 
 
-def extract_text(raw_html):
-    """剥离 script/style 等非正文标签，提取可见文本，并剔除 UI 噪音碎片。"""
+def extract_text(raw_html, content_selector=None):
+    """剥离非正文节点，提取可见文本，并剔除 UI 噪音碎片。
+
+    content_selector：可选 CSS 选择器，用于正文不在 main/article 内的页面
+    （常见于腾讯系文档预览页、富文本容器）。选择器未命中时回退到默认启发式。
+    """
+    if raw_html is None:
+        return ""
+    selector = (content_selector or "").strip()
     if BeautifulSoup is not None:
         soup = BeautifulSoup(raw_html, "html.parser")
-        for tag in soup(["script", "style", "noscript", "template", "svg", "iframe"]):
+        for tag in soup(["script", "style", "noscript", "template", "svg", "iframe",
+                         "footer", "nav", "aside"]):
             tag.decompose()
-        text = soup.get_text()
+        for node in soup.find_all(string=LONG_TOKEN_RE):
+            parent = node.parent
+            marker = ""
+            if parent is not None:
+                marker = " ".join(parent.get("class", [])) + " " + str(parent.get("id", ""))
+            if any(word in marker.lower() for word in
+                   ("token", "session", "nonce", "trace", "csrf", "resource")):
+                node.replace_with("")
+        root = None
+        if selector:
+            try:
+                root = soup.select_one(selector)
+            except (NotImplementedError, ValueError):
+                root = None
+        if root is None:
+            root = (soup.find("main") or soup.find("article")
+                    or soup.find(attrs={"role": "main"}) or soup.body or soup)
+        text = root.get_text("\n")
     else:
-        text = re.sub(r"(?is)<(script|style|noscript|svg)\b.*?</\1>", " ", raw_html)
+        text = re.sub(r"(?is)<(script|style|noscript|svg|footer|nav|aside)\b.*?</\1>", " ", raw_html)
         text = re.sub(r"(?s)<[^>]+>", " ", text)
         text = html_lib.unescape(text)
     for phrase in UI_NOISE_PHRASES:
         text = text.replace(phrase, "")
-    # 剔除阿里云帮助中心等文档模板在正文后异步注入的推荐挂件（见 ALIYUN_WIDGET_ANCHORS）。
-    # 这些挂件有时渲染有时不渲染，若不剔除会导致正文哈希随抓取时机波动而误报“已变更”。
-    for anchor in ALIYUN_WIDGET_ANCHORS:
+    for anchor in ALIYUN_WIDGET_ANCHORS + FOOTER_ANCHORS + HELP_UI_ANCHORS:
         idx = text.find(anchor)
-        if idx != -1:
+        if idx != -1 and idx >= len(text) * 0.6:
             text = text[:idx]
             break
-    # 剔除站点页脚/版权站壳（见 FOOTER_ANCHORS）。这些只出现在文末页脚、绝不作为政策条款，
-    # 从首个锚点到文末整体剔除，避免页脚渲染波动或版权年份变化污染正文哈希。
-    for anchor in FOOTER_ANCHORS:
-        idx = text.find(anchor)
-        if idx != -1:
-            text = text[:idx]
-            break
-    # 剔除帮助中心类页面文末注入的 UI 尾巴（见 HELP_UI_ANCHORS）：
-    # 其中含每次加载都变的旋转令牌或推荐区块，不剔除会导致该目标反复误报"已变更"。
-    for anchor in HELP_UI_ANCHORS:
-        idx = text.find(anchor)
-        if idx != -1:
-            text = text[:idx]
-            break
-    # 剔除正文之前的站点导航（见 LEAD_IN_MARKER_RE）：命中且位于全文前段时才切，
-    # 位置护栏防止正文里出现同名词时误删条款。
     m = LEAD_IN_MARKER_RE.search(text)
     if m and m.start() < len(text) * LEAD_IN_MAX_RATIO:
         text = text[m.start():]
-    # 剔除注入的旋转型长数字令牌（见 LONG_TOKEN_RE），消除逐次抓取的哈希抖动。
-    text = LONG_TOKEN_RE.sub("", text)
     return text
 
 
@@ -226,10 +272,23 @@ def normalize_text(text):
 def snapshot_text(text):
     """快照文件的正文格式：逐行归一化并保留段落换行，便于 git diff 逐段比对。
 
-    哈希仍基于 fully-collapsed 的 normalize_text 结果（text-v1 口径），二者独立。
+    哈希仍基于 fully-collapsed 的 normalize_text 结果，二者独立。
     """
     lines = [re.sub(r"\s+", " ", ln).strip() for ln in text.splitlines()]
     return "\n".join(ln for ln in lines if ln)
+
+
+def atomic_write_text(path, text):
+    directory = os.path.dirname(path)
+    os.makedirs(directory, exist_ok=True)
+    fd, tmp_path = tempfile.mkstemp(prefix=os.path.basename(path) + ".", suffix=".tmp", dir=directory)
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            f.write(text)
+        os.replace(tmp_path, path)
+    finally:
+        if os.path.exists(tmp_path):
+            os.remove(tmp_path)
 
 
 def save_snapshot(pid, key, raw_text, archived):
@@ -246,15 +305,16 @@ def save_snapshot(pid, key, raw_text, archived):
         prev_path = os.path.join(target_dir, "prev.txt")
         with open(latest_path, encoding="utf-8") as old_f:
             old_body = old_f.read()
+        if old_body.lstrip().startswith("%PDF-"):
+            if os.path.exists(prev_path):
+                os.remove(prev_path)
+            old_body = ""
         if old_body.strip() and old_body.strip() != body.strip():
-            with open(prev_path, "w", encoding="utf-8") as f:
-                f.write(old_body)
-    with open(latest_path, "w", encoding="utf-8") as f:
-        f.write(body + "\n")
+            atomic_write_text(prev_path, old_body)
+    atomic_write_text(latest_path, body + "\n")
     if archived:
         dated = os.path.join(target_dir, datetime.date.today().isoformat() + ".txt")
-        with open(dated, "w", encoding="utf-8") as f:
-            f.write(body + "\n")
+        atomic_write_text(dated, body + "\n")
         prune_dated(target_dir)
 
 
@@ -262,15 +322,34 @@ def load_baseline_text(pid, key):
     """读取已入库的基线快照文本（归一化），用于"方案无关"的变更比对。
 
     基线 = 上次成功抓取并存下的 latest.txt，不依赖 update_status 里的哈希，
-    因此哈希方案升级（text-v2→text-v3 等）时不会丢失基线、也不会整库误报。
+    因此哈希方案升级（text-v2→text-v4 等）时不会丢失基线、也不会整库误报。
     """
     path = os.path.join(SNAPSHOTS_DIR, pid, key, "latest.txt")
     if not os.path.exists(path):
         return None
     try:
         with open(path, encoding="utf-8") as f:
-            return normalize_text(f.read())
-    except (IOError, OSError):
+            content = f.read()
+        if content.lstrip().startswith("%PDF-"):
+            return None
+        return normalize_text(content)
+    except (OSError, UnicodeError):
+        return None
+
+
+def baseline_saved_at(pid, key):
+    """基线快照的保存时间（ISO），用于在没有 last_good_at 字段时回填。
+
+    旧版状态文件没有 last_good_at，但"上次可信正文何时入库"可以从快照 mtime 得到；
+    否则一个 degraded（已保留上次快照）的目标会显示"从未成功抓取"，自相矛盾。
+    """
+    path = os.path.join(SNAPSHOTS_DIR, pid, key, "latest.txt")
+    if not os.path.exists(path):
+        return None
+    try:
+        return datetime.datetime.fromtimestamp(os.path.getmtime(path)).isoformat(
+            timespec="seconds")
+    except OSError:
         return None
 
 
@@ -286,22 +365,150 @@ def prune_dated(target_dir, keep=12):
             pass
 
 
+def prune_orphan_snapshots(policies):
+    """删除已不再监控的目标的快照目录。
+
+    活跃目标按**配置**（policies/{id}.json 展开出的监控目标）判定，而不是按本轮状态：
+    本轮被跳过的产品（例如 --no-browser 下的浏览器目标、monitor=false）
+    在状态里可能没有 targets，若据此判定就会把仍在监控的快照当成孤儿删掉——
+    快照是检测→核实回路唯一的持久历史，删掉等于让历史无法 diff。
+    """
+    if not os.path.isdir(SNAPSHOTS_DIR):
+        return 0
+    active = set()
+    for pid, policy in policies.items():
+        if not isinstance(policy, dict) or policy.get("monitor") is False:
+            continue
+        for spec in collect_target_specs(policy):
+            active.add((pid, spec["key"]))
+    removed = 0
+    for pid in os.listdir(SNAPSHOTS_DIR):
+        pid_dir = os.path.join(SNAPSHOTS_DIR, pid)
+        if not os.path.isdir(pid_dir):
+            continue
+        for key in os.listdir(pid_dir):
+            key_dir = os.path.join(pid_dir, key)
+            if not os.path.isdir(key_dir):
+                continue
+            if (pid, key) not in active:
+                shutil.rmtree(key_dir)
+                removed += 1
+        if not os.listdir(pid_dir):
+            os.rmdir(pid_dir)
+    return removed
+
+
 def compute_hash(normalized_text):
     return hashlib.sha256(normalized_text.encode("utf-8")).hexdigest()
 
 
+def compute_text_hash(text):
+    """extract_text → normalize_text → compute_hash 的组合，供去噪一致性自检使用。"""
+    return compute_hash(normalize_text(text))
+
+
+def safe_fetch_url(url, resolve_dns=True):
+    try:
+        parsed = urlparse(str(url))
+    except ValueError:
+        return False
+    if parsed.scheme.lower() != "https" or not parsed.hostname:
+        return False
+    if parsed.username or parsed.password:
+        return False
+    try:
+        if parsed.port not in (None, 443):
+            return False
+    except ValueError:
+        return False
+    host = parsed.hostname.rstrip(".").lower()
+    if host == "localhost" or host.endswith(".local"):
+        return False
+    if not resolve_dns:
+        try:
+            return ipaddress.ip_address(host).is_global
+        except ValueError:
+            return True
+
+    addresses = []
+    lookup_done = threading.Event()
+
+    def lookup():
+        try:
+            addresses.extend(socket.getaddrinfo(host, None))
+        except socket.gaierror:
+            pass
+        finally:
+            lookup_done.set()
+
+    worker = threading.Thread(target=lookup, daemon=True)
+    worker.start()
+    if not lookup_done.wait(timeout=3):
+        return False
+    if not addresses:
+        return False
+    for address in addresses:
+        try:
+            if not ipaddress.ip_address(address[4][0]).is_global:
+                return False
+        except ValueError:
+            return False
+    return True
+
+
 def fetch_url(url, etag=None, last_modified=None, timeout=30):
-    """带条件请求的抓取。返回 (response, was_304)。"""
+    """带条件请求的抓取。返回 (response, was_304)。
+
+    超时拆成 (连接, 读取)：连接超时单独收紧到 CONNECT_TIMEOUT_CAP。
+    域名完全不可达时（受限网络下的境外政策站点），requests 会按解析出的每个
+    地址依次连接，若沿用整体 timeout，单个目标可能耗掉数分钟——3 个 Gemini
+    目标就能吃掉一轮监控的大部分时间预算。连接快速失败后由重试逻辑统一判定。
+    """
     headers = {"User-Agent": USER_AGENT}
     if etag:
         headers["If-None-Match"] = etag
     if last_modified:
         headers["If-Modified-Since"] = last_modified
-    resp = requests.get(url, timeout=timeout, headers=headers, allow_redirects=True)
-    if resp.status_code == 304:
-        return resp, True
-    resp.raise_for_status()
-    return resp, False
+    connect_timeout = min(CONNECT_TIMEOUT_CAP, timeout)
+    current_url = url
+    for _ in range(6):
+        if not safe_fetch_url(current_url):
+            raise requests.exceptions.InvalidURL("仅允许解析到公网地址的 HTTPS URL")
+        request_headers = headers if current_url == url else {"User-Agent": USER_AGENT}
+        resp = requests.get(current_url, timeout=(connect_timeout, timeout),
+                            headers=request_headers, allow_redirects=False, stream=True)
+        if resp.status_code in (301, 302, 303, 307, 308):
+            location = resp.headers.get("Location")
+            if not location:
+                raise requests.exceptions.InvalidURL("重定向响应缺少 Location")
+            current_url = urljoin(current_url, location)
+            resp.close()
+            continue
+        if resp.status_code == 304:
+            resp.close()
+            return resp, True
+        resp.raise_for_status()
+        chunks = []
+        total = 0
+        for chunk in resp.iter_content(chunk_size=65536):
+            total += len(chunk)
+            if total > MAX_RESPONSE_BYTES:
+                resp.close()
+                raise requests.exceptions.ContentDecodingError("响应正文超过大小限制")
+            chunks.append(chunk)
+        resp._content = b"".join(chunks)
+        resp._content_consumed = True
+        return resp, False
+    raise requests.exceptions.TooManyRedirects("重定向次数超过限制")
+
+
+def extract_pdf_text(content):
+    try:
+        from pypdf import PdfReader
+        reader = PdfReader(io.BytesIO(content))
+        return "\n".join(page.extract_text() or "" for page in reader.pages)
+    except Exception:
+        return ""
 
 
 def response_text(resp):
@@ -316,6 +523,9 @@ def response_text(resp):
       2. 响应声明了 ISO-8859-1 但内容其实是 UTF-8 → 反向还原一次
     """
     content_type = (resp.headers.get("Content-Type") or "").lower()
+    content = getattr(resp, "content", b"") or b""
+    if "application/pdf" in content_type or content.startswith(b"%PDF-"):
+        return extract_pdf_text(content)
 
     if "charset" not in content_type:
         resp.encoding = resp.apparent_encoding or "utf-8"
@@ -332,23 +542,36 @@ def response_text(resp):
     return text
 
 
-def fetch_with_retry(url, etag, last_modified, timeout):
+def fetch_with_retry(url, etag, last_modified, timeout, budget=RETRY_BUDGET_SECONDS):
     """网络类错误（超时/连接失败）按指数退避重试；HTTP 4xx/5xx 不重试直接抛出。
-    429 Too Many Requests：等待 Retry-After 或退避后重试。"""
+
+    429 Too Many Requests：等待 Retry-After 或退避后重试。
+
+    budget 为该目标的墙钟重试预算：域名整体不可达时（例如受限网络访问不到
+    境外政策站点），requests 会按解析出的每个地址依次连接，单次尝试可能耗时
+    上分钟。超出预算即停止重试并按失败处理，避免单个死目标吃掉整轮时间。
+    """
     last_exc = None
+    started = time.monotonic()
     for attempt in range(RETRY_TIMES + 1):
         try:
             return fetch_url(url, etag, last_modified, timeout)
         except (requests.exceptions.Timeout, requests.exceptions.ConnectionError) as e:
             last_exc = e
-            if attempt < RETRY_TIMES:
-                wait = RETRY_BACKOFF * (attempt + 1)
-                print(f"         请求失败（{e.__class__.__name__}），{wait}s 后重试…")
-                time.sleep(wait)
+            if attempt >= RETRY_TIMES:
+                break
+            if time.monotonic() - started > budget:
+                print(f"         已超出单目标重试预算（{budget}s），放弃重试")
+                break
+            wait = RETRY_BACKOFF * (attempt + 1)
+            print(f"         请求失败（{e.__class__.__name__}），{wait}s 后重试…")
+            time.sleep(wait)
         except requests.exceptions.HTTPError as e:
             if e.response is not None and e.response.status_code == 429 and attempt < RETRY_TIMES:
                 retry_after = e.response.headers.get("Retry-After")
-                wait = int(retry_after) if retry_after and retry_after.isdigit() else RETRY_BACKOFF * (attempt + 2)
+                wait = (min(int(retry_after), MAX_RETRY_AFTER_SECONDS)
+                        if retry_after and retry_after.isdigit()
+                        else RETRY_BACKOFF * (attempt + 2))
                 print(f"         被限流（429），{wait}s 后重试…")
                 time.sleep(wait)
                 continue
@@ -356,17 +579,35 @@ def fetch_with_retry(url, etag, last_modified, timeout):
     raise last_exc
 
 
-def fetch_browser(url, timeout=30):
+def pick_longest_render(renders):
+    """从多次渲染结果里挑正文最长的一次。
+
+    renders 为 [(可见文本长度, html), ...]。残缺渲染（只出了一半正文或只剩页脚壳）
+    不得进基线——否则哈希会长期漂移，每轮都误报"政策可能已更新"。
+    """
+    best_html, best_len = None, -1
+    for nlen, html in renders:
+        if nlen > best_len:
+            best_len, best_html = nlen, html
+    return best_html, best_len
+
+
+def fetch_browser(url, timeout=30, wait_selector=None):
     """无头浏览器抓取，用于 Cloudflare 等反爬挑战页。
 
-    仅当产品 fetch_method=browser 时调用，依赖可选 playwright（不在主依赖中）。
+    仅当目标 fetch_method=browser 时调用，依赖可选 playwright（不在主依赖中）。
     返回 (html, was_304)，was_304 恒为 False（浏览器路径不做条件请求）。
+
+    wait_selector：可选 CSS 选择器，等待该节点出现（异步渲染正文容器），
+        命中即认为已渲染，可显著缩短 SPA 文档页的抓取耗时。
 
     可选增强：设置环境变量 OPENAI_CF_CLEARANCE 可导入已在真人浏览器通过
     "Verify you are human" 后得到的 cf_clearance 令牌，大幅提升通过率。
     注意该令牌绑 IP + User-Agent 且短时效，CI（数据中心 IP）通常不保证可用，
     主要供本地人工补抓。未设置时也能跑，只是更可能被重新挑战。
     """
+    if not safe_fetch_url(url):
+        raise RuntimeError("仅允许抓取解析到公网地址的 HTTPS URL")
     try:
         from playwright.sync_api import sync_playwright
     except ImportError:
@@ -392,15 +633,31 @@ def fetch_browser(url, timeout=30):
                 "httpOnly": True,
             }])
         page = ctx.new_page()
+
+        def safe_route(route):
+            if safe_fetch_url(route.request.url, resolve_dns=False):
+                route.continue_()
+            else:
+                route.abort()
+
+        page.route("**/*", safe_route)
         # SPA 文档页正文为异步渲染，单次抓取偶发只渲染一半或只剩页脚壳（如 trae/tob
-        # 出现过正文缺失、仅剩 footer 的坏渲染）。因此最多重试 3 次，并始终返回
-        # 正文最长（最完整）的那次，避免残缺页污染哈希、造成永久误报“已变更”。
+        # 出现过正文缺失、仅剩 footer 的坏渲染；support.google.com 帮助页实测同页
+        # 出现过 9500 与 56422 字符两种结果）。因此重试固定次数，并始终返回
+        # 正文最长（最完整）的那次，避免残缺页污染哈希、造成永久误报"已变更"。
         best_html, best_len = None, -1
-        for attempt in range(3):
+        renders = []
+        for attempt in range(BROWSER_RENDER_ATTEMPTS):
             try:
                 page.goto(url, wait_until="domcontentloaded", timeout=timeout * 1000)
             except Exception:
                 pass  # 导航超时/跳转异常也尽量取已渲染内容
+            if wait_selector:
+                # 目标级配置了正文容器：等到该节点出现即认为已渲染
+                try:
+                    page.wait_for_selector(wait_selector, timeout=timeout * 1000, state="attached")
+                except Exception:
+                    pass  # 等不到也继续取已渲染内容，交由 min_body_chars 判定
             try:
                 # 等真实正文出现（挑战页正文极短）；超时也继续，交由 MIN_BODY_CHARS 判 suspicious
                 page.wait_for_function(
@@ -420,72 +677,192 @@ def fetch_browser(url, timeout=30):
             except Exception:
                 pass
             nlen = len(normalize_text(inner)) if inner else 0
-            html = page.content()
-            if nlen > best_len:
-                best_len, best_html = nlen, html
-            # 已渲染出明显完整的正文（远超挑战页/壳页），提前结束
-            if nlen >= FULL_RENDER_MIN_CHARS:
-                break
+            renders.append((nlen, page.content()))
+            # 不做"长度够大就提前退出"的优化：各页面完整正文长度差异极大
+            # （support.google.com 帮助页完整 5.6 万字符，文档站协议页 1.2 万），
+            # 固定阈值会让渲染未完成的中间态（实测同页 9500 vs 完整 56422）被当成
+            # 最终结果写进基线，之后每轮都误报 changed。三次 goto 复用同一个 browser，
+            # 额外成本远小于误报代价。
+        best_html, best_len = pick_longest_render(renders)
         browser.close()
         return best_html, False
 
 
-def collect_targets(policy):
-    """汇总一个产品的监控目标：[(key, url), ...]，按 URL 去重。
+FETCH_CONFIG_FIELDS = ("fetch_method", "content_selector", "wait_for_selector", "min_body_chars")
+SUPPORTED_FETCH_METHODS = ("requests", "browser")
 
-    main = 顶层 policy_url；toc/tob = 各版本独立的 policy_link（与 main 相同则不重复监控）。
+
+def resolve_fetch_config(policy, target_source=None):
+    """合并产品级与目标级抓取配置。
+
+    优先级：目标级（targets.main / versions[key] / sources[] 条目）> 产品级 > 全局默认。
+    允许在单个来源上覆盖抓取方式、正文选择器、渲染等待选择器和正文下限，
+    避免"一个站点需要浏览器抓取"时把同产品所有目标都切成 browser。
     """
-    targets = []
+    def pick(field, default=None):
+        value = None
+        if isinstance(target_source, dict):
+            value = target_source.get(field)
+        if value is None and isinstance(policy, dict):
+            value = policy.get(field)
+        return default if value is None else value
+
+    method = str(pick("fetch_method", "requests") or "requests")
+    min_chars = pick("min_body_chars", MIN_BODY_CHARS)
+    try:
+        min_chars = int(min_chars)
+    except (TypeError, ValueError):
+        min_chars = MIN_BODY_CHARS
+    if min_chars < 0:
+        min_chars = MIN_BODY_CHARS
+    return {
+        "method": method,
+        "min_body_chars": min_chars,
+        "content_selector": str(pick("content_selector", "") or "").strip() or None,
+        "wait_for_selector": str(pick("wait_for_selector", "") or "").strip() or None,
+    }
+
+
+def collect_target_specs(policy):
+    """汇总一个产品的监控目标及其抓取配置，按 URL 去重。
+
+    返回 [{key, url, method, min_body_chars, content_selector, wait_for_selector}, ...]
+    """
+    specs = []
     seen = set()
-    main_url = policy.get("policy_url", "")
-    if main_url and main_url != "待核实":
-        targets.append(("main", main_url))
-        seen.add(main_url)
+
+    def add_target(key, url, source=None):
+        if not url or url == "待核实" or url in seen:
+            return
+        config = resolve_fetch_config(policy, source)
+        specs.append({
+            "key": key,
+            "url": url,
+            "method": config["method"],
+            "min_body_chars": config["min_body_chars"],
+            "content_selector": config["content_selector"],
+            "wait_for_selector": config["wait_for_selector"],
+        })
+        seen.add(url)
+
+    # main 目标的 URL（policy_url）就在顶层，天然没有内层对象可挂配置。
+    # targets.main 补上这个唯一缺失的载体，使"每个目标都能独立配置"没有例外；
+    # 顶层字段继续生效（resolve_fetch_config 里目标级优先），既有数据文件无需改动。
+    targets_cfg = policy.get("targets") or {}
+    main_cfg = targets_cfg.get("main") if isinstance(targets_cfg, dict) else None
+    add_target("main", policy.get("policy_url", ""), main_cfg)
     versions = policy.get("versions") or {}
+    if not isinstance(versions, dict):
+        versions = {}
     for key in ("toc", "tob"):
-        link = (versions.get(key) or {}).get("policy_link") or ""
-        if link and link not in seen and link != "待核实":
-            targets.append((key, link))
-            seen.add(link)
-    return targets
+        version = versions.get(key) or {}
+        link = version.get("policy_link", "") if isinstance(version, dict) else ""
+        add_target(key, link, version)
+
+    sources = policy.get("sources") or []
+    if not isinstance(sources, list):
+        sources = []
+    for index, source in enumerate(sources, 1):
+        if not isinstance(source, dict) or source.get("monitored") is False:
+            continue
+        raw_id = str(source.get("id") or index)
+        safe_id = re.sub(r"[^A-Za-z0-9_-]", "_", raw_id)[:48] or str(index)
+        key = "source_" + safe_id
+        suffix = 2
+        while key in {spec["key"] for spec in specs}:
+            key = "source_%s_%d" % (safe_id, suffix)
+            suffix += 1
+        add_target(key, source.get("url", ""), source)
+    return specs
+
+
+def collect_targets(policy):
+    """兼容旧接口：只返回 [(key, url), ...]。"""
+    return [(spec["key"], spec["url"]) for spec in collect_target_specs(policy)]
 
 
 def base_target_result(url, prev_target, **extra):
+    """构造目标级结果，继承跨轮次稳定字段（上次变更时间、最后成功时间）。"""
     result = {
         "url": url,
         "hash_scheme": HASH_SCHEME,
         "last_checked": datetime.datetime.now().isoformat(),
         "last_changed_date": prev_target.get("last_changed_date"),
+        "last_good_at": prev_target.get("last_good_at"),
+        "health": "ok",
     }
     result.update(extra)
+    result.setdefault("health", "ok")
     return result
 
 
-def check_target(pid, name, key, url, prev_target, timeout, method="requests"):
+def health_for_failure(baseline_ready, blocked=False):
+    """抓取失败时的健康状态：能兜住上次快照则降级，否则无基线。"""
+    if blocked:
+        return "blocked"
+    return "degraded" if baseline_ready else "no_baseline"
+
+
+def check_target(pid, name, key, url, prev_target, timeout, method="requests", config=None):
     """检查单个目标 URL，返回该目标的状态明细。
 
     method="requests"（默认）：普通 HTTP 抓取，适用绝大多数站点；
     method="browser"：改用无头浏览器抓取（应对 Cloudflare 等反爬挑战页），
-        仅当产品 fetch_method=browser 时启用，依赖可选 playwright。
+        仅当该目标配置 fetch_method=browser 时启用，依赖可选 playwright。
+
+    config：目标级抓取配置（min_body_chars / content_selector / wait_for_selector）。
+    返回结果同时包含两套正交语义：
+        status —— 政策内容状态（ok/changed/failed/suspicious/skipped）
+        health —— 抓取健康状态（ok/initialized/rebaselined/degraded/no_baseline/blocked）
     """
+    if not isinstance(prev_target, dict):
+        prev_target = {}
+    config = config or {}
+    min_body_chars = config.get("min_body_chars") or MIN_BODY_CHARS
+    content_selector = config.get("content_selector")
+    wait_for_selector = config.get("wait_for_selector")
     label = TARGET_LABELS.get(key, key)
-    # 哈希算法版本不同或没有记录过哈希时，重建基线
     prev_hash = prev_target.get("current_hash") if prev_target.get("hash_scheme") == HASH_SCHEME else None
-    if prev_target and prev_hash is None and prev_target.get("current_hash"):
+    baseline = load_baseline_text(pid, key)
+    baseline_ready = bool(baseline and baseline.strip())
+    if baseline_ready and not prev_target.get("last_good_at"):
+        # 旧状态文件没有该字段时，用快照保存时间回填，避免"已保留上次快照"却显示"从未成功"
+        saved_at = baseline_saved_at(pid, key)
+        if saved_at:
+            prev_target = dict(prev_target, last_good_at=saved_at)
+    scheme_matches = prev_target.get("hash_scheme") == HASH_SCHEME
+    url_matches = prev_target.get("url") == url
+    source_changed = bool(prev_target and not url_matches)
+    scheme_changed = bool(prev_target and not scheme_matches)
+    had_cached_response = bool(
+        prev_target.get("current_hash") or prev_target.get("content_etag")
+        or prev_target.get("content_last_modified") or prev_target.get("status") in ("ok", "changed")
+    )
+    missing_baseline = bool(prev_target and had_cached_response and not baseline_ready)
+    can_use_validators = bool(
+        baseline_ready and scheme_matches and url_matches
+        and (prev_target.get("content_etag") or prev_target.get("content_last_modified"))
+    )
+    etag = prev_target.get("content_etag") if can_use_validators else None
+    last_modified = prev_target.get("content_last_modified") if can_use_validators else None
+    if scheme_changed:
         print(f"  [基线] {name} ({pid}·{label}): 哈希算法已升级，重新记录基线")
+    if source_changed:
+        print(f"  [基线] {name} ({pid}·{label}): 监控 URL 已变更，重新核实并记录基线")
+    if missing_baseline:
+        print(f"  [基线] {name} ({pid}·{label}): 本地基线缺失，禁用条件请求")
 
-    etag = prev_target.get("content_etag")
-    last_modified = prev_target.get("content_last_modified")
-
-    # 浏览器抓取：在 try 之前预取，失败直接返回 failed，避免拖垮整轮
     raw_html, was_304, resp = None, False, None
     if method == "browser":
         try:
-            raw_html, was_304 = fetch_browser(url, timeout)
+            raw_html, was_304 = fetch_browser(url, timeout, wait_selector=wait_for_selector)
             print(f"  [浏览器] {name} ({pid}·{label}): 已用无头浏览器抓取")
         except Exception as e:
             print(f"  [失败] {name} ({pid}·{label}): 浏览器抓取失败 - {e}")
+            print(f"         URL: {url}")
             return base_target_result(url, prev_target, current_hash=prev_hash, status="failed",
+                                      health=health_for_failure(baseline_ready),
+                                      health_reason="browser_error",
                                       message=f"浏览器抓取失败：{e}")
 
     try:
@@ -495,45 +872,87 @@ def check_target(pid, name, key, url, prev_target, timeout, method="requests"):
             resp, was_304 = fetch_with_retry(url, etag, last_modified, timeout)
 
             if was_304:
+                if not baseline_ready or not scheme_matches or not url_matches:
+                    return base_target_result(
+                        url, prev_target, current_hash=None, status="suspicious",
+                        health="no_baseline", health_reason="missing_baseline",
+                        message="收到 304，但本地没有可验证的基线，已拒绝接受条件响应",
+                        last_checked=now,
+                    )
+                current_hash = prev_hash or compute_hash(baseline)
                 print(f"  [OK]   {name} ({pid}·{label}): 内容未变化（304 Not Modified）")
-                return base_target_result(url, prev_target, current_hash=prev_hash, status="ok",
-                                          content_etag=etag, content_last_modified=last_modified,
-                                          message="内容未变化（304 Not Modified）", last_checked=now)
+                return base_target_result(
+                    url, prev_target, current_hash=current_hash, status="ok",
+                    content_etag=etag, content_last_modified=last_modified,
+                    message="内容未变化（304 Not Modified）", last_checked=now,
+                    last_good_at=now,
+                )
 
             raw_html = response_text(resp)
 
-        raw_text = extract_text(raw_html)
+        raw_text = extract_text(raw_html, content_selector=content_selector)
         normalized = normalize_text(raw_text)
         current_hash = compute_hash(normalized)
 
-        if len(normalized) < MIN_BODY_CHARS:
-            # 空壳正文：不建基线、不报变更，标记为 suspicious 交由人工处理
+        if len(normalized) < min_body_chars:
+            reason = "empty_body" if len(normalized) < 50 else "render_required"
+            kept = "，已保留上次有效快照" if baseline_ready else "，无可验证基线"
             print(f"  [可疑] {name} ({pid}·{label}): 正文仅 {len(normalized)} 字符，"
-                  f"疑似 JS 渲染/反爬空壳，未记录基线")
-            return base_target_result(url, prev_target, current_hash=prev_hash, status="suspicious",
-                                      message=f"抓取正文过短（{len(normalized)} 字符 < "
-                                              f"{MIN_BODY_CHARS}），疑似 JS 渲染或反爬，未记录基线",
-                                      last_checked=now)
+                  f"疑似 JS 渲染/反爬空壳{kept}")
+            return base_target_result(
+                url, prev_target, current_hash=prev_hash, status="suspicious",
+                health=health_for_failure(baseline_ready), health_reason=reason,
+                message=f"抓取正文过短（{len(normalized)} 字符 < {min_body_chars}），"
+                        f"疑似 JS 渲染或反爬{kept}",
+                last_checked=now,
+            )
 
-        # 基线以"已存快照文本"为准（方案无关），哈希仅作快速路径。
-        # 这样哈希方案升级时即使旧哈希失效，只要页面文本没变就判未变，不会整库误报。
-        baseline = load_baseline_text(pid, key)
-        if baseline is None:
+        if source_changed:
+            save_snapshot(pid, key, raw_text, archived=True)
+            result = base_target_result(
+                url, prev_target, current_hash=current_hash, status="changed",
+                message="⚠️ 监控 URL 已变更，需重新核实新来源", last_changed_date=now,
+                last_good_at=now,
+            )
+        elif baseline is None:
             print(f"  [新增] {name} ({pid}·{label}): 首次记录基线")
             save_snapshot(pid, key, raw_text, archived=True)
+            if missing_baseline:
+                result = base_target_result(
+                    url, prev_target, current_hash=current_hash, status="suspicious",
+                    health="rebaselined", health_reason="missing_baseline",
+                    message="本地基线缺失，已重新抓取并重建基线，需人工确认", last_checked=now,
+                    last_good_at=now,
+                )
+            else:
+                result = base_target_result(
+                    url, prev_target, current_hash=current_hash, status="ok",
+                    health="initialized", health_reason="first_baseline",
+                    message="首次检查，已记录基线（下一轮开始比较）",
+                    last_changed_date=None, last_good_at=now,
+                )
+        elif scheme_changed:
+            save_snapshot(pid, key, raw_text, archived=False)
             result = base_target_result(url, prev_target, current_hash=current_hash, status="ok",
-                                        message="首次检查，已记录基线", last_changed_date=None)
+                                        health="rebaselined", health_reason="hash_scheme_upgrade",
+                                        message="哈希方案已更新，已重建基线", last_good_at=now)
         elif baseline == normalized:
             result = base_target_result(url, prev_target, current_hash=current_hash, status="ok",
-                                        message="内容未变化")
+                                        message="内容未变化", last_good_at=now)
         else:
             print(f"  [⚠️]   {name} ({pid}·{label}): 政策可能已更新！待核实")
             print(f"         URL: {url}")
             save_snapshot(pid, key, raw_text, archived=True)
+            message = "⚠️ 政策可能已更新，待核实"
+            health, health_reason = "ok", None
+            if scheme_changed:
+                message = "⚠️ 正文发生变化（同时发生哈希方案升级），待核实"
+                health, health_reason = "rebaselined", "hash_scheme_upgrade"
             result = base_target_result(url, prev_target, current_hash=current_hash, status="changed",
-                                        message="⚠️ 政策可能已更新，待核实",
-                                        last_changed_date=now)
+                                        message=message, last_changed_date=now, last_good_at=now,
+                                        health=health, health_reason=health_reason)
 
+        result["fetch_method"] = method
         if method != "browser" and resp is not None:
             result["content_etag"] = resp.headers.get("ETag")
             result["content_last_modified"] = resp.headers.get("Last-Modified")
@@ -546,16 +965,21 @@ def check_target(pid, name, key, url, prev_target, timeout, method="requests"):
         print(f"  [失败] {name} ({pid}·{label}): 请求失败（重试后仍超时/连接失败）- {e.__class__.__name__}")
         print(f"         URL: {url}")
         return base_target_result(url, prev_target, current_hash=prev_hash, status="failed",
+                                  health=health_for_failure(baseline_ready), health_reason="network",
                                   message=f"检查失败：请求异常 - {e.__class__.__name__}")
     except requests.exceptions.HTTPError as e:
         status_code = e.response.status_code if e.response is not None else "?"
+        blocked = status_code in (401, 403, 405, 429, 451)
         print(f"  [失败] {name} ({pid}·{label}): HTTP {status_code} 错误")
         print(f"         URL: {url}")
         return base_target_result(url, prev_target, current_hash=prev_hash, status="failed",
+                                  health=health_for_failure(baseline_ready, blocked=blocked),
+                                  health_reason="blocked" if blocked else "http_error",
                                   message=f"检查失败：HTTP {status_code} 错误 - {e}")
     except requests.exceptions.RequestException as e:
         print(f"  [失败] {name} ({pid}·{label}): 请求异常 - {e}")
         return base_target_result(url, prev_target, current_hash=prev_hash, status="failed",
+                                  health=health_for_failure(baseline_ready), health_reason="request",
                                   message=f"检查失败：请求异常 - {e}")
 
 
@@ -571,38 +995,11 @@ def migrate_prev_targets(prev_entry):
     return {}
 
 
-def check_product(pid, policy, prev_entry, timeout, delay, no_browser=False):
-    """检查一个产品的全部目标 URL，返回聚合后的产品级状态（首页兼容旧结构）。"""
-    name = policy.get("name", pid)
-    targets = collect_targets(policy)
-    method = policy.get("fetch_method", "requests")
-
-    if not targets:
-        print(f"  [跳过] {name} ({pid}): URL 为空或待核实")
-        return {"status": "skipped", "message": "URL 为空或待核实，跳过检查",
-                "last_checked": datetime.datetime.now().isoformat()}
-
-    if policy.get("monitor") is False:
-        # 占位条目（无公开政策页 / 政策 URL 指向产品首页）：不抓取，避免持续误报
-        return {"status": "skipped", "message": "该产品已标记为不监控（无独立公开政策页）",
-                "last_checked": datetime.datetime.now().isoformat()}
-
-    if no_browser and method == "browser":
-        # CI 等未安装 playwright 的环境：跳过需浏览器抓取的站点，避免整轮噪声
-        return {"status": "skipped", "message": "浏览器抓取已禁用（--no-browser），跳过该反爬站点",
-                "last_checked": datetime.datetime.now().isoformat()}
-
-    prev_targets = migrate_prev_targets(prev_entry)
-    target_results = {}
-    statuses = []
-    for i, (key, url) in enumerate(targets):
-        target_results[key] = check_target(pid, name, key, url,
-                                           prev_targets.get(key, {}), timeout, method=method)
-        statuses.append(target_results[key]["status"])
-        if i < len(targets) - 1:
-            time.sleep(delay)
-
-    # 聚合规则：changed > failed > suspicious > ok
+def aggregate_targets(target_results):
+    """把目标级状态聚合为产品级状态与摘要文案（changed > failed > suspicious > ok）。"""
+    statuses = [r.get("status", "ok") for r in target_results.values()]
+    if not statuses:
+        return "ok", "内容未变化", 0
     if "changed" in statuses:
         status = "changed"
     elif "failed" in statuses:
@@ -612,9 +1009,9 @@ def check_product(pid, policy, prev_entry, timeout, delay, no_browser=False):
     else:
         status = "ok"
 
-    changed_keys = [k for k, r in target_results.items() if r["status"] == "changed"]
-    failed_keys = [k for k, r in target_results.items() if r["status"] == "failed"]
-    suspicious_keys = [k for k, r in target_results.items() if r["status"] == "suspicious"]
+    changed_keys = [k for k, r in target_results.items() if r.get("status") == "changed"]
+    failed_keys = [k for k, r in target_results.items() if r.get("status") == "failed"]
+    suspicious_keys = [k for k, r in target_results.items() if r.get("status") == "suspicious"]
     if changed_keys:
         summary = "⚠️ 政策可能已更新，待核实（" + "、".join(
             TARGET_LABELS.get(k, k) for k in changed_keys) + "）"
@@ -632,57 +1029,284 @@ def check_product(pid, policy, prev_entry, timeout, delay, no_browser=False):
     else:
         summary = "内容未变化"
 
+    unhealthy = [k for k, r in target_results.items()
+                 if r.get("health") in HEALTH_QUEUED_STATES]
+    if unhealthy:
+        summary += f"（{len(unhealthy)} 个目标抓取降级，已保留上次有效快照）"
+    return status, summary, len(unhealthy)
+
+
+def aggregate_health(target_results):
+    """产品级抓取健康状态：取最严重的一个（blocked > no_baseline > degraded）。"""
+    worst, worst_score = "ok", 0
+    for result in target_results.values():
+        health = result.get("health", "ok")
+        score = HEALTH_SEVERITY.get(health, 0)
+        if score > worst_score:
+            worst, worst_score = health, score
+    return worst
+
+
+def merge_partial_product(prev_info, new_info):
+    """局部重试时把新结果合并回上次状态：只覆盖被检查的目标，其余目标沿用上次结果。"""
+    merged = json.loads(json.dumps(prev_info)) if isinstance(prev_info, dict) else {}
+    merged_targets = merged.get("targets")
+    if not isinstance(merged_targets, dict):
+        merged_targets = {}
+    for key, target in (new_info.get("targets") or {}).items():
+        merged_targets[key] = target
+    merged["targets"] = merged_targets
+    merged["name"] = new_info.get("name", merged.get("name"))
+    merged["url"] = new_info.get("url") or merged.get("url")
+    merged["last_checked"] = new_info.get("last_checked", merged.get("last_checked"))
+    status, summary, unhealthy = aggregate_targets(merged_targets)
+    merged["status"] = status
+    merged["message"] = summary
+    merged["health"] = aggregate_health(merged_targets)
+    merged["health_issues"] = unhealthy
+    return merged
+
+
+def check_product(pid, policy, prev_entry, timeout, delay, no_browser=False, only_keys=None):
+    """检查一个产品的全部（或指定）监控目标，返回聚合后的产品级状态。"""
+    name = policy.get("name", pid)
+    specs = collect_target_specs(policy)
+    if only_keys:
+        wanted = set(only_keys)
+        specs = [spec for spec in specs if spec["key"] in wanted]
+    if not specs:
+        print(f"  [跳过] {name} ({pid}): URL 为空、待核实或未匹配 --only 目标")
+        return {"name": name, "status": "skipped", "health": "ok", "health_issues": 0,
+                "message": "URL 为空或待核实，跳过检查",
+                "last_checked": datetime.datetime.now().isoformat()}
+
+    for spec in specs:
+        if spec["method"] not in SUPPORTED_FETCH_METHODS:
+            return {"name": name, "status": "failed", "health": "blocked", "health_issues": 1,
+                    "message": f"目标 {spec['key']} 配置了不支持的抓取方式：{spec['method']!r}",
+                    "last_checked": datetime.datetime.now().isoformat()}
+
+    if policy.get("monitor") is False:
+        # 占位条目（无公开政策页 / 政策 URL 指向产品首页）：不抓取，避免持续误报
+        return {"name": name, "status": "skipped", "health": "ok", "health_issues": 0,
+                "message": "该产品已标记为不监控（无独立公开政策页）",
+                "last_checked": datetime.datetime.now().isoformat()}
+
+    prev_targets = migrate_prev_targets(prev_entry)
+
+    if no_browser:
+        # 未安装 playwright 的环境：只跳过需浏览器抓取的目标，其余目标照常检查
+        kept = [spec for spec in specs if spec["method"] != "browser"]
+        if not kept:
+            # 全部目标都要浏览器：沿用上次结果而不是清空——否则本地无浏览器的一次运行
+            # 会把 CI 建立的监控覆盖从状态文件里抹掉（total_targets 缩水、覆盖被低估）
+            spec_keys = {spec["key"] for spec in specs}
+            preserved = {}
+            for key in spec_keys:
+                previous = prev_targets.get(key)
+                if isinstance(previous, dict):
+                    kept_target = dict(previous)
+                    kept_target["skipped_this_run"] = True
+                    preserved[key] = kept_target
+            print(f"  [跳过] {name} ({pid}): 全部目标需浏览器抓取，已被 --no-browser 跳过"
+                  f"（沿用上次结果，{len(preserved)} 个目标）")
+            return {
+                "name": name,
+                "status": "skipped",
+                "health": aggregate_health(preserved),
+                "health_issues": sum(1 for t in preserved.values()
+                                     if t.get("health") in HEALTH_QUEUED_STATES),
+                "url": specs[0]["url"],
+                "message": "全部目标需浏览器抓取，已被 --no-browser 跳过（沿用上次结果）",
+                "last_checked": datetime.datetime.now().isoformat(),
+                "targets": preserved,
+            }
+        if len(kept) != len(specs):
+            skipped = "、".join(TARGET_LABELS.get(s["key"], s["key"])
+                                for s in specs if s["method"] == "browser")
+            print(f"  [跳过] {name} ({pid}): 浏览器抓取已禁用（--no-browser），跳过 {skipped}")
+        specs = kept
+
+    target_results = {}
+    for i, spec in enumerate(specs):
+        target_results[spec["key"]] = check_target(
+            pid, name, spec["key"], spec["url"], prev_targets.get(spec["key"], {}),
+            timeout, method=spec["method"],
+            config={k: spec[k] for k in
+                    ("min_body_chars", "content_selector", "wait_for_selector")},
+        )
+        if i < len(specs) - 1:
+            time.sleep(delay)
+
+    status, summary, unhealthy = aggregate_targets(target_results)
     return {
+        "name": name,
         "status": status,
-        "url": targets[0][1],
+        "health": aggregate_health(target_results),
+        "health_issues": unhealthy,
+        "url": specs[0]["url"],
         "message": summary,
         "last_checked": datetime.datetime.now().isoformat(),
         "targets": target_results,
     }
 
 
-def update_pending_verification(new_status):
+def atomic_write_json(path, data):
+    directory = os.path.dirname(path)
+    os.makedirs(directory, exist_ok=True)
+    fd, tmp_path = tempfile.mkstemp(prefix=os.path.basename(path) + ".", suffix=".tmp", dir=directory)
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+        os.replace(tmp_path, path)
+    finally:
+        if os.path.exists(tmp_path):
+            os.remove(tmp_path)
+
+
+def load_pending_items():
+    if not os.path.exists(PENDING_FILE):
+        return {}
+    try:
+        with open(PENDING_FILE, encoding="utf-8") as f:
+            data = json.load(f)
+    except (OSError, json.JSONDecodeError) as e:
+        raise ValueError("无法读取待核实队列 %s：%s" % (PENDING_FILE, e))
+    items = data.get("items", {}) if isinstance(data, dict) else None
+    if not isinstance(items, dict):
+        raise ValueError("待核实队列格式错误：items 必须是对象")
+    return items
+
+
+def reapply_pending_alerts(products, pending_items):
+    restored = 0
+    for item in pending_items.values():
+        if not isinstance(item, dict):
+            continue
+        pid = item.get("pid")
+        key = item.get("key")
+        product = products.get(pid)
+        targets = (product or {}).get("targets") or {}
+        target = targets.get(key)
+        if not target or target.get("status") != "ok":
+            continue
+        target["status"] = "changed"
+        target["message"] = "此前检测到政策变化，仍待人工核实"
+        target["last_changed_date"] = target.get("last_changed_date") or datetime.datetime.now().isoformat()
+        product["status"] = "changed"
+        product["message"] = "⚠️ 政策可能已更新，待人工核实"
+        restored += 1
+    return restored
+
+
+def update_pending_verification(products):
     """合并式维护"待核实队列"（检测→核实的持久交接物，取代已移除的自动 Issue）。
 
+    products 为本次状态里的产品映射（形如 {pid: info}），与 main 中保持一致。
+
     - 本轮检测为 changed 的目标入队（首次出现记 first_seen，之后只更新 last_seen）；
-    - 不在本轮出现的历史项保留不删——等待人工在本地用 skill 核实并更新数据后，
-      由 policy_verify.py --resolve 显式清除，从而实现跨轮（CI 每周一次）持久交接；
+    - 已从当前监控目标中移除的历史项自动清理；
     - 只收 changed，failed/suspicious 属监控异常，不入此队列（由 update_status 单独体现）。
     """
     now = datetime.datetime.now().isoformat()
-    existing = {}
-    if os.path.exists(PENDING_FILE):
-        try:
-            with open(PENDING_FILE, encoding="utf-8") as f:
-                existing = json.load(f).get("items", {})
-        except (json.JSONDecodeError, IOError):
-            existing = {}
-    items = dict(existing)
-    for pid, info in (new_status.get("products") or {}).items():
-        if info.get("status") != "changed":
+    existing = load_pending_items()
+    active_keys = set()
+    for pid, info in products.items():
+        for key in (info.get("targets") or {}):
+            active_keys.add(f"{pid}:{key}")
+    items = {
+        pk: item for pk, item in existing.items()
+        if pk in active_keys and isinstance(item, dict)
+    }
+    for pid, info in products.items():
+        if not isinstance(info, dict):
+            continue
+        for key, target in (info.get("targets") or {}).items():
+            pk = f"{pid}:{key}"
+            if pk in items:
+                items[pk]["name"] = info.get("name", pid)
+                items[pk]["url"] = target.get("url", "")
+                items[pk]["label"] = TARGET_LABELS.get(key, key)
+    for pid, info in products.items():
+        if not isinstance(info, dict) or info.get("status") != "changed":
             continue
         name = info.get("name", pid)
-        for key, t in (info.get("targets") or {}).items():
-            if t.get("status") != "changed":
+        for key, target in (info.get("targets") or {}).items():
+            if target.get("status") != "changed":
                 continue
             pk = f"{pid}:{key}"
+            old = items.get(pk) or {}
             items[pk] = {
                 "pid": pid,
                 "name": name,
                 "key": key,
                 "label": TARGET_LABELS.get(key, key),
-                "url": t.get("url", ""),
+                "url": target.get("url", ""),
                 "status": "changed",
-                "first_seen": (existing.get(pk) or {}).get("first_seen", now),
+                "first_seen": old.get("first_seen", now),
                 "last_seen": now,
             }
-    data = {"updated_at": now, "items": items}
-    os.makedirs(os.path.dirname(PENDING_FILE), exist_ok=True)
-    tmp = PENDING_FILE + ".tmp"
-    with open(tmp, "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
-    os.replace(tmp, PENDING_FILE)
-    return len(items)
+    atomic_write_json(PENDING_FILE, {"updated_at": now, "items": items})
+    return items
+
+
+def load_health_items():
+    """读取上一轮健康队列；文件损坏时降级为空队列（健康队列可由状态完全重建）。"""
+    if not os.path.exists(HEALTH_FILE):
+        return {}
+    try:
+        with open(HEALTH_FILE, encoding="utf-8") as f:
+            data = json.load(f)
+    except (OSError, json.JSONDecodeError, UnicodeError) as e:
+        print(f"  [警告] 健康队列读取失败（{e}），本轮按空队列重建")
+        return {}
+    items = data.get("items", {}) if isinstance(data, dict) else None
+    return items if isinstance(items, dict) else {}
+
+
+def update_monitor_health(products):
+    """独立"抓取健康队列"：跟踪监控可用性，与"政策变化"待核实队列分离。
+
+    与 pending_verification 的分工：
+      - pending：正文确实变了，等人核实内容差异；
+      - health：本轮抓取不可信（被拦截 / 无基线 / 降级），等人修抓取配置。
+    两者互不覆盖：政策可能没变，但抓取已经坏了，首页必须能同时看清这两种情况。
+
+    products 为本次状态里的产品映射（形如 {pid: info}）。
+    """
+    now = datetime.datetime.now().isoformat()
+    existing = load_health_items()
+    items = {}
+    for pid, info in products.items():
+        if not isinstance(info, dict):
+            continue
+        for key, target in (info.get("targets") or {}).items():
+            health = target.get("health", "ok")
+            if health not in HEALTH_QUEUED_STATES:
+                continue
+            pk = f"{pid}:{key}"
+            old = existing.get(pk) if isinstance(existing.get(pk), dict) else {}
+            items[pk] = {
+                "pid": pid,
+                "name": info.get("name", pid),
+                "key": key,
+                "label": TARGET_LABELS.get(key, key),
+                "url": target.get("url", ""),
+                "health": health,
+                "health_reason": target.get("health_reason"),
+                "status": target.get("status"),
+                "message": target.get("message", ""),
+                "last_checked": target.get("last_checked"),
+                "last_good_at": target.get("last_good_at"),
+                # 连续不健康轮次：恢复后条目会被清除，下次再坏重新计数
+                "consecutive_runs": (old.get("consecutive_runs", 0) + 1) if old else 1,
+                "first_seen": old.get("first_seen", now),
+                "last_seen": now,
+                "next_action": HEALTH_ACTIONS.get(health, "检查抓取配置并重试"),
+            }
+    # 队列完全由当前状态重建：已恢复或已下线监控的目标自动消失
+    atomic_write_json(HEALTH_FILE, {"updated_at": now, "items": items})
+    return items
 
 
 def main():
@@ -694,53 +1318,127 @@ def main():
     parser.add_argument("--no-browser", action="store_true",
                         help="禁用无头浏览器抓取（fetch_method=browser 的产品将被跳过），"
                              "用于未安装 playwright 的 CI 环境")
+    parser.add_argument("--fail-on-error", action="store_true",
+                        help="存在产品检查失败时返回非零退出码")
+    parser.add_argument("--products", default="",
+                        help="仅检查指定产品（逗号分隔 pid，如 gemini,minimax）；"
+                             "未检查产品沿用上次状态")
+    parser.add_argument("--only", default="",
+                        help="仅检查指定目标，格式 pid:key（可逗号分隔，如 gemini:toc,minimax:main）")
+    parser.add_argument("--no-prune", action="store_true",
+                        help="不清理已不再监控的孤儿快照目录")
     args = parser.parse_args()
 
     print("=" * 60)
     print("AI 政策更新监控脚本")
     print("运行时间：" + datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
-    print(f"哈希方案：{HASH_SCHEME}（正文文本归一化，按版本 URL 逐条监控）")
+    print(f"哈希方案：{HASH_SCHEME}（正文文本归一化，按配置来源逐条监控）")
     print("=" * 60)
 
     pids = load_product_ids()
     prev_status = load_previous_status().get("products", {})
-    new_status = {}
+
+    # 局部重试：只重跑指定产品/目标，其余结果原样继承，避免为重试一个站点重跑全量
+    selected_pids = []
+    only_map = {}
+
+    def select(pid):
+        if pid not in selected_pids:
+            selected_pids.append(pid)
+
+    if args.products:
+        for raw in args.products.split(","):
+            pid = raw.strip()
+            if not pid:
+                continue
+            if pid not in pids:
+                print(f"[错误] 未知产品 id：{pid!r}")
+                return 2
+            select(pid)
+    if args.only:
+        for token in args.only.split(","):
+            token = token.strip()
+            if not token:
+                continue
+            if ":" not in token:
+                print(f"[错误] --only 需要 pid:key 格式，收到 {token!r}")
+                return 2
+            pid, key = token.split(":", 1)
+            if pid not in pids:
+                print(f"[错误] 未知产品 id：{pid!r}")
+                return 2
+            only_map.setdefault(pid, set()).add(key)
+            select(pid)
+    partial = bool(args.products or args.only)
+    if not partial:
+        selected_pids = list(pids)
+    else:
+        # 保持与 products.json 一致的顺序，便于和全量结果对照
+        selected_pids = [pid for pid in pids if pid in set(selected_pids)]
+    if partial:
+        new_status = {pid: json.loads(json.dumps(info))
+                      for pid, info in prev_status.items() if pid in set(pids)}
+        for pid in pids:
+            new_status.setdefault(pid, {"name": pid, "status": "skipped",
+                                        "health": "ok", "health_issues": 0,
+                                        "message": "本轮未检查（--products/--only）",
+                                        "last_checked": datetime.datetime.now().isoformat()})
+        target_count = sum(len(v) for v in only_map.values()) or "全部"
+        print(f"局部重试：{len(selected_pids)} 个产品 / {target_count} 个目标，"
+              f"其余沿用上次状态")
+    else:
+        new_status = {}
     changed_count = failed_count = skipped_count = suspicious_count = 0
-    total_targets = 0
+    policies = {}
 
-    print(f"\n共 {len(pids)} 个产品需要检查\n")
+    print(f"\n共 {len(pids)} 个产品需要检查（本次检查 {len(selected_pids)} 个）\n")
 
-    for i, pid in enumerate(pids):
+    for i, pid in enumerate(selected_pids):
         policy = load_policy(pid)
+        policies[pid] = policy
         prev = prev_status.get(pid, {})
+        only_keys = only_map.get(pid)
         if not policy:
-            new_status[pid] = {"status": "failed", "message": "数据文件缺失或不是合法 JSON",
+            new_status[pid] = {"name": pid, "status": "failed", "health": "no_baseline",
+                               "health_issues": 1, "message": "数据文件缺失或不是合法 JSON",
                                "last_checked": datetime.datetime.now().isoformat()}
-            failed_count += 1
             continue
-        new_status[pid] = check_product(pid, policy, prev, args.timeout, args.delay,
-                                        no_browser=args.no_browser)
-        total_targets += len(new_status[pid].get("targets", {}))
+        result = check_product(pid, policy, prev, args.timeout, args.delay,
+                               no_browser=args.no_browser, only_keys=only_keys)
+        if partial and isinstance(prev, dict) and prev.get("targets"):
+            result = merge_partial_product(prev, result)
+        new_status[pid] = result
 
-        status = new_status[pid]["status"]
-        if status == "changed":
-            changed_count += 1
-        elif status == "failed":
-            failed_count += 1
-        elif status == "suspicious":
-            suspicious_count += 1
-        elif status == "skipped":
-            skipped_count += 1
-
-        if i < len(pids) - 1:
+        if i < len(selected_pids) - 1:
             time.sleep(args.delay)
 
-    pending_count = update_pending_verification(new_status)
+    try:
+        pending_items = update_pending_verification(new_status)
+    except (OSError, ValueError) as e:
+        print(f"[错误] {e}")
+        return 1
+    restored_count = reapply_pending_alerts(new_status, pending_items)
+    if restored_count:
+        print(f"  [待核实] 恢复了 {restored_count} 个未解决告警，避免被后续 304 清除")
 
-    # 防御性裁剪：仅保留当前索引中的产品，避免历史运行中残留的已删除产品条目进入产物。
-    # new_status 本就只含当前 pids，这里兜底，防止后续改动引入 prev 合并时 reintroduce 残留。
     current_ids = set(pids)
     new_status = {pid: info for pid, info in new_status.items() if pid in current_ids}
+    if not partial and not args.no_prune:
+        # 按配置（而非本轮状态）判定活跃目标，避免把被跳过的产品的快照误删
+        all_policies = {pid: load_policy(pid) for pid in pids}
+        orphan_count = prune_orphan_snapshots(all_policies)
+        if orphan_count:
+            print(f"  [清理] 移除了 {orphan_count} 个不再监控的快照目录")
+    health_items = update_monitor_health(new_status)
+    total_targets = sum(len(info.get("targets") or {}) for info in new_status.values())
+    changed_count = sum(info.get("status") == "changed" for info in new_status.values())
+    failed_count = sum(info.get("status") == "failed" for info in new_status.values())
+    suspicious_count = sum(info.get("status") == "suspicious" for info in new_status.values())
+    skipped_count = sum(info.get("status") == "skipped" for info in new_status.values())
+    pending_count = len(pending_items)
+    blocked_count = sum(item.get("health") == "blocked" for item in health_items.values())
+    degraded_count = sum(item.get("health") == "degraded" for item in health_items.values())
+    no_baseline_count = sum(item.get("health") == "no_baseline" for item in health_items.values())
 
     status_data = {
         "meta": {
@@ -752,16 +1450,15 @@ def main():
             "failed": failed_count,
             "suspicious": suspicious_count,
             "skipped": skipped_count,
+            "health_issues": len(health_items),
+            "health_blocked": blocked_count,
+            "health_degraded": degraded_count,
+            "health_no_baseline": no_baseline_count,
+            "partial_run": partial,
         },
         "products": new_status,
     }
-
-    os.makedirs(os.path.dirname(STATUS_FILE), exist_ok=True)
-    # 原子写：先落临时文件再 rename，避免中途被 kill（CI 超时）留下截断的 JSON
-    tmp_path = STATUS_FILE + ".tmp"
-    with open(tmp_path, "w", encoding="utf-8") as f:
-        json.dump(status_data, f, ensure_ascii=False, indent=2)
-    os.replace(tmp_path, STATUS_FILE)
+    atomic_write_json(STATUS_FILE, status_data)
 
     print("\n" + "=" * 60)
     print("检查完成")
@@ -772,10 +1469,12 @@ def main():
     print(f"  失败:   {failed_count}")
     print(f"  可疑:   {suspicious_count}（正文疑似空壳，未记录基线）")
     print(f"  跳过:   {skipped_count}")
+    print(f"  健康队列: {len(health_items)} 项（blocked {blocked_count} / 降级 {degraded_count} / "
+          f"无基线 {no_baseline_count}，详见 site/generated/monitor_health.json）")
     print(f"  状态文件: {STATUS_FILE}")
     print("=" * 60)
 
-    if changed_count == 0 and failed_count == len(pids) and pids:
+    if changed_count == 0 and failed_count == len(pids) and pids and not partial:
         print("\n❌ 本轮全部产品检查失败：可能是网络/代理故障或 URL 大面积失效，请人工确认监控是否正常")
 
     if changed_count > 0:
@@ -785,6 +1484,14 @@ def main():
                 for key, t in (info.get("targets") or {}).items():
                     if t.get("status") == "changed":
                         print(f"  - {pid}（{TARGET_LABELS.get(key, key)}）: {t['url']}")
+
+    if health_items:
+        print(f"\n🔧 以下 {len(health_items)} 个目标抓取降级（政策未变更，但监控数据不可信）：")
+        for pk, item in sorted(health_items.items(), key=lambda kv: -HEALTH_SEVERITY.get(kv[1]["health"], 0)):
+            print(f"  - {item['name']}（{pk}）[{item['health']}] 连续 {item['consecutive_runs']} 轮")
+            print(f"    {item['message']}")
+            print(f"    建议：{item['next_action']}")
+        print(f"    可用 --only {sorted(health_items)[0]} 之类的命令单独重试")
 
     if failed_count > 0:
         print(f"\n❌ 以下 {failed_count} 个产品检查失败（下次运行会自动重试）：")
@@ -800,6 +1507,8 @@ def main():
                             reason = "连接超时（网站不可达）"
                         elif "403" in msg:
                             reason = "403 Forbidden（服务器拒绝访问，可能有反爬）"
+                        elif "429" in msg:
+                            reason = "429 Too Many Requests（被限流）"
                         elif "405" in msg:
                             reason = "405 Method Not Allowed（服务器不接受 GET 请求）"
                         elif "ConnectionError" in msg:
@@ -808,7 +1517,11 @@ def main():
                             reason = msg
                         print(f"  - {pid}（{TARGET_LABELS.get(key, key)}）: {reason}")
                         print(f"    URL: {t['url']}")
+                        if t.get("last_good_at"):
+                            print(f"    上次成功抓取: {t['last_good_at']}")
 
+    if args.fail_on_error and failed_count:
+        return 1
     return 0
 
 

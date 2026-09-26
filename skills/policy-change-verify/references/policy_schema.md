@@ -13,6 +13,10 @@
 | `region` | string | 地区，如 `中国` / `美国` |
 | `description` | string | 一句话概述训练/隐私要点 |
 | `policy_url` | string | 顶层监控页 URL（对应监测目标 `main`） |
+| `fetch_method` | string | `requests` 或 `browser`；产品级默认值，被目标级配置覆盖 |
+| `monitor` | boolean | 是否纳入自动监控 |
+| `targets` | object | 目标级抓取配置。当前只支持 `main` 键（顶层 `policy_url` 对应的监控目标）；`toc`/`tob` 写进 `versions.*`，补充来源写进 `sources[]` 条目 |
+| `sources` | array | 补充来源注册表；每项含 `id`、`role`、`url`、`monitored`，对应 `source_*` 监测目标 |
 | `last_verified` | string | 最近核实日期 `YYYY-MM-DD` |
 | `versions` | object | 见下，键为 `toc` / `tob`（可只含其一） |
 | `timeline` | array | 里程碑事件，元素见下 |
@@ -29,7 +33,8 @@
 
 | 字段 | 类型 | 说明 |
 |---|---|---|
-| `used_for_training` | bool | 是否将用户输入/输出用于模型训练 |
+| `used_for_training` | bool | 兼容字段：是否将用户输入/输出用于模型训练 |
+| `training_status` | string | `explicit_yes` / `explicit_no` / `default_on_opt_out` / `default_off_opt_in` / `unknown` / `inferred` |
 | `training_note` | string | 训练政策详述（含默认状态、例外、引文背景） |
 | `default_state` | string | `默认开启（可关闭）` / `默认关闭` / 其他表述 |
 | `opt_out` | string | `设置开关` / `无需退出` / `由组织协议约定` 等 |
@@ -41,6 +46,7 @@
 | `risk_level` | string | `red` / `yellow` / `green` |
 | `key_clauses` | array<string> | 原文引文清单（带出处与日期） |
 | `policy_link` | string | 该版本的监测 URL（对应 `toc`/`tob` 目标） |
+| `fetch_method` | string | 该目标级抓取方式，覆盖产品级；`sources[]` 条目同理 |
 | `last_verified` | string | 该版本最近核实日期 `YYYY-MM-DD` |
 | `label` | string | 版本中文名，如 `个人版` / `Claude for Work` |
 | `verification_notes` | array<string> | （可选）复核记录，格式 `YYYY-MM-DD 逐字复核：...` |

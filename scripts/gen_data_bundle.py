@@ -22,21 +22,53 @@ BUNDLE_FILE = os.path.join(BASE_DIR, "site", "generated", "bundle.json")
 
 # bundle 只服务首页（表格行 + 展开面板），详情页始终直接读 data/policies/{id}.json。
 # 因此按白名单裁剪：key_clauses（长条款原文）等首页不渲染的字段不带进首屏，
-# 实测可从 ~200KB 降到 ~20KB。
+# 实测可从 ~200KB 降到约 31KB。
 # ⚠️ 首页若要新增展示字段，必须同步加到下面的白名单，否则会显示"—"。
 BUNDLE_TOP_FIELDS = ("id", "name", "company", "region", "icon", "toc_note", "tob_note")
-BUNDLE_VERSION_FIELDS = ("label", "used_for_training", "opt_out", "deidentified",
-                         "data_retention", "risk_level")
+BUNDLE_VERSION_FIELDS = ("label", "used_for_training", "training_status", "opt_out",
+                         "deidentified", "data_retention", "risk_level")
+TRAINING_STATUSES = {
+    "explicit_no", "default_off_opt_in", "default_on_opt_out",
+    "explicit_yes", "unknown", "inferred",
+}
+
+
+def infer_training_status(version):
+    explicit = version.get("training_status")
+    if explicit in TRAINING_STATUSES:
+        return explicit
+    note = str(version.get("training_note") or "")
+    state = str(version.get("default_state") or "")
+    opt_out = str(version.get("opt_out") or "")
+    if version.get("used_for_training") is False:
+        if any(term in state for term in ("未明示", "沉默", "待核", "待核实", "未明确")) \
+                or state.startswith("—") \
+                or any(term in note for term in ("对训练沉默", "保持沉默", "零命中", "未明示模型训练")):
+            return "unknown"
+        if any(term in note for term in ("加入式", "opt-in", "主动加入", "主动选择")):
+            return "default_off_opt_in"
+        return "explicit_no"
+    if version.get("used_for_training") is True:
+        if any(term in note for term in ("按实质口径", "推断", "直接涵盖模型", "未明示模型训练")):
+            return "inferred"
+        if any(term in opt_out for term in ("设置开关", "联系", "邮件", "撤回", "退出")):
+            return "default_on_opt_out"
+        return "explicit_yes"
+    return "unknown"
 
 
 def slim_policy(policy):
     """只保留首页渲染所需的字段。"""
     out = {k: policy.get(k) for k in BUNDLE_TOP_FIELDS if k in policy}
     versions = {}
+    source_versions = policy.get("versions") or {}
+    if not isinstance(source_versions, dict):
+        source_versions = {}
     for tier in ("toc", "tob"):
-        version = (policy.get("versions") or {}).get(tier)
+        version = source_versions.get(tier)
         if version:
             versions[tier] = {k: version.get(k) for k in BUNDLE_VERSION_FIELDS if k in version}
+            versions[tier]["training_status"] = infer_training_status(version)
     out["versions"] = versions
     return out
 

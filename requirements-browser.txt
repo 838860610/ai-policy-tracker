@@ -12,6 +12,6 @@
 #   可选增强（大幅提升通过率）：先真人浏览器过一次验证，导出 cf_clearance 后
 #     export OPENAI_CF_CLEARANCE=<token>
 #     .venv/bin/python scripts/check_updates.py
-# 注意：cf_clearance 绑 IP + User-Agent 且短时效，CI（数据中心 IP）通常不保证可用，
-#       故 CI 默认带 --no-browser 跳过这类产品。
+# 注意：cf_clearance 绑 IP + User-Agent 且短时效，CI（数据中心 IP）通常不保证可用；
+#       CI 会安装浏览器并直接抓取，未安装时可使用 --no-browser 跳过这类产品。
 playwright>=1.40

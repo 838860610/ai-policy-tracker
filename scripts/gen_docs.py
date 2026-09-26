@@ -14,15 +14,18 @@
 依赖：markdown（见 requirements.txt）
 """
 
+import html as html_lib
 import os
 import re
 import sys
+from html.parser import HTMLParser
+from urllib.parse import urlparse
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DOCS_DIR = os.path.join(BASE_DIR, "site", "docs")
 
 # 站点资源版本号：必须与 site/*.html 里的 ?v= 保持一致（tests 会校验）
-ASSET_VERSION = "20260919-2"
+ASSET_VERSION = "20260926-1"
 
 # 文档页标题与副标题
 DOC_META = {
@@ -74,16 +77,76 @@ TEMPLATE = """<!DOCTYPE html>
 """
 
 
+SAFE_TAGS = {
+    "a", "abbr", "b", "blockquote", "br", "code", "del", "em", "h1", "h2", "h3",
+    "h4", "h5", "h6", "hr", "i", "li", "ol", "p", "pre", "s", "strong", "sub",
+    "sup", "table", "tbody", "td", "tfoot", "th", "thead", "tr", "ul",
+}
+
+
+class SafeHTML(HTMLParser):
+    def __init__(self):
+        super().__init__(convert_charrefs=True)
+        self.parts = []
+        self.skip_depth = 0
+
+    def handle_starttag(self, tag, attrs):
+        tag = tag.lower()
+        if self.skip_depth:
+            self.skip_depth += 1
+            return
+        if tag not in SAFE_TAGS:
+            self.skip_depth = 1
+            return
+        safe_attrs = []
+        for name, value in attrs:
+            name = name.lower()
+            if name not in ("class", "title", "id") and not (tag == "a" and name == "href"):
+                continue
+            if name == "href":
+                parsed = urlparse(value or "")
+                if parsed.scheme and parsed.scheme.lower() not in ("http", "https", "mailto"):
+                    continue
+            safe_attrs.append(' %s="%s"' % (name, html_lib.escape(value or "", quote=True)))
+        self.parts.append("<" + tag + "".join(safe_attrs) + ">")
+
+    def handle_startendtag(self, tag, attrs):
+        if tag.lower() in SAFE_TAGS:
+            self.handle_starttag(tag, attrs)
+
+    def handle_endtag(self, tag):
+        tag = tag.lower()
+        if self.skip_depth:
+            self.skip_depth -= 1
+        elif tag in SAFE_TAGS:
+            self.parts.append("</" + tag + ">")
+
+    def handle_data(self, data):
+        if not self.skip_depth:
+            self.parts.append(html_lib.escape(data, quote=False))
+
+    def handle_comment(self, data):
+        return
+
+
+def sanitize_html(value):
+    parser = SafeHTML()
+    parser.feed(value)
+    parser.close()
+    return "".join(parser.parts)
+
+
 def render_markdown(text):
     """Markdown → HTML。缺 markdown 库时给出可操作的报错（不要让 CI 静默产出空页）。"""
     try:
         import markdown
     except ImportError:
         raise SystemExit("缺少依赖 markdown，请先安装：.venv/bin/pip install -r requirements.txt")
-    return markdown.markdown(
+    rendered = markdown.markdown(
         text,
         extensions=["tables", "fenced_code", "sane_lists", "nl2br"],
     )
+    return sanitize_html(rendered)
 
 
 def build_html(name, md_text):

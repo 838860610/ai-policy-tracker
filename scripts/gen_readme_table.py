@@ -3,7 +3,7 @@
 """
 README 汇总表生成脚本
 
-从 data/ 下的实际数据生成 README.md 的对比汇总表（国内/海外两张表，按厂商排序）
+从 site/data/ 下的实际数据生成 README.md 的对比汇总表（国内/海外两张表，按厂商排序）
 与风险分布统计行，消除手写表格与数据的漂移。表格内容位于 README.md 的
 <!-- TABLE:START --> 与 <!-- TABLE:END --> 标记之间。
 
@@ -29,6 +29,40 @@ OPT_OUT_DISPLAY = {
     "邮件申请": "⚠️ 需邮件申请",
     "无需退出": "—",
 }
+TRAINING_STATUSES = {
+    "explicit_no", "default_off_opt_in", "default_on_opt_out",
+    "explicit_yes", "unknown", "inferred",
+}
+
+
+def infer_training_status(version):
+    explicit = version.get("training_status")
+    if explicit in TRAINING_STATUSES:
+        return explicit
+    note = str(version.get("training_note") or "")
+    state = str(version.get("default_state") or "")
+    opt_out = str(version.get("opt_out") or "")
+    if version.get("used_for_training") is False:
+        if any(term in state for term in ("未明示", "沉默", "待核", "待核实", "未明确")) \
+                or state.startswith("—") \
+                or any(term in note for term in ("对训练沉默", "保持沉默", "零命中", "未明示模型训练")):
+            return "unknown"
+        if any(term in note for term in ("加入式", "opt-in", "主动加入", "主动选择")):
+            return "default_off_opt_in"
+        return "explicit_no"
+    if version.get("used_for_training") is True:
+        if any(term in note for term in ("按实质口径", "推断", "直接涵盖模型", "未明示模型训练")):
+            return "inferred"
+        if any(term in opt_out for term in ("设置开关", "联系", "邮件", "撤回", "退出")):
+            return "default_on_opt_out"
+        return "explicit_yes"
+    return "unknown"
+
+
+def training_status(version):
+    if not version:
+        return "unknown"
+    return infer_training_status(version)
 
 # 厂商归一化：company 字段前缀 → 统一厂商名
 VENDOR_RULES = [
@@ -103,7 +137,25 @@ def load_products():
 
 
 def training_cell(value):
-    return "✅ 是" if value is True else "❌ 否" if value is False else "—"
+    if value is None:
+        return "—"
+    if isinstance(value, dict):
+        status = training_status(value)
+    elif value is True:
+        status = "explicit_yes"
+    elif value is False:
+        status = "explicit_no"
+    else:
+        status = "unknown"
+    labels = {
+        "explicit_yes": "✅ 是",
+        "default_on_opt_out": "✅ 是（可退出）",
+        "inferred": "⚠️ 疑似是",
+        "explicit_no": "❌ 否",
+        "default_off_opt_in": "❌ 默认否",
+        "unknown": "❓ 未明确",
+    }
+    return labels.get(status, "—")
 
 
 def opt_out_cell(value):
@@ -141,9 +193,9 @@ def build_table(products):
             "| {name} | {vendor} | {toc_train} | {opt_out} | {tob_train} | {risk} |".format(
                 name=p.get("name", p["id"]),
                 vendor=p.get("company", "—"),
-                toc_train=training_cell(toc.get("used_for_training")),
+                toc_train=training_cell(toc) if toc else "—",
                 opt_out=opt_out_cell(toc.get("opt_out")),
-                tob_train=training_cell(tob.get("used_for_training")) if tob else "—",
+                tob_train=training_cell(tob) if tob else "—",
                 risk=risk,
             )
         )

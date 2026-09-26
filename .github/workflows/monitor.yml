@@ -1,6 +1,6 @@
 name: 政策更新监控
 
-# 每周一北京时间 09:00（UTC 01:00）自动检查各产品政策页面变化（含个人版/企业版独立条款链接），
+# 每周一北京时间 09:00（UTC 01:00）自动检查各产品政策页面变化（含个人版/企业版条款和 sources[] 补充来源），
 # 检测结果与正文快照提交入库——首页会读取展示监控状态。
 # 变更核实不再在 CI 内自动完成：检测到变化后，由本地仓库调用 policy-change-verify skill
 # 逐条人工核实并更新 site/data/policies/{id}.json（含 timeline），不再自动建 Issue。
@@ -11,7 +11,7 @@ on:
 
 # 定时触发与手动触发可能重叠，同一时间只允许一个监控任务在跑
 concurrency:
-  group: monitor-updates
+  group: repo-write-${{ github.repository }}-${{ github.ref }}
   cancel-in-progress: false
 
 permissions:
@@ -20,9 +20,12 @@ permissions:
 jobs:
   check-updates:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    # 70+ 目标、部分站点需浏览器渲染：全量一轮约 10-20 分钟，留足余量避免被硬杀
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
       - uses: actions/setup-python@v7
         with:
@@ -49,16 +52,24 @@ jobs:
         # 可选增强：仓库 Secrets 里配置 OPENAI_CF_CLEARANCE（真人浏览器过验证后导出的令牌）可提升过
         # Cloudflare 概率；但该令牌绑 IP 且短时效，CI 数据中心 IP 仍可能被挑战——此时 ChatGPT 会被
         # 标记为 suspicious（空壳）而非误报 changed，不会污染待核实队列。
+        id: monitor
+        continue-on-error: true
         env:
           OPENAI_CF_CLEARANCE: ${{ secrets.OPENAI_CF_CLEARANCE }}
-        run: python scripts/check_updates.py
+        run: python scripts/check_updates.py --delay 0.5 --timeout 20 --fail-on-error
 
       - name: 提交监控状态、快照与待核实队列
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           # update_status.json / snapshots/ 已入库（首页展示监控状态 + 核实回路的持久历史）；
-          # pending_verification.json 是检测→核实的跨轮交接物。三者一并提交。
+          # pending_verification.json 是检测→核实的跨轮交接物；
+          # monitor_health.json 是抓取健康队列（政策没变但抓取已坏的独立信号）。四者一并提交。
           git add site/generated/update_status.json site/generated/pending_verification.json
+          git add site/generated/monitor_health.json
           git add site/generated/snapshots
           git diff --cached --quiet || (git commit -m "monitor: 政策更新检查 $(date -u +%F)" && git push)
+
+      - name: 监控健康检查
+        if: steps.monitor.outcome == 'failure'
+        run: exit 1

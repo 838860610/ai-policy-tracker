@@ -7,18 +7,46 @@
     return new URLSearchParams(window.location.search).get(name);
   }
 
-  function trainingAlert(used, note) {
-    var cls = used ? "yes" : "no";
-    var icon = used ? "\u26a0\ufe0f" : "\u2705";
-    var optin = !used && note && note.indexOf("加入") !== -1;
-    var label = used
-      ? "使用用户数据训练模型"
-      : (optin ? "默认不使用用户数据训练模型（加入式：加入相关计划后才会用于训练）"
-               : "不使用用户数据训练模型");
+  function trainingStatus(version) {
+    if (!version) return "unknown";
+    var known = ["explicit_no", "default_off_opt_in", "default_on_opt_out",
+                 "explicit_yes", "unknown", "inferred"];
+    if (known.indexOf(version.training_status) !== -1) return version.training_status;
+    var note = String(version.training_note || "");
+    var state = String(version.default_state || "");
+    if (version.used_for_training === false) {
+      if (/(未明示|沉默|待核|待核实|未明确)/.test(state) || state.indexOf("—") === 0 ||
+          /(对训练沉默|保持沉默|零命中|未明示模型训练)/.test(note)) return "unknown";
+      if (/(加入式|opt-in|主动加入|主动选择)/i.test(note)) return "default_off_opt_in";
+      return "explicit_no";
+    }
+    if (version.used_for_training === true) {
+      if (/(按实质口径|推断|直接涵盖模型|未明示模型训练)/.test(note)) return "inferred";
+      if (/(设置开关|联系|邮件|撤回|退出)/.test(String(version.opt_out || ""))) {
+        return "default_on_opt_out";
+      }
+      return "explicit_yes";
+    }
+    return "unknown";
+  }
+
+  function trainingAlert(version) {
+    var status = trainingStatus(version);
+    var note = version && version.training_note;
+    var cls = status === "unknown" ? "unknown" : (status === "explicit_no" || status === "default_off_opt_in" ? "no" : "yes");
+    var icon = cls === "unknown" ? "❔" : (cls === "no" ? "✅" : "⚠️");
+    var labels = {
+      explicit_yes: "明确使用用户数据训练或优化模型",
+      default_on_opt_out: "默认使用用户数据训练或优化模型，但可退出",
+      inferred: "根据服务改善或优化条款推断可能用于训练",
+      explicit_no: "明确不使用用户数据训练模型",
+      default_off_opt_in: "默认不用于训练，加入相关计划后才会使用",
+      unknown: "政策未明确是否用于训练"
+    };
     return (
       '<div class="training-alert ' + cls + '">' +
       '<span class="icon">' + icon + "</span>" +
-      "<strong>" + label + "</strong>" +
+      "<strong>" + labels[status] + "</strong>" +
       (note ? " &mdash; " + PT.escapeHtml(note) : "") +
       "</div>"
     );
@@ -33,11 +61,12 @@
       return /30\s*天|≤\s*30|30日/.test(ret);
     }
 
+    var trainingState = trainingStatus(version);
     var items = [
       {
         label: "默认不用于训练",
-        state: version.used_for_training === false ? "ok"
-             : version.used_for_training === true ? "no" : "q",
+        state: ["explicit_no", "default_off_opt_in"].indexOf(trainingState) !== -1 ? "ok"
+             : ["explicit_yes", "default_on_opt_out", "inferred"].indexOf(trainingState) !== -1 ? "no" : "q",
       },
       {
         label: "数据去标识化",
@@ -77,7 +106,7 @@
       .join("");
 
     var html =
-      trainingAlert(PT.truthy(version.used_for_training), version.training_note) +
+      trainingAlert(version) +
       '<div class="info-grid">' +
       '<div class="info-item"><div class="label">默认状态</div><div class="value">' +
       PT.escapeHtml(version.default_state) + "</div></div>" +
@@ -102,9 +131,10 @@
       html += "<h3>关键条款摘录</h3>" + clausesHtml;
     }
 
-    if (version.policy_link) {
+    var policyHref = PT.safeUrl(version.policy_link);
+    if (policyHref) {
       html +=
-        '<a href="' + PT.escapeHtml(version.policy_link) +
+        '<a href="' + PT.escapeHtml(policyHref) +
         '" class="policy-link" target="_blank" rel="noopener noreferrer">查看该版本完整政策 &rarr;</a>';
     }
 
@@ -238,8 +268,9 @@
 
         document.getElementById("lastVerified").textContent = data.last_verified || "未知";
         var link = document.getElementById("policyLink");
-        if (data.policy_url) {
-          link.href = data.policy_url;
+        var policyUrl = PT.safeUrl(data.policy_url);
+        if (policyUrl) {
+          link.href = policyUrl;
         } else {
           link.style.display = "none";
           // .label 是 .value 的兄弟节点，不是后代；且取不到时不能让整页崩掉

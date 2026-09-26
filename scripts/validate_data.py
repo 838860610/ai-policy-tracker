@@ -12,11 +12,13 @@
 退出码：0 = 通过（可以有警告），1 = 存在错误
 """
 
+import datetime
+import ipaddress
 import json
 import os
 import re
 import sys
-import datetime
+from urllib.parse import urlparse
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_DIR = os.path.join(BASE_DIR, "site", "data")
@@ -31,11 +33,37 @@ TRAINING_SYNONYMS = ["训练", "优化", "改进", "提升", "机器学习", "tr
 SOURCE_ANNOTATION = re.compile(r"）\s*。?\s*$")
 DATE_PATTERN = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 
+
+def safe_policy_url(value):
+    try:
+        parsed = urlparse(str(value))
+        if parsed.scheme.lower() != "https" or not parsed.hostname:
+            return False
+        if parsed.username or parsed.password:
+            return False
+        if parsed.port not in (None, 443):
+            return False
+        host = parsed.hostname.rstrip(".").lower()
+        if host == "localhost" or host.endswith(".local"):
+            return False
+        try:
+            return ipaddress.ip_address(host).is_global
+        except ValueError:
+            return True
+    except ValueError:
+        return False
+
 VERSION_REQUIRED = [
     "used_for_training", "default_state", "opt_out", "opt_out_method",
     "deidentified", "data_retention", "copyright", "risk_level", "key_clauses",
 ]
-VERSION_OPTIONAL = ["training_note", "other_uses", "policy_link", "last_verified", "label"]
+VERSION_OPTIONAL = [
+    "training_note", "other_uses", "policy_link", "last_verified", "label",
+]
+TRAINING_STATUSES = {
+    "explicit_no", "default_off_opt_in", "default_on_opt_out",
+    "explicit_yes", "unknown", "inferred",
+}
 TOP_REQUIRED = [
     "id", "name", "company", "region", "description", "policy_url",
     "last_verified", "versions", "analysis_summary", "key_findings", "recommendations",
@@ -54,6 +82,40 @@ def warn(msg):
     warnings.append(msg)
 
 
+FETCH_METHODS = ("requests", "browser")
+FETCH_FIELDS = ("fetch_method", "content_selector", "wait_for_selector", "min_body_chars")
+# 目标级载体里允许与抓取配置共存的业务字段（sources[] 条目）
+FETCH_CARRIER_EXTRA = ("id", "role", "url", "monitored", "title", "note")
+
+
+def check_fetch_config(where, cfg, strict_unknown=False):
+    """校验一处抓取配置（产品级 / targets.main / versions.* / sources[] 四个载体共用）。
+
+    抓取配错不会让数据校验失败，但会让监控静默降级（正文抓不到却看不出是配置问题），
+    所以这里按错误处理。
+
+    strict_unknown=True 时额外检查拼写错误——只对"纯配置载体"（targets.main）开启：
+    产品级和 versions.* 里混着大量业务字段，对它们做未知键检查只会噪声。
+    """
+    if not isinstance(cfg, dict):
+        return
+    if "fetch_method" in cfg and cfg["fetch_method"] not in FETCH_METHODS:
+        err(f"{where}: fetch_method 必须是 {' 或 '.join(FETCH_METHODS)}，"
+            f"当前为 {cfg['fetch_method']!r}")
+    for key in ("content_selector", "wait_for_selector"):
+        if key in cfg and not isinstance(cfg[key], str):
+            err(f"{where}: {key} 必须是 CSS 选择器字符串，当前为 {type(cfg[key]).__name__}")
+    if "min_body_chars" in cfg:
+        value = cfg["min_body_chars"]
+        if not isinstance(value, int) or isinstance(value, bool) or value < 0:
+            err(f"{where}: min_body_chars 必须是非负整数，当前为 {value!r}")
+    if strict_unknown:
+        unknown = set(cfg) - set(FETCH_FIELDS)
+        if unknown:
+            err(f"{where}: 存在无法识别的字段 {sorted(unknown)}；"
+                f"抓取配置只支持 {list(FETCH_FIELDS)}")
+
+
 def check_version(where, v):
     for key in VERSION_REQUIRED:
         if key not in v:
@@ -61,17 +123,35 @@ def check_version(where, v):
     for key in VERSION_OPTIONAL:
         if key not in v:
             warn(f"{where}: 缺少可选字段 {key}")
+    version_date = v.get("last_verified")
+    if version_date is not None:
+        if not isinstance(version_date, str) or not DATE_PATTERN.match(version_date):
+            err(f"{where}: last_verified 格式应为 YYYY-MM-DD，当前为 {version_date!r}")
+        else:
+            try:
+                if datetime.date.fromisoformat(version_date) > datetime.date.today():
+                    err(f"{where}: last_verified={version_date} 晚于今天")
+            except ValueError:
+                err(f"{where}: last_verified={version_date!r} 不是有效日期")
     if "used_for_training" in v and not isinstance(v["used_for_training"], bool):
         err(f"{where}: used_for_training 必须是布尔值，当前为 {v['used_for_training']!r}")
+    if "training_status" in v and v["training_status"] not in TRAINING_STATUSES:
+        err(f"{where}: training_status 必须是 {sorted(TRAINING_STATUSES)} 之一，"
+            f"当前为 {v['training_status']!r}")
+    if "training_status" in v and "used_for_training" in v:
+        if v["training_status"] in ("explicit_yes", "default_on_opt_out", "inferred") \
+                and v["used_for_training"] is not True:
+            err(f"{where}: training_status={v['training_status']!r} 与 used_for_training=false 矛盾")
+        if v["training_status"] in ("explicit_no", "default_off_opt_in") \
+                and v["used_for_training"] is not False:
+            err(f"{where}: training_status={v['training_status']!r} 与 used_for_training=true 矛盾")
     if "deidentified" in v and not isinstance(v["deidentified"], bool):
         err(f"{where}: deidentified 必须是布尔值，当前为 {v['deidentified']!r}")
     if "risk_level" in v and v["risk_level"] not in RISK_LEVELS:
         err(f"{where}: risk_level 必须是 {sorted(RISK_LEVELS)} 之一，当前为 {v['risk_level']!r}")
     link = v.get("policy_link")
-    if link is not None and not str(link).startswith(("http://", "https://")):
-        # 曾完全不校验：填 "N/A" / "见主协议" 会让监控每次都请求失败，首页长期显示检查失败
-        warn(f"{where}: policy_link 应以 http(s):// 开头，当前为 {link!r}"
-             f"（会被监控当作抓取目标，导致该目标持续 failed）")
+    if link is not None and not safe_policy_url(link):
+        err(f"{where}: policy_link 必须是公网 HTTPS URL，当前为 {link!r}")
 
     clauses = v.get("key_clauses")
     if clauses is not None:
@@ -97,7 +177,12 @@ def check_version(where, v):
 
     if v.get("risk_level") == "green":
         reasons = []
-        if v.get("used_for_training") is not False:
+        training_status = v.get("training_status")
+        no_training = (
+            v.get("used_for_training") is False
+            and training_status not in ("unknown", "inferred")
+        )
+        if not no_training:
             reasons.append("训练判定非'默认不训练'")
         if v.get("deidentified") is not True:
             reasons.append("未载明去标识化")
@@ -133,6 +218,9 @@ def check_version(where, v):
 def validate_policy(pid, path):
     with open(path, encoding="utf-8") as f:
         data = json.load(f)
+    if not isinstance(data, dict):
+        err(f"{pid}: 政策数据必须是对象")
+        return
 
     if data.get("id") != pid:
         err(f"{os.path.basename(path)}: 文件内 id={data.get('id')!r} 与文件名 {pid!r} 不一致")
@@ -145,6 +233,9 @@ def validate_policy(pid, path):
     for key in ("icon", "product_url"):
         if key not in data:
             warn(f"{pid}: 缺少可选字段 {key}")
+    check_fetch_config(f"{pid}", data)
+    if "monitor" in data and not isinstance(data["monitor"], bool):
+        err(f"{pid}: monitor 必须是布尔值")
 
     region = data.get("region")
     if region is not None and region not in ("中国", "美国", "全球"):
@@ -165,8 +256,52 @@ def validate_policy(pid, path):
             err(f"{pid}: last_verified={lv!r} 不是有效日期")
 
     url = data.get("policy_url")
-    if url is not None and not str(url).startswith(("http://", "https://")):
-        err(f"{pid}: policy_url 应以 http(s):// 开头，当前为 {url!r}")
+    if url is not None and not safe_policy_url(url):
+        err(f"{pid}: policy_url 必须是公网 HTTPS URL，当前为 {url!r}")
+
+    sources = data.get("sources")
+    if sources is not None:
+        if not isinstance(sources, list):
+            err(f"{pid}: sources 必须是数组")
+        else:
+            source_ids = set()
+            for i, source in enumerate(sources):
+                if not isinstance(source, dict):
+                    err(f"{pid}: sources[{i}] 必须是对象")
+                    continue
+                source_id = source.get("id")
+                if not isinstance(source_id, str) or not re.match(r"^[A-Za-z0-9_-]+$", source_id):
+                    err(f"{pid}: sources[{i}].id 必须使用字母、数字、下划线或连字符")
+                elif source_id in source_ids:
+                    err(f"{pid}: sources.id={source_id!r} 重复")
+                else:
+                    source_ids.add(source_id)
+                source_url = source.get("url")
+                if not safe_policy_url(source_url):
+                    err(f"{pid}: sources[{i}].url 必须是公网 HTTPS URL")
+                if "monitored" in source and not isinstance(source["monitored"], bool):
+                    err(f"{pid}: sources[{i}].monitored 必须是布尔值")
+                check_fetch_config(f"{pid}.sources[{i}]", source)
+
+    # targets.main：顶层 policy_url 对应 main 目标的抓取配置载体。
+    # toc/tob 用 versions.*、补充来源用 sources[]，不在此处重复定义，避免两处配置歧义。
+    targets_cfg = data.get("targets")
+    if targets_cfg is not None:
+        if not isinstance(targets_cfg, dict):
+            err(f"{pid}: targets 必须是对象（当前为 %s），"
+                "toc/tob 请写进 versions.*，补充来源请写进 sources[] 条目"
+                % type(targets_cfg).__name__)
+        else:
+            for key in targets_cfg:
+                if key != "main":
+                    err(f"{pid}: targets 只支持 main 键（当前为 {key!r}）；"
+                        "toc/tob 请写进 versions.*，补充来源请写进 sources[] 条目")
+            if "main" in targets_cfg:
+                main_cfg = targets_cfg["main"]
+                if not isinstance(main_cfg, dict):
+                    err(f"{pid}: targets.main 必须是对象")
+                else:
+                    check_fetch_config(f"{pid}.targets.main", main_cfg, strict_unknown=True)
 
     versions = data.get("versions")
     if versions is not None and not isinstance(versions, dict):
@@ -181,6 +316,7 @@ def validate_policy(pid, path):
             block = versions[tier]
             if isinstance(block, dict):
                 check_version(f"{pid}.versions.{tier}", block)
+                check_fetch_config(f"{pid}.versions.{tier}", block)
             else:
                 err(f"{pid}: versions.{tier} 必须是对象，当前为 {type(block).__name__!r}")
         elif data.get(note_field):
@@ -192,6 +328,13 @@ def validate_policy(pid, path):
 
     check_version_block("toc", "toc_note")
     check_version_block("tob", "tob_note")
+    top_verified = data.get("last_verified")
+    if isinstance(top_verified, str):
+        for tier, block in versions.items():
+            if isinstance(block, dict) and isinstance(block.get("last_verified"), str):
+                if block["last_verified"] > top_verified:
+                    warn(f"{pid}.versions.{tier}.last_verified={block['last_verified']} "
+                         f"晚于顶层 last_verified={top_verified}")
 
     timeline = data.get("timeline")
     if timeline is not None:
@@ -222,6 +365,10 @@ def main():
 
     with open(INDEX_FILE, encoding="utf-8") as f:
         index = json.load(f)
+    if not isinstance(index, dict):
+        err("products.json 必须是对象")
+        report()
+        return 1
 
     ids = index.get("products")
     if not isinstance(ids, list) or not ids:
@@ -229,20 +376,33 @@ def main():
         report()
         return 1
 
-    if len(ids) != len(set(ids)):
+    valid_ids = [pid for pid in ids if isinstance(pid, str) and ID_PATTERN.match(pid)]
+    if len(valid_ids) != len(set(valid_ids)):
         err("products.json 的 products 存在重复 ID")
+    if len(valid_ids) != len(ids):
+        err("products.json 的 products 包含非法 ID")
 
-    meta = index.get("meta") or {}
+    meta = index.get("meta")
+    if not isinstance(meta, dict):
+        err("products.json: meta 必须是对象")
+        meta = {}
     if "schema_version" not in meta:
         warn("products.json: meta 缺少 schema_version（建议标注整数版本号，便于将来数据结构迁移时追踪兼容性）")
     elif not isinstance(meta["schema_version"], int) or isinstance(meta["schema_version"], bool):
         err(f"products.json: meta.schema_version 必须是整数，当前为 {meta['schema_version']!r}")
+    last_updated = meta.get("last_updated")
+    if last_updated is not None:
+        if not isinstance(last_updated, str) or not DATE_PATTERN.match(last_updated):
+            err(f"products.json: meta.last_updated 格式应为 YYYY-MM-DD，当前为 {last_updated!r}")
+        else:
+            try:
+                if datetime.date.fromisoformat(last_updated) > datetime.date.today():
+                    err(f"products.json: meta.last_updated={last_updated} 晚于今天")
+            except ValueError:
+                err(f"products.json: meta.last_updated={last_updated!r} 不是有效日期")
 
     policy_files = {f[:-5] for f in os.listdir(POLICIES_DIR) if f.endswith(".json")}
-    for pid in ids:
-        if not isinstance(pid, str) or not ID_PATTERN.match(pid):
-            err(f"索引中的 ID {pid!r} 格式非法（只允许小写字母、数字、连字符）")
-            continue
+    for pid in valid_ids:
         path = os.path.join(POLICIES_DIR, pid + ".json")
         if not os.path.exists(path):
             err(f"索引中的产品 {pid} 缺少数据文件 policies/{pid}.json")
@@ -252,7 +412,7 @@ def main():
         except json.JSONDecodeError as e:
             err(f"policies/{pid}.json 不是合法 JSON：{e}")
 
-    orphan = policy_files - set(ids)
+    orphan = policy_files - set(valid_ids)
     if orphan:
         err(f"以下 policy 文件未被索引收录（请加入 products.json 或删除）：{sorted(orphan)}")
 

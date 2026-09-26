@@ -7,6 +7,17 @@
 
   var RISK_LABELS = { green: "低风险", yellow: "中风险", red: "高风险" };
 
+  function safeUrl(value) {
+    if (value == null || String(value).trim() === "") return "";
+    try {
+      var url = new URL(String(value), window.location.href);
+      if (url.protocol !== "http:" && url.protocol !== "https:") return "";
+      return url.href;
+    } catch (e) {
+      return "";
+    }
+  }
+
   function escapeHtml(str) {
     if (str == null) return "";
     return String(str)
@@ -49,6 +60,7 @@
 
   global.PolicyTracker = {
     RISK_LABELS: RISK_LABELS,
+    safeUrl: safeUrl,
     escapeHtml: escapeHtml,
     truthy: truthy,
     boolBadge: boolBadge,

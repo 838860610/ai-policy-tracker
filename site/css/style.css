@@ -744,6 +744,66 @@ table tbody tr:last-child td { border-bottom: none; }
   cursor: help;
 }
 
+/* 抓取降级明细：政策未变更，但监控数据可能过期 */
+.monitor-health {
+  margin-top: 10px;
+  padding: 10px 12px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-secondary);
+  font-size: 12.5px;
+}
+.monitor-health summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.monitor-health ul {
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+  max-height: 320px;
+  overflow-y: auto;
+}
+.monitor-health li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px;
+  padding: 6px 0;
+  border-top: 1px solid var(--border);
+}
+.monitor-health li:first-child {
+  border-top: none;
+}
+.health-tag {
+  flex: none;
+  padding: 1px 7px;
+  border-radius: 10px;
+  font-size: 11.5px;
+  font-weight: 600;
+}
+.health-tag.health-blocked {
+  background: var(--red-bg);
+  color: var(--red);
+  border: 1px solid var(--red-border);
+}
+.health-tag.health-no_baseline {
+  background: var(--yellow-bg);
+  color: var(--yellow);
+  border: 1px solid var(--yellow-border);
+}
+.health-tag.health-degraded {
+  background: var(--bg-card);
+  color: var(--text-tertiary);
+  border: 1px solid var(--border);
+}
+.health-note {
+  flex: 1 1 100%;
+  color: var(--text-tertiary);
+}
+
 /* ---------- 风险单元 ---------- */
 .risk-cell {
   display: inline-flex;
@@ -931,6 +991,11 @@ table tbody tr:last-child td { border-bottom: none; }
   background: var(--green-bg);
   border: 1px solid var(--green-border);
   color: var(--green);
+}
+.training-alert.unknown {
+  background: var(--yellow-bg);
+  border: 1px solid var(--yellow-border);
+  color: var(--yellow);
 }
 .training-alert .icon { font-size: 20px; }
 

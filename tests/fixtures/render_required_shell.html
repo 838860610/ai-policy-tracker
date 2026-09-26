@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<!--
+  真实失败页样本（脱敏截取）：挑战页/登录跳转页。
+  静态 HTML 里有少量文案（含反爬提示），远低于正文下限 500 字符，
+  监控应判为 render_required（不是完全空壳），同样不得覆盖已有基线。
+-->
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>安全验证</title>
+</head>
+<body>
+  <div class="verify-box">
+    <p>正在验证您的浏览器，请稍候…</p>
+    <p>需要启用 JavaScript 才能继续访问该文档。</p>
+    <p>本页面由内容分发网络提供，验证通过后将自动跳转到原始地址。</p>
+  </div>
+  <footer>版权所有</footer>
+</body>
+</html>

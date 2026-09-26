@@ -29,13 +29,29 @@ import os
 import re
 import subprocess
 import sys
+import tempfile
 
 TARGET_LABELS = {"main": "主监控页", "toc": "个人版条款", "tob": "企业版条款"}
 FLAGGED = ("changed", "failed", "suspicious")
+ID_PATTERN = re.compile(r"^[a-z0-9-]+$")
+TARGET_PATTERN = re.compile(r"^(?:main|toc|tob|source_[A-Za-z0-9_-]+)$")
 
 
 def repo_root(arg_repo):
     return os.path.abspath(arg_repo or os.getcwd())
+
+
+def atomic_write_json(path, data):
+    directory = os.path.dirname(path)
+    os.makedirs(directory, exist_ok=True)
+    fd, tmp_path = tempfile.mkstemp(prefix=os.path.basename(path) + ".", suffix=".tmp", dir=directory)
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+        os.replace(tmp_path, path)
+    finally:
+        if os.path.exists(tmp_path):
+            os.remove(tmp_path)
 
 
 def load_status(root):
@@ -55,7 +71,8 @@ def product_name(root, pid):
     pj = os.path.join(root, "site", "data", "policies", pid + ".json")
     if os.path.exists(pj):
         try:
-            return json.load(open(pj, encoding="utf-8")).get("name", pid)
+            with open(pj, encoding="utf-8") as f:
+                return json.load(f).get("name", pid)
         except Exception:
             pass
     return pid
@@ -71,9 +88,14 @@ def load_pending(root):
         return None
     try:
         with open(path, encoding="utf-8") as f:
-            return json.load(f)
-    except (json.JSONDecodeError, IOError):
-        return None
+            data = json.load(f)
+    except (json.JSONDecodeError, IOError) as e:
+        print("[错误] pending_verification.json 解析失败：%s" % e, file=sys.stderr)
+        raise SystemExit(2)
+    if not isinstance(data, dict) or not isinstance(data.get("items", {}), dict):
+        print("[错误] pending_verification.json 格式错误：items 必须是对象", file=sys.stderr)
+        raise SystemExit(2)
+    return data
 
 
 def list_pending(data):
@@ -94,9 +116,11 @@ def resolve_pending(root, pid, key):
     if not os.path.exists(path):
         print("[提示] 没有待核实队列文件，无需清除。")
         return
-    with open(path, encoding="utf-8") as f:
-        data = json.load(f)
+    data = load_pending(root)
     items = data.get("items", {})
+    if not isinstance(items, dict):
+        print("[错误] pending_verification.json 的 items 必须是对象", file=sys.stderr)
+        raise SystemExit(2)
     if key:
         removed = items.pop("%s:%s" % (pid, key), None) is not None
     else:
@@ -105,8 +129,8 @@ def resolve_pending(root, pid, key):
             items.pop(k, None)
         removed = bool(removed_keys)
     data["items"] = items
-    with open(path, "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
+    data["updated_at"] = datetime.datetime.now().isoformat()
+    atomic_write_json(path, data)
     if removed:
         print("[完成] 已从待核实队列移除 %s%s 的相关项。" %
               (pid, ("/" + key) if key else " 全部目标"))
@@ -126,8 +150,7 @@ def clear_page_alert(root, pid, key):
     if not os.path.exists(path):
         print("[提示] 没有 update_status.json，无需清除页面告警。")
         return
-    with open(path, encoding="utf-8") as f:
-        data = json.load(f)
+    data = load_status(root)
 
     products = data.get("products") or {}
     prod = products.get(pid)
@@ -160,6 +183,11 @@ def clear_page_alert(root, pid, key):
                       "skipped" if "skipped" in statuses else "ok")
     if prod["status"] == "ok":
         prod["message"] = "内容未变化（本次核实后已确认）"
+    # health 与 status 正交：核实内容不会让抓取降级消失，按实际 health 重算
+    severities = {"degraded": 1, "no_baseline": 2, "blocked": 3}
+    healths = [t.get("health") or "ok" for t in (prod.get("targets") or {}).values()]
+    prod["health"] = max(healths, key=lambda h: severities.get(h, 0))
+    prod["health_issues"] = sum(1 for h in healths if h in severities)
 
     counts = {"changed": 0, "failed": 0, "suspicious": 0, "skipped": 0}
     for p in products.values():
@@ -169,10 +197,19 @@ def clear_page_alert(root, pid, key):
     meta = data.get("meta") or {}
     meta.update(counts)
     meta["total_products"] = len(products)
+    # 健康计数同步重算（--resolve 不直接改健康队列，但页面 meta 不能留着旧数字）
+    health_items = {}
+    for other_pid, p in products.items():
+        for k, t in (p.get("targets") or {}).items():
+            h = t.get("health")
+            if h in severities:
+                health_items["%s:%s" % (other_pid, k)] = h
+    meta["health_issues"] = len(health_items)
+    for h in severities:
+        meta["health_" + h] = sum(1 for v in health_items.values() if v == h)
     data["meta"] = meta
 
-    with open(path, "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
+    atomic_write_json(path, data)
 
     print("[完成] 已清除 %s 的页面告警（目标：%s），产品状态 → %s；"
           "全局计数 changed=%d failed=%d suspicious=%d。" %
@@ -180,20 +217,51 @@ def clear_page_alert(root, pid, key):
            meta.get("changed", 0), meta.get("failed", 0), meta.get("suspicious", 0)))
 
 
+HEALTH_LABELS = {
+    "blocked": "被拦截（反爬/限流）",
+    "no_baseline": "无可用基线",
+    "degraded": "抓取降级（已保留上次快照）",
+}
+
+
+def list_health(root, status):
+    """列出抓取健康问题：这些目标不该进待核实队列，而是要修抓取配置。"""
+    items = []
+    for pid, info in (status.get("products") or {}).items():
+        for key, t in (info.get("targets") or {}).items():
+            health = t.get("health")
+            if health in HEALTH_LABELS:
+                items.append((pid, key, t, health))
+    if not items:
+        return
+    print("抓取健康问题 %d 个（政策未变更，但监控数据不可信，需修抓取配置）：\n" % len(items))
+    for pid, key, t, health in items:
+        last_good = t.get("last_good_at") or "从未成功抓取"
+        print("● %s（%s）  health=%s  %s" % (
+            pid, product_name(root, pid), health, HEALTH_LABELS[health]))
+        print("    - %s (%s): %s" % (key, TARGET_LABELS.get(key, key), t.get("url", "")))
+        print("      原因: %s" % t.get("message", ""))
+        print("      上次成功: %s" % last_good)
+        print("      处置: .venv/bin/python scripts/check_updates.py --only %s:%s --timeout 60"
+              % (pid, key))
+        print()
+
+
 def list_flagged(root, status):
     prods = [(pid, info) for pid, info in (status.get("products") or {}).items()
              if info.get("status") in FLAGGED]
     if not prods:
         print("未在 update_status.json 中发现 changed/failed/suspicious 的产品。")
-        return
-    print("发现 %d 个被标记产品：\n" % len(prods))
-    for pid, info in prods:
-        print("● %s（%s）  status=%s" % (pid, product_name(root, pid), info.get("status")))
-        for key, t in (info.get("targets") or {}).items():
-            if t.get("status") in FLAGGED:
-                print("    - %s (%s): %s  %s" % (key, TARGET_LABELS.get(key, key),
-                                                 t.get("status"), t.get("url", "")))
-        print()
+    else:
+        print("发现 %d 个被标记产品：\n" % len(prods))
+        for pid, info in prods:
+            print("● %s（%s）  status=%s" % (pid, product_name(root, pid), info.get("status")))
+            for key, t in (info.get("targets") or {}).items():
+                if t.get("status") in FLAGGED:
+                    print("    - %s (%s): %s  %s" % (key, TARGET_LABELS.get(key, key),
+                                                     t.get("status"), t.get("url", "")))
+            print()
+    list_health(root, status)
 
 
 def read_text(path):
@@ -201,7 +269,10 @@ def read_text(path):
         return None
     try:
         with open(path, encoding="utf-8") as f:
-            return f.read()
+            text = f.read()
+        if text.lstrip().startswith("%PDF-"):
+            return None
+        return text
     except Exception:
         return None
 
@@ -210,7 +281,7 @@ def git_show(root, rel, sha):
     try:
         r = subprocess.run(["git", "show", "%s:%s" % (sha, rel)],
                            capture_output=True, text=True, cwd=root, timeout=15)
-        if r.returncode == 0 and r.stdout.strip():
+        if r.returncode == 0 and r.stdout.strip() and not r.stdout.lstrip().startswith("%PDF-"):
             return r.stdout
     except Exception:
         pass
@@ -249,7 +320,7 @@ def get_old_text(root, pid, key, depth):
         commits = [c for c in r.stdout.strip().split("\n") if c]
     except Exception:
         commits = []
-    for sha in commits[1:]:  # commits[0] 即当前内容
+    for sha in commits:
         txt = git_show(root, rel, sha)
         if txt and txt.strip() and txt.strip() != new.strip():
             return txt, "git:%s" % sha[:8]
@@ -272,7 +343,7 @@ def unified_diff(old, new, max_diff):
     return "\n".join(d)
 
 
-def print_product(root, pid, keys, depth, max_diff):
+def print_product(root, pid, keys, depth, max_diff, all_targets=False):
     pj = os.path.join(root, "site", "data", "policies", pid + ".json")
     policy_text = read_text(pj) or "（未找到政策数据文件）"
     status = load_status(root)
@@ -282,7 +353,9 @@ def print_product(root, pid, keys, depth, max_diff):
     print("产品：%s（%s）" % (pid, product_name(root, pid)))
     print("=" * 70)
 
-    if not keys:
+    if all_targets:
+        keys = list((prod.get("targets") or {}).keys())
+    elif not keys:
         keys = [k for k, t in (prod.get("targets") or {}).items() if t.get("status") in FLAGGED]
     if not keys:
         keys = list((prod.get("targets") or {}).keys())
@@ -310,7 +383,7 @@ def print_product(root, pid, keys, depth, max_diff):
 def main():
     ap = argparse.ArgumentParser(description="政策变更本地核实助手")
     ap.add_argument("product_id", nargs="?", help="产品 ID（对应 policies/{id}.json）")
-    ap.add_argument("target", nargs="?", help="目标键 main/toc/tob（缺省取所有被标记目标）")
+    ap.add_argument("target", nargs="?", help="目标键 main/toc/tob/source_*（缺省取所有被标记目标）")
     ap.add_argument("--repo", default=None, help="仓库根目录（默认当前目录）")
     ap.add_argument("--list", action="store_true", help="列出待核实队列与所有被标记产品/目标")
     ap.add_argument("--all-targets", action="store_true", help="打印该产品全部目标")
@@ -321,6 +394,15 @@ def main():
     args = ap.parse_args()
 
     root = repo_root(args.repo)
+    if args.resolve and not ID_PATTERN.match(args.resolve):
+        print("[错误] 非法产品 ID", file=sys.stderr)
+        raise SystemExit(2)
+    if args.product_id and not ID_PATTERN.match(args.product_id):
+        print("[错误] 非法产品 ID", file=sys.stderr)
+        raise SystemExit(2)
+    if args.target and not TARGET_PATTERN.match(args.target):
+        print("[错误] 非法目标键", file=sys.stderr)
+        raise SystemExit(2)
 
     if args.resolve:
         resolve_pending(root, args.resolve, args.target)
@@ -340,9 +422,7 @@ def main():
     keys = None
     if args.target:
         keys = [args.target]
-    elif args.all_targets:
-        keys = []
-    print_product(root, args.product_id, keys, args.depth, args.max_diff)
+    print_product(root, args.product_id, keys, args.depth, args.max_diff, args.all_targets)
 
 
 if __name__ == "__main__":

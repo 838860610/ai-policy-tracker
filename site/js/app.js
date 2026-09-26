@@ -4,6 +4,7 @@
 
   var allProducts = [];      // policy JSON 对象，顺序与 data/products.json 索引一致
   var monitorStatus = null;  // generated/update_status.json（可能不存在）
+  var monitorHealth = null;  // generated/monitor_health.json（抓取健康队列，可能不存在）
   var productsMeta = null;   // data/products.json 的 meta（静态回退字段）
   var state = { q: "", region: "all", training: "all", risk: "all" };
 
@@ -61,14 +62,37 @@
       .catch(function () { monitorStatus = null; });
   }
 
-  /* 数据最后更新日期：优先用监控实际运行时间，回退到 products.json 静态字段 */
+  /* 抓取健康队列：与"政策变化"分开，抓取坏了但政策没变时也能看到 */
+  function fetchMonitorHealth() {
+    return fetchJson("generated/monitor_health.json")
+      .then(function (h) { monitorHealth = h; })
+      .catch(function () { monitorHealth = null; });
+  }
+
+  function healthItems() {
+    if (monitorHealth && monitorHealth.items) return monitorHealth.items;
+    // 旧版站点没有该文件时，从状态明细里兜底推导
+    var items = {};
+    var products = (monitorStatus && monitorStatus.products) || {};
+    Object.keys(products).forEach(function (pid) {
+      var product = products[pid] || {};
+      var targets = product.targets || {};
+      Object.keys(targets).forEach(function (key) {
+        var target = targets[key] || {};
+        if (["degraded", "no_baseline", "blocked"].indexOf(target.health) === -1) return;
+        items[pid + ":" + key] = {
+          pid: pid, name: product.name || pid, key: key, health: target.health,
+          message: target.message || "", url: target.url || "",
+          last_good_at: target.last_good_at || null
+        };
+      });
+    });
+    return items;
+  }
+
+  /* 数据人工核实日期：监控运行时间只用于监控提示，不冒充数据更新时间 */
   function effectiveLastUpdated() {
-    if (monitorStatus && monitorStatus.meta && monitorStatus.meta.last_run) {
-      return String(monitorStatus.meta.last_run).slice(0, 10);
-    }
-    if (productsMeta && productsMeta.last_updated) {
-      return productsMeta.last_updated;
-    }
+    if (productsMeta && productsMeta.last_updated) return productsMeta.last_updated;
     return "";
   }
 
@@ -76,14 +100,41 @@
     var el = document.getElementById("updateDate");
     if (!el) return;
     var d = effectiveLastUpdated();
-    if (d) el.textContent = "数据最后更新日期：" + d;
+    if (d) el.textContent = "数据最后人工核实日期：" + d;
   }
 
   function changedProductIds() {
     if (!monitorStatus || !monitorStatus.products) return [];
     return Object.keys(monitorStatus.products).filter(function (id) {
-      return monitorStatus.products[id].status === "changed";
+      return monitorStatus.products[id] && monitorStatus.products[id].status === "changed";
     });
+  }
+
+  function trainingStatus(v) {
+    if (!v) return "unknown";
+    var known = ["explicit_no", "default_off_opt_in", "default_on_opt_out",
+                 "explicit_yes", "unknown", "inferred"];
+    if (known.indexOf(v.training_status) !== -1) return v.training_status;
+    var note = String(v.training_note || "");
+    var state = String(v.default_state || "");
+    if (v.used_for_training === false) {
+      if (/(未明示|沉默|待核|待核实|未明确)/.test(state) || state.indexOf("—") === 0 ||
+          /(对训练沉默|保持沉默|零命中|未明示模型训练)/.test(note)) return "unknown";
+      if (/(加入式|opt-in|主动加入|主动选择)/i.test(note)) return "default_off_opt_in";
+      return "explicit_no";
+    }
+    if (v.used_for_training === true) {
+      if (/(按实质口径|推断|直接涵盖模型|未明示模型训练)/.test(note)) return "inferred";
+      if (/(设置开关|联系|邮件|撤回|退出)/.test(String(v.opt_out || ""))) {
+        return "default_on_opt_out";
+      }
+      return "explicit_yes";
+    }
+    return "unknown";
+  }
+
+  function trainingUsesData(v) {
+    return ["explicit_yes", "default_on_opt_out", "inferred"].indexOf(trainingStatus(v)) !== -1;
   }
 
   /* ---------- 筛选 ---------- */
@@ -101,9 +152,12 @@
 
     if (state.training !== "all") {
       if (!toc && !tob) return false; // 占位条目无训练语义
-      var anyTrue = (toc && toc.used_for_training === true) || (tob && tob.used_for_training === true);
+      var anyTrue = trainingUsesData(toc) || trainingUsesData(tob);
+      var anyKnownNo = [toc, tob].some(function (v) {
+        return ["explicit_no", "default_off_opt_in"].indexOf(trainingStatus(v)) !== -1;
+      });
       if (state.training === "yes" && !anyTrue) return false;
-      if (state.training === "no" && anyTrue) return false;
+      if (state.training === "no" && (anyTrue || !anyKnownNo)) return false;
     }
     if (state.risk !== "all") {
       var r1 = toc && toc.risk_level, r2 = tob && tob.risk_level;
@@ -115,9 +169,23 @@
   /* ---------- 渲染 ---------- */
 
   function trainCell(v) {
-    if (v === true) return '<span class="badge badge-bad" title="该版本会将用户数据用于模型训练/优化">使用用户数据</span>';
-    if (v === false) return '<span class="badge badge-good" title="该版本不会将用户数据用于模型训练">不使用用户数据</span>';
-    return '<span class="cell-na">—</span>';
+    var status = trainingStatus(v);
+    if (status === "explicit_yes") {
+      return '<span class="badge badge-bad" title="该版本明确使用用户数据训练或优化模型">使用用户数据</span>';
+    }
+    if (status === "default_on_opt_out") {
+      return '<span class="badge badge-bad" title="默认使用用户数据，但提供退出机制">使用用户数据（可退出）</span>';
+    }
+    if (status === "inferred") {
+      return '<span class="badge badge-bad" title="根据服务改善或优化条款推断，非直接训练表述">疑似使用</span>';
+    }
+    if (status === "explicit_no") {
+      return '<span class="badge badge-good" title="该版本明确不用于模型训练">不使用用户数据</span>';
+    }
+    if (status === "default_off_opt_in") {
+      return '<span class="badge badge-good" title="默认不训练，主动加入后才使用">默认不训练</span>';
+    }
+    return '<span class="cell-na" title="政策未明确或仍待核实">未明确</span>';
   }
 
   function riskMini(v) {
@@ -133,11 +201,18 @@
         PT.escapeHtml(title) + '</div><div class="dp-line">—（' +
         PT.escapeHtml(emptyReason) + '）</div></div>';
     }
-    var train = v.used_for_training === true
-      ? '<span class="badge badge-bad">使用用户数据</span><span class="dp-note">（默认）</span>'
-      : v.used_for_training === false
-        ? '<span class="badge badge-good">不使用用户数据</span><span class="dp-note">（或加入式未启用）</span>'
-        : '<span class="cell-na">—</span>';
+    var status = trainingStatus(v);
+    var train = status === "explicit_yes"
+      ? '<span class="badge badge-bad">明确使用用户数据</span>'
+      : status === "default_on_opt_out"
+        ? '<span class="badge badge-bad">使用用户数据</span><span class="dp-note">（可退出）</span>'
+        : status === "inferred"
+          ? '<span class="badge badge-bad">疑似使用</span><span class="dp-note">（依据优化条款推断）</span>'
+          : status === "explicit_no"
+            ? '<span class="badge badge-good">明确不使用用户数据</span>'
+            : status === "default_off_opt_in"
+              ? '<span class="badge badge-good">默认不训练</span><span class="dp-note">（加入式）</span>'
+              : '<span class="cell-na">政策未明确</span>';
     var deid = v.deidentified === true ? '<span class="badge badge-good">是</span>'
       : v.deidentified === false ? '<span class="badge badge-bad">否</span>'
       : '<span class="cell-na">—</span>';
@@ -369,7 +444,7 @@
     allProducts.forEach(function (p) {
       var toc = (p.versions && p.versions.toc) || null;
       var tob = (p.versions && p.versions.tob) || null;
-      if ((toc && toc.used_for_training === true) || (tob && tob.used_for_training === true)) trainCount++;
+      if (trainingUsesData(toc) || trainingUsesData(tob)) trainCount++;
       if ((toc && toc.risk_level === "red") || (tob && tob.risk_level === "red")) highCount++;
     });
     var setNum = function (id, v) {
@@ -387,6 +462,70 @@
 
   /* ---------- 监控状态 ---------- */
 
+  function countMonitorStatuses() {
+    var counts = { changed: 0, failed: 0, suspicious: 0, skipped: 0 };
+    var products = (monitorStatus && monitorStatus.products) || {};
+    Object.keys(products).forEach(function (id) {
+      var product = products[id] || {};
+      if (product.status === "changed") counts.changed += 1;
+      if (product.status === "skipped") counts.skipped += 1;
+      var targets = product.targets || {};
+      var targetStatuses = Object.keys(targets).map(function (key) {
+        return targets[key] && targets[key].status;
+      });
+      if (targetStatuses.indexOf("failed") !== -1) counts.failed += 1;
+      if (targetStatuses.indexOf("suspicious") !== -1) counts.suspicious += 1;
+    });
+    return counts;
+  }
+
+  var HEALTH_LABELS = {
+    blocked: "被拦截（反爬/限流）",
+    no_baseline: "无可用基线",
+    degraded: "抓取降级"
+  };
+  var HEALTH_ORDER = ["blocked", "no_baseline", "degraded"];
+
+  function formatTime(value) {
+    if (!value) return "从未成功";
+    return String(value).replace("T", " ").slice(0, 16);
+  }
+
+  function renderHealthDetails() {
+    var items = healthItems();
+    var keys = Object.keys(items);
+    if (!keys.length) return "";
+    keys.sort(function (a, b) {
+      var ia = HEALTH_ORDER.indexOf(items[a].health);
+      var ib = HEALTH_ORDER.indexOf(items[b].health);
+      if (ia !== ib) return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib);
+      return (items[b].consecutive_runs || 0) - (items[a].consecutive_runs || 0);
+    });
+    var rows = keys.map(function (key) {
+      var item = items[key] || {};
+      var url = PT.safeUrl ? PT.safeUrl(item.url) : "";
+      var urlHtml = url
+        ? '<a href="' + PT.escapeHtml(url) + '" target="_blank" rel="noopener">来源</a>'
+        : "";
+      var runs = item.consecutive_runs
+        ? "，连续 " + PT.escapeHtml(String(item.consecutive_runs)) + " 轮"
+        : "";
+      var action = item.next_action
+        ? "；建议：" + PT.escapeHtml(item.next_action)
+        : "";
+      return '<li><span class="health-tag health-' + PT.escapeHtml(item.health) + '">' +
+        PT.escapeHtml(HEALTH_LABELS[item.health] || item.health) + "</span>" +
+        '<a href="detail.html?id=' + encodeURIComponent(item.pid) + '">' +
+        PT.escapeHtml(item.name || item.pid) + "</a>（" +
+        PT.escapeHtml(item.label || item.key) + "）" + urlHtml +
+        '<span class="health-note">' + PT.escapeHtml(item.message || "") + runs +
+        "；上次成功抓取：" + PT.escapeHtml(formatTime(item.last_good_at)) +
+        action + "</span></li>";
+    }).join("");
+    return '<details class="monitor-health"><summary>抓取降级明细（' + keys.length +
+      " 个目标，政策未变更但数据可能过期）</summary><ul>" + rows + "</ul></details>";
+  }
+
   function renderMonitorStatus() {
     var box = document.getElementById("monitorStatus");
     if (!monitorStatus || !monitorStatus.meta) {
@@ -395,15 +534,22 @@
     }
     box.style.display = "block";
     var meta = monitorStatus.meta;
+    var counts = countMonitorStatuses();
     var changed = changedProductIds();
-    var when = (meta.last_run || "").replace("T", " ").slice(0, 16);
+    var health = healthItems();
+    var healthCount = Object.keys(health).length;
+    var when = String(meta.last_run || "").replace("T", " ").slice(0, 16);
+    var total = Number(meta.total_products) || allProducts.length;
+    var anomalyParts = [];
+    if (counts.failed > 0) anomalyParts.push(counts.failed + " 个产品检查失败");
+    if (counts.suspicious > 0) anomalyParts.push(counts.suspicious + " 个产品正文可疑");
+    if (counts.skipped > 0) anomalyParts.push(counts.skipped + " 个产品未监控");
+    if (healthCount > 0) anomalyParts.push(healthCount + " 个目标抓取降级");
 
-    if (changed.length === 0) {
-      var failedNote = meta.failed > 0 ? "，" + meta.failed + " 个产品检查失败" : "";
+    if (changed.length === 0 && anomalyParts.length === 0) {
       box.innerHTML =
         '<div class="monitor-ok">🔍 政策监控上次运行：' + PT.escapeHtml(when) +
-        "，检查 " + meta.total_products + " 个产品" + failedNote +
-        "，未检测到政策变更。</div>";
+        "，检查 " + PT.escapeHtml(String(total)) + " 个产品，未检测到政策变更。</div>";
       return;
     }
 
@@ -415,11 +561,14 @@
       return '<a href="detail.html?id=' + encodeURIComponent(id) + '">' +
         PT.escapeHtml(label) + "</a>";
     }).join("、");
-
+    var headline = changed.length > 0
+      ? "检测到 " + changed.length + " 个产品政策可能已更新，待人工核实：" + links
+      : "未检测到已确认的政策变更";
+    var headlineHtml = changed.length > 0 ? headline : PT.escapeHtml(headline);
+    var anomalyText = anomalyParts.length > 0 ? "；监控异常：" + anomalyParts.join("、") : "";
     box.innerHTML =
-      '<div class="monitor-banner">⚠️ 政策监控于 ' + PT.escapeHtml(when) +
-      " 检测到 " + changed.length + " 个产品政策可能已更新，待人工核实：" + links +
-      "</div>";
+      '<div class="monitor-banner">⚠️ 政策监控于 ' + PT.escapeHtml(when) + " " +
+      headlineHtml + PT.escapeHtml(anomalyText) + "</div>" + renderHealthDetails();
   }
 
   /* ---------- 初始化 ---------- */
@@ -433,6 +582,9 @@
     initRowEvents();
     fetchMonitorStatus().then(function () {
       updateDataDate();
+      if (allProducts.length) renderMonitorStatus();
+    });
+    fetchMonitorHealth().then(function () {
       if (allProducts.length) renderMonitorStatus();
     });
     fetchAllProducts()

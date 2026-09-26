@@ -6,17 +6,16 @@ description: "本地核实 AI 产品官方政策页面变更。当用户要核�
 # 政策变更本地核实
 
 ## 概述
-本 skill 把"政策变更核实"从 GitHub Actions 工作流（monitor.yml 里的
-`analyze_changes.py` + "创建/更新 Issue" 步骤）迁移为**本地由 agent 驱动的流程**。
-agent 调用本 skill 时，读取监控检测结果（`update_status.json` / 快照 / 开放
-Issue），对每个被标记的产品目标提取新旧快照 diff，判断变更性质，并起草对
+本 skill 把"政策变更核实"从 GitHub Actions 工作流迁移为**本地由 agent 驱动的流程**。
+agent 调用本 skill 时，读取监控检测结果（`update_status.json` / 快照 / 待核实队列），
+对每个被标记的产品目标提取新旧快照 diff，判断变更性质，并起草对
 `site/data/policies/{id}.json` 的修改，最终**交由人工确认后再落盘**。
 
 核心原则：**AI 只负责"核实 + 起草补丁"，人工负责"确认 + 应用"**。
 绝不在未获用户明确确认前直接修改政策数据文件，也不要自行 commit/push（除非用户要求）。
 
 ## 何时使用
-- 用户说"核实一下政策变更""看看哪些政策更新了""处理一下 Issue #N"
+- 用户说"核实一下政策变更""看看哪些政策更新了""处理一个待核实项"
   "核对 claude/gemini 的变更"等。
 - 用户想确认 `update_status.json` 里 `status=="changed"` 的产品是否真改了条款。
 - 用户想基于监控结果更新 `site/data/policies/{id}.json` 并补 timeline。
@@ -27,12 +26,18 @@ Issue），对每个被标记的产品目标提取新旧快照 diff，判断变�
 三种来源，任选其一或合并：
 1. **检测结果**：读取仓库根 `site/generated/update_status.json`，收集
    `products` 中 `status=="changed"` 的产品，及其 `targets` 里
-   `status=="changed"` 的目标键（`main` / `toc` / `tob`）。
+   `status=="changed"` 的目标键（`main` / `toc` / `tob` / `source_*`）。
    - `status=="failed"` 表示抓取失败（被墙 / SSL / 超时），**不是真实变更**，
      标注为"抓取失败、需人工打开 URL 确认"，不要当作条款变化。
    - `status=="suspicious"` 表示正文过短（疑似 JS 渲染 / 反爬空壳），同样需人工确认。
 2. **待核实队列**：读取 `site/generated/pending_verification.json`，其中 `items` 即为本轮及历史未清除的 `changed` 目标（`pid:key` 为键，含 `url` / `first_seen` / `last_seen`）。也可先跑 `policy_verify.py --list` 直接看队列（该脚本优先展示队列）。
 3. 用户直接指定某产品 ID（如 `claude`、`gemini`）。
+
+> **先分清"政策变了"和"抓取坏了"**：目标级 `status` 与 `health` 是两套正交信号。
+> `status=changed` 才是政策正文变化（需要走下面步骤 2-5 核实内容差异）；
+> `health=degraded` / `no_baseline` / `blocked` 表示这轮抓到的正文不可信，
+> 页面展示的历史快照仍然有效，**不要**为它起草数据修改，而是修抓取配置
+> （见步骤 5）。`policy_verify.py --list` 末尾会单独列出这类"抓取健康问题"及处置命令。
 
 ### 步骤 2：提取新旧快照 diff
 对每个（产品, 目标）运行本 skill 附带的脚本（**从仓库根目录运行**）：
@@ -40,7 +45,7 @@ Issue），对每个被标记的产品目标提取新旧快照 diff，判断变�
 # 一次列出所有被标记项（推荐先看这个）
 python3 skills/policy-change-verify/scripts/policy_verify.py --list
 # 查看单个产品的某个目标
-python3 skills/policy-change-verify/scripts/policy_verify.py <product_id> [target]
+python3 skills/policy-change-verify/scripts/policy_verify.py <product_id> [main|toc|tob|source_*]
 # 查看单个产品的全部目标
 python3 skills/policy-change-verify/scripts/policy_verify.py <product_id> --all-targets
 ```
@@ -73,9 +78,18 @@ python3 skills/policy-change-verify/scripts/policy_verify.py <product_id> --all-
 
 ### 步骤 5：处理噪声 / 失败项
 - 噪声或 `failed` / `suspicious`：在回复中标注"误报 / 需人工打开 URL 确认"，不修改数据。
+- 抓取健康问题（`health` 为 `degraded` / `no_baseline` / `blocked`）：这**不是**政策变化，
+  不要起草数据修改，而是修抓取配置后重试验证：
+  1. `.venv/bin/python scripts/check_updates.py --only <pid>:<key> --timeout 60` —— 先排除网络抖动；
+  2. 若是 JS 渲染 / 反爬空壳，在 `site/data/policies/{id}.json` 的**该目标对应的载体**里加配置：
+   `main` → `targets.main`；`toc`/`tob` → `versions.toc`/`versions.tob`；`source_*` → `sources[]` 那个条目。
+   正文在非标准容器时加 `content_selector`，页面需 JS 渲染时设 `fetch_method: "browser"`
+   （必要时加 `wait_for_selector`）。四个载体优先级为 目标级 > 产品级 > 全局默认。
+  3. 再跑 `--only <pid>:<key>`，确认 `health` 回到 `ok` / `initialized`、
+     `site/generated/monitor_health.json` 里对应条目消失。
 - 某项已核实并更新数据后，运行
-  `python3 skills/policy-change-verify/scripts/policy_verify.py --resolve <product_id> [target]`
-  从待核实队列移除（这是检测→核实跨轮持久交接的收尾）。
+   `python3 skills/policy-change-verify/scripts/policy_verify.py --resolve <product_id> [target]`
+   同时清除待核实队列和页面告警（这是检测→核实跨轮持久交接的收尾）。
 
 ## 资源
 - `scripts/policy_verify.py`：提取新旧快照 diff 与当前政策 JSON 的确定性脚本。
@@ -83,8 +97,7 @@ python3 skills/policy-change-verify/scripts/policy_verify.py <product_id> --all-
 - `references/verification_workflow.md`：实质性 vs 噪声的判断清单与示例。
 
 ## 与 monitor.yml 的关系
-monitor.yml 现在**只做检测 + 快照入库 + 写待核实队列**（`check_updates.py`）：每周自动发现变化、
+monitor.yml 现在**只做检测 + 快照入库 + 写待核实队列 + 写抓取健康队列**（`check_updates.py`）：每周自动发现变化、
 把快照提交入库作为跨环境共享的持久历史、把 `changed` 目标写入
-`site/generated/pending_verification.json`。原来的"AI 辅助变更分析"（`analyze_changes.py`，已删除）
-与"创建/更新 Issue"（已移除）两步不再存在——核实与改数据全部在本地由本 skill 完成，
-不再依赖 `OPENAI_API_KEY` 这类仓库 secret。
+`site/generated/pending_verification.json`、把抓取不可信的目标写入
+`site/generated/monitor_health.json`。CI 不做 AI 分析或建 Issue；核实与改数据全部在本地由本 skill 完成。

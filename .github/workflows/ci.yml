@@ -9,8 +9,8 @@ on:
 
 # 同一分支的多次推送只保留最新一次运行，避免并发任务重复提交
 concurrency:
-  group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  group: repo-write-${{ github.repository }}-${{ github.ref }}
+  cancel-in-progress: false
 
 # 最小权限：默认只读，写权限仅在 publish job 中单独授予
 permissions:
@@ -22,6 +22,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
       - uses: actions/setup-python@v7
         with:
@@ -53,6 +55,8 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
       - uses: actions/setup-python@v7
         with:
@@ -60,14 +64,18 @@ jobs:
           cache: pip
 
       - name: 安装依赖
-        run: |
-          pip install -r requirements.txt
-          pip install --quiet pillow
+        run: pip install -r requirements.txt
 
       - name: 生成数据 bundle 与文档页
         run: |
           python scripts/gen_data_bundle.py
           python scripts/gen_docs.py
+
+      - name: 生成后复验
+        run: |
+          python -m unittest discover -s tests -v
+          python scripts/validate_data.py
+          python scripts/gen_docs.py --check
 
       - name: 提交 bundle 与文档页（有变化时）
         run: |

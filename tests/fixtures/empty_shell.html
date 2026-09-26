@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<!--
+  真实失败页样本（脱敏截取，保留结构特征）：JS 渲染 + 反爬空壳，正文完全在客户端注入。
+  抓到的静态 HTML 只剩导航骨架与页脚，去噪后可见正文为 0 字符。
+  监控应判为 empty_body（而非 render_required），且不得用它覆盖已有基线。
+-->
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>文档预览</title>
+  <script>window.__INITIAL_STATE__={"docId":"demo","renderMode":"client"}</script>
+</head>
+<body>
+  <div id="app"></div>
+  <div class="doc-toolbar"><span>编辑</span><span>收藏</span><span>分享</span></div>
+  <nav class="doc-catalog">
+    <a href="#/1">一、概述</a>
+    <a href="#/2">二、数据收集</a>
+    <a href="#/3">三、模型训练</a>
+  </nav>
+  <div class="doc-loading">正在加载文档…</div>
+  <footer>京公网安备 京ICP备 企业咨询热线 营业执照</footer>
+  <script src="/static/main.js"></script>
+</body>
+</html>
