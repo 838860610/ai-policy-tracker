@@ -4,18 +4,19 @@
 
 [![数据校验](https://github.com/838860610/ai-policy-tracker/actions/workflows/ci.yml/badge.svg)](https://github.com/838860610/ai-policy-tracker/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Python 3.9+](https://img.shields.io/badge/python-3.9%2B-blue.svg)](https://www.python.org/downloads/)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/downloads/)
 
 [English](README.en.md) | 简体中文
 
 ## 功能特性
 
-- **对比表格**：一目了然地查看 50 款主流 AI 产品（国内 46 + 海外 4）的数据使用政策
-- **ToC/ToB 切换**：分别查看个人版和企业版的政策差异，切换状态写入 URL，可直接分享链接
+- **对比表格**：一目了然地查看 48 款主流 AI 产品（国内 44 + 海外 4）的数据使用政策
+- **ToC/ToB 对比**：首页同时展示个人版和企业版，详情页可在两个版本间切换
 - **风险等级标注**：绿色（低风险）、黄色（中风险）、红色（高风险）直观标注，支持按风险筛选
 - **搜索**：支持按产品名称或公司搜索
-- **详情页面**：每个产品提供详细的政策分析、关键条款摘录、时间线
+- **详情页面**：每个产品提供详细的政策分析、关键条款摘录；有历史记录时展示政策时间线
 - **更新监控**：Python 脚本自动检测政策页面变化（正文归一化哈希 + 条件请求，避免动态内容误报），检测结果直接展示在首页
+- **抓取健康可见**：把"政策是否变化"和"这一轮抓取是否可信"分开记录，抓取降级的目标会在首页列出原因、连续轮次和建议动作，不会伪装成"未变化"
 - **本地核实流程**：检测到政策变更后，由本地 `policy-change-verify` skill 提取新旧快照 diff、判断变更是实质性条款变化还是噪声，并起草对 `site/data/policies/{id}.json` 的修改供人工确认（CI 不再自动分析或建 Issue）
 - **可访问性**：表格行支持键盘导航（Tab + Enter）
 - **纯前端**：无需后端、无需构建工具，开箱即用
@@ -82,9 +83,10 @@ ai-policy-tracker/
 │   │   ├── bundle.json     # 合并数据包（gen_data_bundle.py，首页加速，CI 提交）
 │   │   ├── update_status.json # 监控状态（check_updates.py，首页读取展示）
 │   │   ├── pending_verification.json # 待核实队列（changed 目标的跨轮交接物）
+│   │   ├── monitor_health.json # 抓取健康队列（degraded/no_baseline/blocked 目标）
 │   │   ├── snapshots/      # 政策正文快照（入库，作为跨环境核实的持久历史）
 │   │   └── og-card.png     # Open Graph 分享卡片（gen_og_image.py）
-│   └── docs/               # 对外发布文档（methodology / update-monitoring）
+│   └── docs/               # 对外发布文档（methodology / update-monitoring / data-pipeline）
 │       │                   #   注意：站点与 sitemap 直接引用这些页面，必须入库
 │       └── internal/       # 内部工作底稿（核实报告、优化清单，.gitignore 忽略）
 ├── scripts/
@@ -92,14 +94,16 @@ ai-policy-tracker/
 │   ├── validate_data.py    # 数据校验脚本
 │   ├── gen_readme_table.py # README 汇总表生成脚本
 │   ├── gen_data_bundle.py  # 数据合并包生成脚本（首页加速）
+│   ├── gen_docs.py         # Markdown 文档页生成脚本
 │   ├── gen_og_image.py     # 社交分享卡片生成脚本
 │   └── extract_clauses.py  # 条款提取工具
+├── skills/                 # 本地政策变更核实 skill
 ├── tests/                  # 回归测试（unittest，无第三方依赖）
 ├── .github/
 │   ├── workflows/          # CI/CD 工作流
-│   ├── ISSUE_TEMPLATE/     # Issue 模板
-│   └── dependabot.yml      # 依赖自动更新
+│   └── ISSUE_TEMPLATE/     # Issue 模板
 ├── requirements.txt
+├── requirements-browser.txt
 ├── start.sh                # 一键启动（venv + 依赖 + 本地服务）
 ├── README.md
 ├── CONTRIBUTING.md         # 贡献指南
@@ -109,9 +113,9 @@ ai-policy-tracker/
 └── LICENSE
 ```
 
-> **数据模型**：`site/data/policies/{id}.json` 是每个产品唯一的数据源（含名称、公司、版本政策、时间线等全部字段），`site/data/products.json` 只维护产品 ID 的排列顺序。修改产品数据只需要改一个文件。
+> **数据模型**：`site/data/policies/{id}.json` 是每个产品唯一的数据源（含名称、公司、版本政策、`training_status`、补充 `sources[]`、时间线等全部字段），`site/data/products.json` 只维护产品 ID 的排列顺序。修改产品数据只需要改一个文件。
 >
-> **源数据 vs 生成物**：`site/data/` 下只有人工维护的源数据；`site/generated/` 下全部由脚本产出（`bundle.json`、`update_status.json`、`pending_verification.json`、`snapshots/`、`og-card.png`），**不要手工编辑**，改了也会被下次 CI 覆盖（其中 `snapshots/` 为监控历史、`pending_verification.json` 为待核实队列）。
+> **源数据 vs 生成物**：`site/data/` 下只有人工维护的源数据；`site/generated/` 下全部由脚本产出（`bundle.json`、`update_status.json`、`pending_verification.json`、`monitor_health.json`、`snapshots/`、`og-card.png`），**不要手工编辑**，改了也会被下次 CI 覆盖（其中 `snapshots/` 为监控历史、`pending_verification.json` 为待核实队列、`monitor_health.json` 为抓取健康队列）。
 
 ## 对比汇总表
 
@@ -122,70 +126,72 @@ ai-policy-tracker/
 
 | 产品 | 厂商 | 个人版训练 | 退出机制 | 企业版训练 | 风险等级 |
 |------|------|-----------|---------|-----------|---------|
-| 纳米 AI（360） | 360 | ✅ 是 | 未明示退出机制 | — | 🔴 高 |
-| 360 智脑 | 360 | ✅ 是 | 未明示退出机制 | ✅ 是 | 🔴 高 |
+| 纳米 AI（360） | 360 | ⚠️ 疑似是 | 未明示退出机制 | — | 🔴 高 |
+| 360 智脑 | 360 | ⚠️ 疑似是 | 未明示退出机制 | ✅ 是（可退出） | 🔴 高 |
 | 阿里云百炼（Model Studio） | 阿里云 | — | — | ❌ 否 | — |
-| Qoder CN（AI 编程智能体，原通义灵码） | 阿里巴巴（通义云启运营） | ✅ 是 | 撤回同意 | ✅ 是 | 🟡 中 |
+| Qoder CN（AI 编程智能体，原通义灵码） | 阿里巴巴（通义云启运营） | ⚠️ 疑似是 | 撤回同意 | ⚠️ 疑似是 | 🟡 中 |
 | 千问办公（QwenWork） | 阿里巴巴 | — | — | — | — |
-| 千问 App（原通义千问） | 阿里云 | ✅ 是 | ⚠️ 需邮件申请 | — | 🟡 中 |
-| 百川智能（Baichuan AI） | 百川智能 | ✅ 是 | 未明示退出机制 | — | 🔴 高 |
+| 千问 App（原通义千问） | 阿里云 | ✅ 是（可退出） | ⚠️ 需邮件申请 | — | 🟡 中 |
+| 百川智能（Baichuan AI） | 百川智能 | ✅ 是（可退出） | 未明示退出机制 | — | 🔴 高 |
 | 文心快码（Baidu Comate） | 百度 | ❌ 否 | 撤回同意 / 企业管理关闭 | ❌ 否 | 🟡 中 |
 | 百度智能云千帆 | 百度 | — | — | ❌ 否 | — |
-| 文心（原文心一言/文小言） | 百度 | ❌ 否 | 未明示退出机制 | — | 🟡 中 |
-| 小艺（华为 HarmonyOS） | 华为 | ✅ 是 | 未明示退出机制 | — | 🔴 高 |
-| 阶跃开放平台 | 阶跃星辰 | — | — | ✅ 是 | — |
-| 阶跃 AI（原跃问） | 阶跃星辰 | ✅ 是 | ✅ 支持 | — | 🟡 中 |
+| 文心（原文心一言/文小言） | 百度 | ❓ 未明确 | 未明示退出机制 | — | 🟡 中 |
+| 小艺（华为 HarmonyOS） | 华为 | ✅ 是（可退出） | 未明示退出机制 | — | 🔴 高 |
+| 阶跃开放平台 | 阶跃星辰 | — | — | ⚠️ 疑似是 | — |
+| 阶跃 AI（原跃问） | 阶跃星辰 | ✅ 是（可退出） | ✅ 支持 | — | 🟡 中 |
 | 讯飞开放平台（星火大模型 API） | 科大讯飞 | — | — | ✅ 是 | — |
-| 讯飞星火 | 科大讯飞 | ✅ 是 | ⚠️ 需邮件申请 | — | 🟡 中 |
-| 讯飞智作 | 科大讯飞 | ✅ 是 | 未明示退出机制 | — | 🔴 高 |
-| 可灵AI | 快手 | ✅ 是 | ⚠️ 需邮件申请 | — | 🟡 中 |
+| 讯飞星火 | 科大讯飞 | ✅ 是（可退出） | ⚠️ 需邮件申请 | — | 🟡 中 |
+| 讯飞智作 | 科大讯飞 | ✅ 是（可退出） | 未明示退出机制 | — | 🔴 高 |
+| 可灵AI | 快手 | ✅ 是（可退出） | ⚠️ 需邮件申请 | — | 🟡 中 |
 | 可灵 AI 开放平台 | 快手 | — | — | ❌ 否 | — |
-| Mureka（昆仑万维音乐） | 昆仑万维 | ❌ 否 | ⚠️ 需邮件申请 | — | 🟡 中 |
-| SkyProduction（昆仑万维） | 昆仑万维 | ✅ 是 | ⚠️ 需邮件申请 | — | 🔴 高 |
-| 天工（昆仑万维） | 昆仑万维 | ✅ 是 | 未明示独立退出开关 | — | 🟡 中 |
+| Mureka（昆仑万维音乐） | 昆仑万维 | ❓ 未明确 | ⚠️ 需邮件申请 | — | 🟡 中 |
+| SkyProduction（昆仑万维） | 昆仑万维 | ✅ 是（可退出） | ⚠️ 需邮件申请 | — | 🔴 高 |
+| 天工（昆仑万维） | 昆仑万维 | ✅ 是（可退出） | 未明示独立退出开关 | — | 🟡 中 |
 | 零一万物（01.AI） | 零一万物 | — | — | — | — |
-| MiniMax（海螺 AI / 开放平台） | MiniMax（上海稀宇科技） | ✅ 是 | 联系撤回 | ❌ 否 | 🔴 高 |
-| 商汤日日新（SenseNova） | 商汤科技 | ❌ 否 | 未明示 | — | 🟡 中 |
-| DeepSeek | 深度求索 | ✅ 是 | ✅ 支持 | ✅ 是 | 🟡 中 |
-| CodeBuddy（AI 编程助手） | 腾讯（腾讯云） | ✅ 是 | 联系关闭（隐私声明第十一条） | ✅ 是 | 🔴 高 |
+| MiniMax（海螺 AI / 开放平台） | MiniMax（上海稀宇科技） | ✅ 是（可退出） | 联系撤回 | ❓ 未明确 | 🔴 高 |
+| 商汤日日新（SenseNova） | 商汤科技 | ❓ 未明确 | 未明示 | — | 🟡 中 |
+| DeepSeek | 深度求索 | ✅ 是（可退出） | ✅ 支持 | ✅ 是（可退出） | 🟡 中 |
+| CodeBuddy（AI 编程助手） | 腾讯（腾讯云） | ✅ 是（可退出） | 联系关闭（隐私声明第十一条） | ✅ 是（可退出） | 🔴 高 |
 | ima（腾讯 AI 知识管家） | 腾讯 | ❌ 否 | 无需退出（知识库数据不用于训练） | — | 🟡 中 |
-| 腾讯元宝 | 腾讯 | ❌ 否 | ✅ 支持 | — | 🟡 中 |
-| WorkBuddy（AI 办公智能体） | 腾讯（腾讯云运营） | ✅ 是 | ✅ 支持 | ✅ 是 | 🟡 中 |
-| 腾讯元器 | 腾讯 | ❌ 否 | 未明示 | ❌ 否 | 🟡 中 |
-| Kimi | 月之暗面 | ✅ 是 | ⚠️ 需邮件申请 | ✅ 是 | 🔴 高 |
-| AMiner（科研 AI 助手） | 智谱AI | ✅ 是 | 未明示退出机制 | — | 🔴 高 |
-| AutoClaw（智谱本地智能体，澳龙） | 智谱AI | ✅ 是 | 未明示退出机制（授权不可撤销） | — | 🔴 高 |
-| AutoGLM（智谱） | 智谱AI | ❌ 否 | 设置开关（初始化时选择）+ 联系撤回 | — | 🟡 中 |
+| 腾讯元宝 | 腾讯 | ❌ 默认否 | ✅ 支持 | — | 🟡 中 |
+| WorkBuddy（AI 办公智能体） | 腾讯（腾讯云运营） | ✅ 是（可退出） | ✅ 支持 | ✅ 是（可退出） | 🟡 中 |
+| 腾讯元器 | 腾讯 | ❓ 未明确 | 未明示 | ❓ 未明确 | 🟡 中 |
+| Kimi | 月之暗面 | ✅ 是（可退出） | ⚠️ 需邮件申请 | ✅ 是 | 🔴 高 |
+| AMiner（科研 AI 助手） | 智谱AI | ✅ 是（可退出） | 未明示退出机制 | — | 🔴 高 |
+| AutoClaw（智谱本地智能体，澳龙） | 智谱AI | ✅ 是（可退出） | 未明示退出机制（授权不可撤销） | — | 🔴 高 |
+| AutoGLM（智谱） | 智谱AI | ❌ 默认否 | 设置开关（初始化时选择）+ 联系撤回 | — | 🟡 中 |
 | 智谱开放平台（bigmodel.cn） | 智谱AI | — | — | ✅ 是 | — |
 | GLM Coding Plan（智谱） | 智谱AI | ✅ 是 | 无（匿名化使用不依赖授权同意） | ❌ 否 | 🔴 高 |
-| ZCode（智谱 AI 编程） | 智谱AI | ❌ 否 | ✅ 支持 | — | 🟡 中 |
-| 智谱清言 | 智谱AI | ✅ 是 | ✅ 支持 | — | 🟡 中 |
+| ZCode（智谱 AI 编程） | 智谱AI | ❌ 默认否 | ✅ 支持 | — | 🟡 中 |
+| 智谱清言 | 智谱AI | ✅ 是（可退出） | ✅ 支持 | — | 🟡 中 |
 | Zread.ai（GitHub 项目解读） | 智谱AI | — | — | — | — |
-| 扣子 / Coze（智能体平台） | 字节跳动 | ✅ 是 | ✅ 支持 | ✅ 是 | 🟡 中 |
-| 豆包 | 字节跳动 | ✅ 是 | ✅ 支持 | ❌ 否 | 🟡 中 |
+| 扣子 / Coze（智能体平台） | 字节跳动 | ✅ 是（可退出） | ✅ 支持 | ✅ 是（可退出） | 🟡 中 |
+| 豆包 | 字节跳动 | ✅ 是（可退出） | ✅ 支持 | ❓ 未明确 | 🟡 中 |
 | 豆包大模型 API（火山方舟） | 火山引擎（字节跳动） | — | — | ❌ 否 | — |
-| 即梦 AI（Dreamina） | 字节跳动（脸萌科技） | ✅ 是 | ⚠️ 需邮件申请 | ✅ 是 | 🔴 高 |
+| 即梦 AI（Dreamina） | 字节跳动（脸萌科技） | ✅ 是（可退出） | ⚠️ 需邮件申请 | ✅ 是（可退出） | 🔴 高 |
 | Trae（AI IDE） | 字节跳动 | ✅ 是 | 指引路径 | ❌ 否 | 🟡 中 |
 
 海外平台（4 款产品，按厂商排序）：
 
 | 产品 | 厂商 | 个人版训练 | 退出机制 | 企业版训练 | 风险等级 |
 |------|------|-----------|---------|-----------|---------|
-| Claude | Anthropic | ✅ 是 | ✅ 支持 | ❌ 否 | 🔴 高 |
-| Gemini | Google | ✅ 是 | ✅ 支持 | ❌ 否 | 🟡 中 |
-| ChatGPT | OpenAI | ✅ 是 | ✅ 支持 | ❌ 否 | 🔴 高 |
-| Z.ai（智谱全球 AI 助手） | 智谱AI | ✅ 是 | 未明示退出机制 | ❌ 否 | 🔴 高 |
+| Claude | Anthropic | ✅ 是（可退出） | ✅ 支持 | ❌ 否 | 🔴 高 |
+| Gemini | Google | ✅ 是（可退出） | ✅ 支持 | ❌ 否 | 🟡 中 |
+| ChatGPT | OpenAI | ✅ 是（可退出） | ✅ 支持 | ❌ 否 | 🔴 高 |
+| Z.ai（智谱全球 AI 助手） | 智谱AI | ✅ 是（可退出） | 未明示退出机制 | ❌ 默认否 | 🔴 高 |
 <!-- TABLE:END -->
 
+> 训练列语义：明确使用/明确不使用、默认退出式、默认加入式、未知和间接推断分别展示；“疑似”表示结论来自优化/服务条款推断，不是逐字训练条款。
+>
 > 上表及风险分布由 `scripts/gen_readme_table.py` 从数据自动生成，请勿手改。详细信息请访问[在线对比表格](https://838860610.github.io/ai-policy-tracker/)或各产品详情页。
 
 ## 数据来源
 
-数据来源于各 AI 产品官方发布的隐私政策、服务条款和使用条件，逐条注明条款出处与核实日期。
+数据主要来源于各 AI 产品官方发布的隐私政策、服务条款和使用条件，逐条注明条款出处与核实日期；产品状态等非政策事实可能补充引用媒体来源，并会单独标注。
 
 ## 更新监控
 
-项目内置自动化的政策更新监控，定时检测政策页面变化，但**只负责"发现变化 + 留档"**，不判断、不改数据、不建 Issue；判断与改数据都在本地由 `policy-change-verify` skill 完成（见下方"本地核实流程"）。所有 Python 脚本统一使用项目虚拟环境 `.venv` 运行（不污染系统 Python，也规避新版 Python 禁止直接 pip 装包的限制）：
+项目内置自动化的政策更新监控，定时检测政策页面变化，但**只负责"发现变化 + 留档"**，不判断、不改数据；判断与改数据都在本地由 `policy-change-verify` skill 完成。监控目标来自各产品的 `policy_url`、版本 `policy_link` 以及可选的 `sources[]` 来源注册表。每个非跳过目标都必须有可验证的本地基线；没有基线、URL 变化或哈希方案变化时不会接受 304。所有 Python 脚本统一使用项目虚拟环境 `.venv` 运行：
 
 ```bash
 # 方式一：用 start.sh 一键准备（创建 .venv 并安装依赖，已就绪则秒过）
@@ -195,13 +201,42 @@ ai-policy-tracker/
 python3 -m venv .venv
 .venv/bin/pip install -r requirements.txt
 
+# 需要抓取 Cloudflare/反爬页面时安装浏览器依赖
+.venv/bin/pip install -r requirements-browser.txt
+.venv/bin/playwright install chromium
+
 # 运行监控脚本（每周一由 CI 自动跑；也可本地手动）
 .venv/bin/python scripts/check_updates.py
+# 未安装浏览器依赖时可显式跳过 browser 目标
+.venv/bin/python scripts/check_updates.py --no-browser
+# 只重试某几个产品/目标（其余沿用上次状态，不重跑全量）
+.venv/bin/python scripts/check_updates.py --only gemini:main
+.venv/bin/python scripts/check_updates.py --products minimax
 ```
 
-脚本对政策页面正文（剥离 script/style、归一化空白后）计算哈希，并使用 ETag/If-Modified-Since 条件请求，避免页面动态内容导致的误报。检测结果写入 `site/generated/update_status.json`，**首页会自动展示监控状态**：无变化时显示上次运行时间，检测到变更时在表格上方展示告警横幅并在对应产品旁标注 ⚠️。
+脚本对 HTML、Markdown、纯文本和 PDF 政策正文进行结构化提取、归一化并计算哈希，同时使用 ETag/If-Modified-Since 条件请求。检测结果写入 `site/generated/update_status.json`，首页会分别展示已确认变更、检查失败、正文可疑和未监控产品；监控运行时间与人工核实日期分开显示。
 
-监控按产品逐条覆盖独立条款链接（顶层 policy_url + 个人版/企业版各自的 policy_link，URL 去重）。正文快照留档到 `site/generated/snapshots/`（`latest.txt` 为当前内容，`prev.txt` 为变更前的旧快照，日期文件为历史存档）并**入库**作为跨环境共享的持久历史——本地 agent 正是靠 git 拉到这些快照来做 diff。本轮检测为 `changed` 的目标会被写入 `site/generated/pending_verification.json`（待核实队列），作为"检测 → 核实"的跨轮交接物（不再用 Issue）。
+正文快照留档到 `site/generated/snapshots/`（`latest.txt` 为当前内容，`prev.txt` 为变更前的旧快照，日期文件为历史存档）并入库作为跨环境共享的持久历史。本轮检测为 `changed` 的目标会写入 `site/generated/pending_verification.json`；在人工 `--resolve` 前，后续 304 不会清除页面告警。
+
+### 抓取健康与"政策变化"分开记录
+
+监控结果里每个目标有两套正交状态：
+
+- `status`：政策正文相对基线**变没变**（`ok` / `changed` / `failed` / `suspicious` / `skipped`）；
+- `health`：这一轮**抓到的正文能不能信**（`ok` / `initialized` / `rebaselined` / `degraded` / `no_baseline` / `blocked`）。
+
+正文过短（默认 < 500 字符）或抓取失败时脚本**不会覆盖已有基线**，只把 `health` 标成降级/无基线/被拦截。这类目标进入独立队列 `site/generated/monitor_health.json`（记录失败原因、连续不健康轮次与建议动作，恢复后自动消失），首页 banner 下方可展开"抓取降级明细"。这样一次 Cloudflare 挑战不会伪装成"政策可能已更新"。
+
+抓取方式支持按目标配置：`versions.*` / `sources[]` 条目可单独设置 `fetch_method`（`requests` / `browser`）、`content_selector`、`wait_for_selector`、`min_body_chars`，不需要为一个站点把整产品都切成浏览器抓取。处置流程：
+
+```bash
+# 1. 确认是网络抖动还是抓取方式问题（长超时单目标重试）
+.venv/bin/python scripts/check_updates.py --only <pid>:<key> --timeout 60
+# 2. 在 policies/{id}.json 里给该目标配 content_selector / fetch_method=browser
+# 3. 重试验证：health 回到 ok/initialized，健康队列对应条目消失
+.venv/bin/python scripts/check_updates.py --only <pid>:<key>
+```
+
 
 ### 本地核实流程（替代原"AI 自动分析 + 建 Issue"）
 
@@ -211,25 +246,26 @@ python3 -m venv .venv
 # 列出待核实队列 + 所有被标记目标（优先看队列）
 python3 skills/policy-change-verify/scripts/policy_verify.py --list
 # 查看某产品某个目标的旧→新 diff 与当前政策数据
-python3 skills/policy-change-verify/scripts/policy_verify.py <product_id> [main|toc|tob]
+python3 skills/policy-change-verify/scripts/policy_verify.py <product_id> [main|toc|tob|source_*]
 ```
 
-skill 提取新旧快照 diff、判断是实质性条款变化还是噪声（页脚年/时间戳/导航重排/抓取失败等属噪声），并**起草**对 `site/data/policies/{id}.json` 的字段 + timeline 修改，**必须等人工确认才写入**。核实并更新数据后，用 `--resolve <product_id>` 从待核实队列移除该项。
+skill 提取新旧快照 diff、判断是实质性条款变化还是噪声，并起草对 `site/data/policies/{id}.json` 的字段 + timeline 修改，必须等人工确认才写入。核实并更新数据后，用 `--resolve <product_id> [target]` 同时清除待核实队列项和页面告警。
 
 其他校验与维护脚本：
 
 ```bash
 .venv/bin/python scripts/validate_data.py    # 校验数据结构完整性（提交前运行）
-.venv/bin/python scripts/gen_readme_table.py # 从数据重新生成 README 汇总表
-python3 -m unittest discover -s tests -v     # 回归测试（无需第三方依赖，装了 pytest 也可用 pytest tests/）
+.venv/bin/python scripts/gen_readme_table.py --check
+.venv/bin/python scripts/gen_docs.py --check
+.venv/bin/python -m unittest discover -s tests -v
 ```
 
 仓库内置 GitHub Actions 工作流：
 
-- `.github/workflows/monitor.yml`——每周一北京时间 09:00 自动运行 `check_updates.py`：检测变化、提交 `update_status.json` + 快照 + 待核实队列（推送到 GitHub 后生效，也可在 Actions 页手动触发）。**不含** AI 分析 / 建 Issue 步骤
-- `.github/workflows/ci.yml`——PR 与主分支推送时自动运行回归测试、数据校验和汇总表一致性检查；main 推送后重新生成 `site/generated/bundle.json` 和 OG 图片（写权限仅授予该发布 job）
+- `.github/workflows/monitor.yml`——每周一北京时间 09:00 自动运行 `check_updates.py`：检测变化、提交 `update_status.json` + `monitor_health.json` + 快照 + 待核实队列（推送到 GitHub 后生效，也可在 Actions 页手动触发）。**不含** AI 分析 / 建 Issue 步骤；检查失败会以非零状态结束 CI
+- `.github/workflows/ci.yml`——PR 与主分支推送时自动运行回归测试、数据校验和文档一致性检查；main 推送后重新生成 `site/generated/bundle.json` 和文档页（OG 图片由部署阶段生成）
 - `.github/workflows/deploy.yml`——在上述工作流跑完后把 `site/` 目录部署到 GitHub Pages（也可手动触发）
-- `.github/dependabot.yml`——每周检查 GitHub Actions 与 pip 依赖更新
+- 依赖目前不做自动 PR 更新；升级依赖时需人工运行校验并审阅变更
 
 ## 更新日志
 
@@ -240,11 +276,11 @@ python3 -m unittest discover -s tests -v     # 回归测试（无需第三方依
 - **修复线上死链**：`docs/` 曾被 `.gitignore` 整体忽略，首页方法论与 sitemap 中的 `docs/*.html` 线上 404；现拆分为发布页面（入库）+ `site/docs/internal/`（忽略）
 - **社区文档**：新增 `CODE_OF_CONDUCT.md`（行为准则）、`SECURITY.md`（安全政策）、`CHANGELOG.md`（变更日志）
 - **回归测试**：新增 `tests/test_scripts.py`（数据完整性、汇总表生成、发布文档链接有效性），CI 已接入
-- **工程**：CI 拆分为只读校验 job 与 main 发布 job（最小权限）、工作流并发控制、dependabot、贡献指南英文快速上手
+- **工程**：CI 拆分为只读校验 job 与 main 发布 job（最小权限）、工作流并发控制、贡献指南英文快速上手
 
 ## 贡献指南
 
-欢迎贡献政策更新和新产品数据！请阅读 [贡献指南](CONTRIBUTING.md) 了解如何参与。提交 PR 前请运行 `.venv/bin/python scripts/validate_data.py`、`.venv/bin/python scripts/gen_readme_table.py --check` 与 `python3 -m unittest discover -s tests`。
+欢迎贡献政策更新和新产品数据！请阅读 [贡献指南](CONTRIBUTING.md) 了解如何参与。提交 PR 前请运行 `.venv/bin/python scripts/validate_data.py`、`.venv/bin/python scripts/gen_readme_table.py --check`、`.venv/bin/python scripts/gen_docs.py --check` 与 `.venv/bin/python -m unittest discover -s tests`。
 
 参与本项目即表示你同意遵守 [行为准则](CODE_OF_CONDUCT.md)；如发现安全相关问题，请按 [安全政策](SECURITY.md) 私密报告。完整版本历史见 [CHANGELOG.md](CHANGELOG.md)。
 

@@ -1,10 +1,10 @@
 # AI Policy Tracker
 
-> Do mainstream AI products train their models on your data? A pure front-end tracker comparing the training-data policies of 50 AI products.
+> Do mainstream AI products train their models on your data? A pure front-end tracker comparing the training-data policies of 48 AI products.
 
 [![CI](https://github.com/838860610/ai-policy-tracker/actions/workflows/ci.yml/badge.svg)](https://github.com/838860610/ai-policy-tracker/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Python 3.9+](https://img.shields.io/badge/python-3.9%2B-blue.svg)](https://www.python.org/downloads/)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/downloads/)
 
 [English](README.en.md) | [简体中文](README.md)
 
@@ -18,15 +18,16 @@ AI products increasingly reserve the right to use your chats, files, and generat
 
 The full comparison table (in Chinese) lives in [README.md](README.md); the interactive version with per-product detail pages is on the live site.
 
-- **Coverage**: 50 products (46 Chinese + 4 global: ChatGPT, Claude, Gemini, Z.ai), 65 policy entries across consumer (ToC) and enterprise (ToB) tiers
+- **Coverage**: 48 products (44 Chinese + 4 global: ChatGPT, Claude, Gemini, Z.ai), 63 policy entries across consumer (ToC) and enterprise (ToB) tiers
 - **Risk rating**: 🟢 low / 🟡 medium / 🔴 high, derived from four explicit criteria — default training opt-in, de-identification, retention period (≤30 days for green), and content copyright — with per-criterion evidence shown on each detail page
 - **Evidence-based**: every conclusion cites the exact clause, with the source document/section and verification date
 
 ## Features
 
-- **Comparison matrix**: grouped by vendor, filter by region / training usage / risk, searchable; ToC ↔ ToB toggle, shareable via URL
-- **Detail pages**: key clauses quoted verbatim, opt-out instructions, data retention, change timeline, and an auto-derived "green criteria" checklist
-- **Update monitoring**: a Python script re-checks every policy URL weekly (normalized-text hashing + ETag/If-Modified-Since conditional requests to avoid false positives from dynamic pages), covering each product's consumer and enterprise policy links separately. On change, the page text is archived under `site/generated/snapshots/` for diffing, a warning banner appears on the site, and a GitHub issue is opened automatically
+- **Comparison matrix**: grouped by vendor, filter by region / training usage / risk, searchable; consumer and enterprise versions are shown side by side
+- **Detail pages**: key clauses quoted verbatim, opt-out instructions, data retention, an optional change timeline, and an auto-derived "green criteria" checklist
+- **Update monitoring**: a Python script re-checks policy sources weekly (HTML/PDF text extraction, normalized hashing, and ETag/If-Modified-Since requests), covering product terms, version links, and registered supplementary sources. On change, the page text is archived under `site/generated/snapshots/` for diffing and a warning banner appears on the site
+- **Fetch health, kept separate from policy changes**: every monitored target carries two orthogonal signals — `status` (did the policy text change?) and `health` (can this run's text be trusted?). A short body or a failed fetch never overwrites the stored snapshot; it only marks the target `degraded` / `no_baseline` / `blocked` in a dedicated queue (`site/generated/monitor_health.json`), which the homepage expands into a "degraded fetches" breakdown with reason, consecutive-run count and a suggested action. Retrying a single target is cheap (`--only <pid>:<key>`), and fetch method / CSS selector / render wait / body threshold can be configured per target in `versions.*` or `sources[]`
 - **Accessibility**: keyboard navigation (Tab + Enter), ARIA labels
 - **Pure front-end**: no backend, no build tools
 
@@ -41,21 +42,25 @@ cd ai-policy-tracker
 
 # Or serve manually — note `--directory site`: the site lives in site/
 python3 -m http.server 8080 --directory site
+
+# For policy monitoring with browser-rendered pages:
+.venv/bin/pip install -r requirements-browser.txt
+.venv/bin/playwright install chromium
 ```
 
 > Opening `index.html` directly from disk won't work — browsers block `fetch` on the `file://` protocol. Serve over HTTP.
 
 ## How it works
 
-- **Data model**: `site/data/policies/{id}.json` is the single source of truth per product (name, company, per-version policies, timeline, cited clauses). `site/data/products.json` only defines display order.
+- **Data model**: `site/data/policies/{id}.json` is the single source of truth per product (name, company, per-version policies, `training_status`, registered `sources[]`, timeline, cited clauses). `site/data/products.json` only defines display order.
 - **Scripts**: `scripts/validate_data.py` (schema checks, runs in CI), `scripts/gen_readme_table.py` (regenerates the README table from data), `scripts/check_updates.py` (policy change monitoring), `scripts/gen_data_bundle.py` (merges all JSON into one bundle for fast first paint; auto-regenerated by CI).
-- **CI / automation**: `.github/workflows/ci.yml` validates data on every PR and push; `.github/workflows/monitor.yml` runs the weekly check (Mondays 09:00 Beijing time), commits results + snapshots, and files an issue when changes are detected; `.github/workflows/deploy.yml` publishes the `site/` directory to GitHub Pages afterwards.
-- **Layout**: everything that gets published lives under `site/` (that directory *is* the site root — `site/index.html` → `/`). Data sources and generated artifacts are split: `site/data/` (hand-maintained) vs `site/generated/` (produced by scripts, never edit by hand).
+- **CI / automation**: `.github/workflows/ci.yml` validates data on pull requests and pushes to main; `.github/workflows/monitor.yml` runs the weekly check (Mondays 09:00 Beijing time), commits results and snapshots, and fails the workflow when checks fail; `.github/workflows/deploy.yml` publishes the `site/` directory to GitHub Pages afterwards.
+- **Layout**: everything that gets published lives under `site/` (that directory *is* the site root — `site/index.html` → `/`). Data sources and generated artifacts are split: `site/data/` (hand-maintained) vs `site/generated/` (produced by scripts, never edit by hand). `site/generated/` holds `bundle.json`, `update_status.json`, `pending_verification.json`, `monitor_health.json`, `snapshots/` and `og-card.png`.
 - **Deployment**: GitHub Pages via Actions — set *Settings → Pages → Source* to **GitHub Actions** once. "Deploy from a branch" can only publish `/(root)` or `/docs`, so a custom `site/` directory requires the Actions route.
 
 ## Contributing
 
-Policy updates and new products are very welcome! The full guide ([CONTRIBUTING.md](CONTRIBUTING.md)) is in Chinese, but it contains an **English quick start** section — in short: every claim needs an official source URL and a verification date; run the validators before submitting a PR. Found a mistake? [Open an issue](https://github.com/838860610/ai-policy-tracker/issues/new?template=data-correction.yml) with the official policy link.
+Policy updates and new products are very welcome! The full guide ([CONTRIBUTING.md](CONTRIBUTING.md)) is in Chinese, but it contains an **English quick start** section — in short: policy claims need an official source URL and a verification date; non-policy status claims must be labeled when they rely on media sources. Run the validators before submitting a PR. Found a mistake? [Open an issue](https://github.com/838860610/ai-policy-tracker/issues/new?template=data-correction.yml) with the official policy link.
 
 Everyone participating in this project is expected to follow the [Code of Conduct](CODE_OF_CONDUCT.md). To report a security issue, please use a private channel as described in [SECURITY.md](SECURITY.md). Release history lives in [CHANGELOG.md](CHANGELOG.md).
 

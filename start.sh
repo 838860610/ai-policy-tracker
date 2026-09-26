@@ -6,6 +6,11 @@ cd "$(dirname "$0")"
 
 PORT="${1:-8080}"
 
+if ! python3 -c 'import sys; raise SystemExit(0 if sys.version_info >= (3, 10) else 1)'; then
+  echo "需要 Python 3.10 或更高版本。" >&2
+  exit 1
+fi
+
 if [ ! -x .venv/bin/python ]; then
   echo "首次运行：创建虚拟环境 .venv ..."
   python3 -m venv .venv
@@ -24,4 +29,4 @@ echo "检查/安装依赖 ..."
 
 echo "本地服务已启动: http://localhost:$PORT  （根目录为 site/，Ctrl-C 停止）"
 # --directory site：站点文件都在 site/ 下，与线上部署（发布 site/ 目录）保持一致
-exec .venv/bin/python -m http.server "$PORT" --directory site
+exec .venv/bin/python -m http.server "$PORT" --bind 127.0.0.1 --directory site

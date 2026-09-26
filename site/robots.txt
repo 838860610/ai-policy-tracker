@@ -1,4 +1,6 @@
 User-agent: *
 Allow: /
+Disallow: /generated/snapshots/
+Disallow: /data/policies/
 
 Sitemap: https://838860610.github.io/ai-policy-tracker/sitemap.xml

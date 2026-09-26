@@ -6,7 +6,7 @@
   <meta name="description" content="AI 用户政策追踪器数据流水线：数据层、检测、构建校验、部署、展示到本地核实的完整闭环与各脚本职责。">
   <title>数据流水线 - AI 用户政策追踪器</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%9B%A1%EF%B8%8F%3C/text%3E%3C/svg%3E">
-  <link rel="stylesheet" href="../css/style.css?v=20260919-2">
+  <link rel="stylesheet" href="../css/style.css?v=20260926-1">
 </head>
 <body>
   <div class="header">
@@ -23,21 +23,23 @@
    products.json            抓取+去噪+比对+落快照       gen_docs.py
    policies/{id}.json       生成 update_status        生成 bundle.json
         ▲                   生成 pending 队列               │
+        │                   生成健康队列(health)            │
         │                         │                         ▼
         │                         │                  ④部署(GitHub Pages)
         │                         │                  deploy.yml 发布 site/
         │                         ▼                         │
         │                ⑤展示层(site/index.html)  ◀────────┘
-        │                  app.js 读 bundle + update_status
-        │                  渲染表格 / 监控 banner
+        │                  app.js 读 bundle + update_status + monitor_health
+        │                  渲染表格 / 监控 banner / 抓取降级明细
         │                         │
-        │                         ▼ (人看到&quot;待核实&quot;告警)
+        │                         ▼ (人看到"待核实"告警)
         │                ⑥核实层(本地 agent + 人工)
         │                  policy_verify.py 出 diff
         │                  判断实质变更 vs 噪声
         │                         │
         └───实质变更:改 policies/{id}.json(人工确认后)──┘
              噪声:修 extract_text 去噪 + 重新基线
+             抓取降级:配 content_selector / browser + --only 重试
              收尾:--resolve 清队列 + 清 banner
 </code></pre>
 <p>各阶段使用的脚本、产物与衔接关系如下。</p>
@@ -64,10 +66,10 @@
 <h2>② 检测层：<code>scripts/check_updates.py</code>（CI 每周一 09:00 北京时间）</h2>
 <ul>
 <li><strong>触发</strong>：<code>.github/workflows/monitor.yml</code>，<code>cron: "0 1 * * 1"</code>，也支持 Actions 页面手动触发。</li>
-<li><strong>范围</strong>：每个产品的每个监控目标 <code>main</code>（主页面）/ <code>toc</code>（个人版条款）/ <code>tob</code>（企业版条款）。</li>
-<li><strong>流程</strong>：抓取页面 → <code>extract_text</code> 去噪 → 空白归一化 → 计算 SHA256 → 与基线快照 <code>snapshots/{id}/{key}/latest.txt</code> 比对。</li>
+<li><strong>范围</strong>：每个产品的每个监控目标 <code>main</code>（主页面）/ <code>toc</code>（个人版条款）/ <code>tob</code>（企业版条款）/ <code>source_*</code>（补充来源）。</li>
+<li><strong>流程</strong>：抓取页面 → 按 HTML/PDF/文本类型提取正文 → 去噪 → 空白归一化 → 计算 SHA256 → 与基线快照 <code>snapshots/{id}/{key}/latest.txt</code> 比对。</li>
 </ul>
-<p>去噪是避免误报的关键，脚本按序剔除：UI 控件短语、阿里云推荐挂件、页脚站壳、帮助中心文末 UI 尾巴（含推荐阅读区块）、正文之前的站点导航（带位置护栏，避免误删条款）、以及 16 位以上的旋转型数字令牌（会话/反伪造标识）。</p>
+<p>去噪是避免误报的关键，脚本按序剔除：UI 控件短语、导航和页脚 DOM、帮助中心文末 UI 尾巴、正文之前的站点导航，以及明确标记为 token/session/nonce 的动态节点；不再全局删除正文中的长数字。</p>
 <table>
 <thead>
 <tr>
@@ -79,7 +81,7 @@
 <tbody>
 <tr>
 <td><code>ok</code></td>
-<td>文本与基线一致（或服务端返回 304）</td>
+<td>文本与基线一致，或在本地基线有效时服务端返回 304</td>
 <td>无</td>
 </tr>
 <tr>
@@ -89,8 +91,8 @@
 </tr>
 <tr>
 <td><code>suspicious</code></td>
-<td>正文过短，疑似 JS 渲染或反爬空壳</td>
-<td><strong>不建立基线</strong>，避免污染后续比对</td>
+<td>正文过短、疑似 JS 渲染/反爬空壳，或本地基线缺失</td>
+<td>不把异常当作正常结果；完整抓取后建立基线或等待人工确认</td>
 </tr>
 <tr>
 <td><code>failed</code></td>
@@ -104,8 +106,51 @@
 </tr>
 </tbody>
 </table>
-<p>被 Cloudflare 等拦截的产品走无头浏览器抓取（<code>fetch_method: "browser"</code>，CI 会安装 Playwright）。</p>
-<p><strong>产出三件套</strong>（由 bot 自动 commit 回 main）：</p>
+<p><code>status</code> 只回答"政策正文变没变"。抓取本身是否可信由正交的 <code>health</code> 字段表达：</p>
+<table>
+<thead>
+<tr>
+<th>health</th>
+<th>含义</th>
+<th>是否进健康队列</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ok</code></td>
+<td>正常</td>
+<td>否</td>
+</tr>
+<tr>
+<td><code>initialized</code></td>
+<td>首次建立基线（不是异常）</td>
+<td>否</td>
+</tr>
+<tr>
+<td><code>rebaselined</code></td>
+<td>基线缺失/哈希方案升级导致重建</td>
+<td>否</td>
+</tr>
+<tr>
+<td><code>degraded</code></td>
+<td>本轮抓取异常，但保留了上次有效快照</td>
+<td>是</td>
+</tr>
+<tr>
+<td><code>no_baseline</code></td>
+<td>本轮抓取异常且无可信基线</td>
+<td>是</td>
+</tr>
+<tr>
+<td><code>blocked</code></td>
+<td>被反爬/限流/拒绝访问（401/403/405/429/451）</td>
+<td>是</td>
+</tr>
+</tbody>
+</table>
+<p>两者正交的意义：一次 Cloudflare 挑战只会进健康队列，不会污染"政策是否变化"的判断，也不会被当成待核实的政策变更。</p>
+<p>抓取方式可按产品配置，也可只配在单个目标上（<code>versions</code> / <code>sources[]</code> 条目支持 <code>fetch_method</code>、<code>content_selector</code>、<code>wait_for_selector</code>、<code>min_body_chars</code>）。被 Cloudflare 等拦截的目标走无头浏览器抓取（<code>fetch_method: "browser"</code>，CI 会安装 Playwright）；<code>--no-browser</code> 只跳过 <code>browser</code> 目标，同产品的普通目标照常检查。</p>
+<p><strong>产出四件套</strong>（由 bot 自动 commit 回 main）：</p>
 <table>
 <thead>
 <tr>
@@ -116,7 +161,7 @@
 <tbody>
 <tr>
 <td><code>site/generated/update_status.json</code></td>
-<td><strong>网页告警的唯一数据源</strong>：每产品聚合状态 + 各目标明细 + <code>meta</code> 计数</td>
+<td><strong>网页告警的唯一数据源</strong>：每产品聚合状态 + 各目标明细（含 <code>health</code>）+ <code>meta</code> 计数</td>
 </tr>
 <tr>
 <td><code>site/generated/snapshots/**</code></td>
@@ -125,6 +170,10 @@
 <tr>
 <td><code>site/generated/pending_verification.json</code></td>
 <td>待核实队列：检测 → 核实的跨轮交接物（合并式，只增不减，直到显式 <code>--resolve</code>）</td>
+</tr>
+<tr>
+<td><code>site/generated/monitor_health.json</code></td>
+<td>抓取健康队列：每轮由状态重建，记录 <code>health</code>、失败原因、连续轮次与建议动作；恢复后自动消失</td>
 </tr>
 </tbody>
 </table>
@@ -138,7 +187,7 @@
 </ol>
 <p>校验通过后，<code>publish</code> job 生成并提交产物：</p>
 <ul>
-<li><code>scripts/gen_data_bundle.py</code> → <code>site/generated/bundle.json</code>：把索引与全部政策合并为单个请求（首页优先加载，白名单裁剪后约 20KB）</li>
+<li><code>scripts/gen_data_bundle.py</code> → <code>site/generated/bundle.json</code>：把索引与全部政策合并为单个请求（首页优先加载，白名单裁剪后约 31KB）</li>
 <li><code>scripts/gen_docs.py</code> → <code>site/docs/*.md</code> 渲染为 <code>.html</code>（<code>.md</code> 为唯一源，避免两份手工副本漂移）</li>
 </ul>
 <h2>④ 部署：<code>.github/workflows/deploy.yml</code> → GitHub Pages</h2>
@@ -161,7 +210,11 @@
 </tr>
 <tr>
 <td><code>generated/update_status.json</code></td>
-<td>监控 banner「⚠️ 政策监控于 X 检测到 N 个…待人工核实」，以及顶部「数据最后更新日期」（取 <code>meta.last_run</code>，缺失时回退 <code>products.json</code> 的静态字段）</td>
+<td>监控 banner「⚠️ 政策监控于 X 检测到 N 个…待人工核实」，以及监控异常统计；顶部“人工核实日期”取 <code>products.json</code> 的 <code>meta.last_updated</code>，不把监控运行时间冒充数据更新时间</td>
+</tr>
+<tr>
+<td><code>generated/monitor_health.json</code>（缺失时从 <code>update_status.json</code> 的 <code>health</code> 兜底推导）</td>
+<td>banner 下方可展开的"抓取降级明细"：逐条列出产品、目标、健康类型、失败原因、上次成功抓取时间</td>
 </tr>
 <tr>
 <td><code>data/policies/{id}.json</code>（详情页 <code>detail.js</code>）</td>
@@ -242,16 +295,19 @@ python3 skills/policy-change-verify/scripts/policy_verify.py --resolve &lt;produ
 </tr>
 </tbody>
 </table>
-<h2>两个交接物的区别</h2>
-<p><code>update_status.json</code> 与 <code>pending_verification.json</code> 都记录"待核实"，但服务对象不同：</p>
+<h2>三个交接物的区别</h2>
+<p><code>update_status.json</code>、<code>pending_verification.json</code> 与 <code>monitor_health.json</code> 都在记录"待处理"，但服务对象不同：</p>
 <ul>
-<li><code>update_status.json</code>：<strong>每次 monitor 运行整体重算</strong>，是网页告警的数据源。产品状态由目标聚合得出（优先级 <code>changed</code> &gt; <code>failed</code> &gt; <code>suspicious</code> &gt; <code>ok</code>）。</li>
-<li><code>pending_verification.json</code>：<strong>跨轮合并式累积</strong>，只入队 <code>changed</code>，历史项保留不删，直到本地 <code>--resolve</code> 显式清除。它让每周只跑一次的 CI 与本地核实之间可以可靠交接。</li>
+<li><code>update_status.json</code>：<strong>每次 monitor 运行整体重算</strong>，是网页告警的数据源。产品状态由目标聚合得出（优先级 <code>changed</code> &gt; <code>failed</code> &gt; <code>suspicious</code> &gt; <code>ok</code>），并附带 <code>health</code> 聚合字段。</li>
+<li><code>pending_verification.json</code>：<strong>跨轮合并式累积</strong>，只入队 <code>changed</code>，历史项保留到本地 <code>--resolve</code> 显式清除；监控重新检查时会恢复仍未解决的页面告警，避免后续 304 把它隐藏。</li>
+<li><code>monitor_health.json</code>：<strong>每轮由状态完全重建</strong>，只收 <code>degraded</code> / <code>no_baseline</code> / <code>blocked</code>，记录连续不健康轮次与建议动作。目标恢复正常或下线监控后条目自动消失，无需手工清理。</li>
 </ul>
-<p>二者可能失同步（例如只清了队列而没改状态，页面告警就会一直挂着），因此 <code>--resolve</code> 设计为同时处理两者。</p>
+<p>三者通过 <code>--resolve</code>、监控重算与健康队列重建保持同步；<code>pending_verification.json</code> 损坏时监控会失败关闭，<code>monitor_health.json</code> 损坏时按空队列重建（它可从状态完全推导）。</p>
 <h2>当前已知问题</h2>
 <ol>
-<li><strong>队列与告警可能失同步</strong>：历史上曾出现队列被清空但 <code>update_status.json</code> 仍标记 <code>changed</code> 的情况（页面告警持续显示）。<code>--resolve</code> 已覆盖两者，但存量状态需手动对齐。</li>
+<li><strong>来源覆盖仍需持续维护</strong>：新增产品或补充证据时，应将关键 Help Center、数据授权和隐私政策登记到 <code>sources[]</code>，否则相关附属文档变化不会自动告警。</li>
+<li><strong>时间线不是自动生成</strong>：产品没有历史事件时详情页不显示时间线，需人工补充重要政策变更。</li>
+<li><strong>抓取降级目标需要人工处置</strong>：首页"抓取降级明细"里的目标不会自愈（正文过短通常是站点改版或 JS 渲染所致），需按 <code>next_action</code> 配置 <code>content_selector</code> / <code>fetch_method=browser</code> 后用 <code>--only &lt;pid&gt;:&lt;key&gt;</code> 重试验证。</li>
 </ol>
   </div>
 

@@ -15,7 +15,8 @@ The rest of this guide is in Chinese. The essentials:
    ```bash
    .venv/bin/python scripts/validate_data.py          # must report 0 errors
    .venv/bin/python scripts/gen_readme_table.py --check
-   python3 -m unittest discover -s tests              # regression tests
+   .venv/bin/python scripts/gen_docs.py --check
+   .venv/bin/python -m unittest discover -s tests     # regression tests
    ```
 
 4. **Commit message**: `update: ...` / `add: ...` / `fix: ...` / `docs: ...` / `feat: ...`
@@ -45,7 +46,7 @@ Questions are welcome via Issues — use the "数据纠错" template if you spot
 2. 对每项运行 `python3 skills/policy-change-verify/scripts/policy_verify.py <product_id> [target]` 看新旧 diff
 3. 判断是实质性条款变更还是噪声（页脚年/时间戳/导航重排/抓取失败等属噪声）
 4. 如为实质变更：访问官方政策页面，更新 `site/data/policies/{id}.json`，同步 `last_verified` 与 `timeline`
-5. 核实并更新数据后，运行 `python3 skills/policy-change-verify/scripts/policy_verify.py --resolve <product_id>` 从队列移除
+5. 核实并更新数据后，运行 `python3 skills/policy-change-verify/scripts/policy_verify.py --resolve <product_id>` 同时清除队列项和页面告警
 
 ### 2. 新增产品
 
@@ -69,7 +70,7 @@ Questions are welcome via Issues — use the "数据纠错" template if you spot
 
 > 实战踩坑：曾删除 `pangu`/`skyreels` 两个产品后漏了重新生成上述两个产物，导致 `test_bundle_is_slim_and_complete` 与 `test_sitemap_matches_products` 双双失败、CI 红灯。记住——`products.json` 一变，这两个文件必须跟着变。
 
-> 注：`update_status.json` / `pending_verification.json` / `snapshots/` 由监控脚本每轮从当前索引重建，已删除产品的旧条目会在下一轮监控后自动消失，无需手工清理。
+> 注：`update_status.json` / `pending_verification.json` / `monitor_health.json` / `snapshots/` 由监控脚本每轮按当前索引重建；已删除产品或已移除监控目标的旧快照和队列项会在下一轮监控后清理（`monitor_health.json` 每轮整体重建，目标恢复后条目自动消失）。
 
 ### 3. 提交 PR
 
@@ -114,6 +115,9 @@ git push origin update/xxx-policy
   "region": "地区",               // 中国/美国/等
   "description": "产品简介",
   "policy_url": "官方政策URL",    // 监控脚本抓取目标
+  "sources": [                    // 可选：补充政策/帮助中心来源
+    {"id": "faq", "role": "help", "url": "填入已核实的官方来源URL", "monitored": true}
+  ],
   "last_verified": "YYYY-MM-DD",
   "versions": { "toc": { ... }, "tob": { ... } },
   "timeline": [
@@ -131,7 +135,8 @@ git push origin update/xxx-policy
 
 ```json
 {
-  "used_for_training": true,     // 布尔值
+  "used_for_training": true,     // 兼容字段：布尔值
+  "training_status": "default_on_opt_out", // explicit_yes/explicit_no/default_on_opt_out/default_off_opt_in/unknown/inferred
   "training_note": "训练说明",
   "default_state": "默认开启",    // 默认开启/默认关闭
   "opt_out": "设置开关",          // 设置开关/邮件申请/无需退出/合同约定
@@ -158,12 +163,21 @@ git push origin update/xxx-policy
 | `verification_notes` | `versions.toc` / `versions.tob` | 核实说明数组（非政策原文），不参与条款展示 |
 | `monitor` | 顶层 | 设为 `false` 时该产品**不纳入自动监控**。适用于没有独立公开政策页、政策 URL 只能指向产品首页的占位条目，否则监控脚本会对首页做正文哈希，产生持续误报 |
 | `toc_note` / `tob_note` | 顶层 | 该版本无数据时的书面说明（填了就不会产生"缺少版本数据"警告） |
+| `fetch_method` | 顶层 / `targets.main` / `versions.*` / `sources[]` 条目 | 抓取方式：`requests`（默认）或 `browser`（无头 Chromium，应对 Cloudflare 等挑战页，CI 会装 Playwright）。写在单个目标上即可，不必为了一页升级整产品 |
+| `content_selector` | 同上 | CSS 选择器，正文不在 `<main>` / `<article>` 内时指定容器（文档预览页、富文本页等） |
+| `wait_for_selector` | 同上 | 浏览器抓取时等待该节点出现即视为已渲染，缩短 SPA 页耗时 |
+| `min_body_chars` | 同上 | 该目标的正文下限，覆盖默认 500 字符 |
+| `targets` | 顶层（只含 `main` 键） | 顶层 `policy_url` 对应 `main` 目标的配置载体。`toc`/`tob` 写进 `versions.*`，补充来源写进 `sources[]` 条目——不要在 `targets` 里重复定义，避免两处配置歧义 |
+
+四个载体的优先级是 **目标级 > 产品级 > 全局默认**，所以 `targets.main.fetch_method` 会覆盖顶层 `fetch_method`，而顶层仍对其余目标生效（既有数据文件无需迁移）。
+
+目标级抓取配置只影响监控脚本的抓取行为，不参与页面展示，也不进 `bundle.json`。首页出现"抓取降级"时按 `site/generated/monitor_health.json` 里的 `next_action` 处置：先 `--only <pid>:<key> --timeout 60` 排除网络抖动，再考虑加 `content_selector` 或切 `browser`。
 
 ## 风险等级评定标准
 
 | 等级 | 颜色 | 条件 |
 |------|------|------|
-| 低风险 | 🟢 green | 不训练 + 去标识化 + 短期留存 |
+| 低风险 | 🟢 green | 默认不训练 + 去标识化 + 留存明确且≤30天 + 内容版权归用户 |
 | 中风险 | 🟡 yellow | 训练但有退出机制，或留存期较长 |
 | 高风险 | 🔴 red | 训练且无退出机制，或长期留存 |
 
@@ -182,7 +196,7 @@ git push origin update/xxx-policy
 1. **数据准确**：所有信息必须来源于官方政策，不得推测
 2. **核实日期**：更新 `last_verified` 为实际核实日期
 3. **格式一致**：遵循现有数据文件的格式规范
-4. **校验通过**：`scripts/validate_data.py` 0 错误、`gen_readme_table.py --check` 通过、`python3 -m unittest discover -s tests` 全绿
+4. **校验通过**：`scripts/validate_data.py` 0 错误、`gen_readme_table.py --check` 通过、`gen_docs.py --check` 通过、`python3 -m unittest discover -s tests` 全绿
 5. **描述清晰**：PR 描述中说明变更原因和信息来源 URL
 
 ## 核实要求
@@ -213,12 +227,18 @@ git push origin update/xxx-policy
 # 首次：创建虚拟环境并安装依赖（或直接跑 ./start.sh 自动完成）
 python3 -m venv .venv
 .venv/bin/pip install -r requirements.txt
+# 只有需要本地抓取 browser 目标时才安装
+.venv/bin/pip install -r requirements-browser.txt
+.venv/bin/playwright install chromium
 
 # 数据结构校验（0 错误才可提交）
 .venv/bin/python scripts/validate_data.py
 
 # README 汇总表是否与数据一致
 .venv/bin/python scripts/gen_readme_table.py --check
+
+# 文档页是否由 Markdown 最新生成
+.venv/bin/python scripts/gen_docs.py --check
 
 # 回归测试（标准库 unittest，无需额外依赖）
 python3 -m unittest discover -s tests -v
