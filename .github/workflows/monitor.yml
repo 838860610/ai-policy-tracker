@@ -24,8 +24,9 @@ jobs:
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v7
-        with:
-          persist-credentials: false
+        # 必须保留 checkout 写入的凭据：下面的步骤要 git push 检测结果与快照，
+        # 否则报 "could not read Username for 'https://github.com'"。
+        # 写权限由 permissions: contents: write 限定到最小范围。
 
       - uses: actions/setup-python@v7
         with:

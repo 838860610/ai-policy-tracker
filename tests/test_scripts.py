@@ -539,6 +539,39 @@ class TestMonitorState(unittest.TestCase):
         self.assertFalse(CHECK_UPDATES.safe_fetch_url("https://169.254.169.254/latest/meta-data/"))
         self.assertTrue(CHECK_UPDATES.safe_fetch_url("https://8.8.8.8/policy"))
 
+    def test_dns_failure_does_not_reject_legitimate_public_url(self):
+        """回归：曾把"DNS 没解析出来 / 解析超时"当成 SSRF 拒绝，GitHub runner 上
+        偶发慢解析导致合法公网 URL 被记成"仅允许解析到公网地址"——真实故障原因
+        被安全策略掩盖，且整轮监控跟着失败。无法判定时应放行，让请求自然失败。"""
+        def boom(*args, **kwargs):
+            raise CHECK_UPDATES.socket.gaierror("Name or service not known")
+
+        with mock.patch.object(CHECK_UPDATES.socket, "getaddrinfo", boom):
+            self.assertTrue(CHECK_UPDATES.safe_fetch_url("https://policy.example.com/terms"))
+
+    def test_dns_timeout_does_not_reject_legitimate_public_url(self):
+        with mock.patch.object(CHECK_UPDATES.socket, "getaddrinfo",
+                               lambda *a, **k: time.sleep(30)):
+            self.assertTrue(CHECK_UPDATES.safe_fetch_url("https://policy.example.com/terms"))
+
+    def test_resolved_private_address_is_still_rejected(self):
+        """放行"无法判定"不能削弱真正的 SSRF 防护。"""
+        import socket as _socket
+
+        def private_only(*args, **kwargs):
+            return [(2, 1, 6, "", ("169.254.169.254", 443))]
+
+        with mock.patch.object(CHECK_UPDATES.socket, "getaddrinfo", private_only):
+            self.assertFalse(CHECK_UPDATES.safe_fetch_url("https://policy.example.com/terms"))
+
+    def test_resolved_mixed_public_and_private_is_rejected(self):
+        def mixed(*args, **kwargs):
+            return [(2, 1, 6, "", ("93.184.216.34", 443)),
+                    (2, 1, 6, "", ("10.0.0.5", 443))]
+
+        with mock.patch.object(CHECK_UPDATES.socket, "getaddrinfo", mixed):
+            self.assertFalse(CHECK_UPDATES.safe_fetch_url("https://policy.example.com/terms"))
+
     def test_source_registry_adds_deduplicated_monitor_targets(self):
         policy = {
             "policy_url": "https://example.com/main",
@@ -1253,8 +1286,47 @@ class TestSiteConsistency(unittest.TestCase):
         with open(os.path.join(BASE_DIR, "README.en.md"), encoding="utf-8") as f:
             self.assertIn(str(version_count), f.read())
 
+    def test_push_jobs_keep_checkout_credentials(self):
+        """回归：ci.yml 的 publish job 与 monitor.yml 都要 `git push` 生成物，
+        但 checkout 写了 persist-credentials: false，push 会报
+        "could not read Username for 'https://github.com'"——监控结果因此从未
+        真正提交入库（仓库里历史上没有任何 bot 提交）。不 push 的 job 才关凭据。
+
+        用标准库按缩进切 job（不引入 PyYAML 依赖），逐 job 检查其 checkout 步骤。
+        """
+        wf_dir = os.path.join(BASE_DIR, ".github", "workflows")
+        checked = 0
+        for name in ("ci.yml", "monitor.yml", "deploy.yml"):
+            path = os.path.join(wf_dir, name)
+            with open(path, encoding="utf-8") as f:
+                lines = f.read().splitlines()
+
+            # 顶层 job 定义行形如 "  job-name:"（2 空格缩进）
+            starts = [i for i, ln in enumerate(lines)
+                      if re.match(r"^  [A-Za-z0-9_-]+:\s*$", ln)]
+            for pos, start in enumerate(starts):
+                end = starts[pos + 1] if pos + 1 < len(starts) else len(lines)
+                job_name = lines[start].strip().rstrip(":")
+                body = "\n".join(lines[start:end])
+                if "git push" not in body:
+                    continue
+                checked += 1
+                # 在该 job 内定位 checkout 步骤及其 with: 块
+                for i in range(start, end):
+                    if not re.match(r"^\s*- uses:\s*actions/checkout", lines[i]):
+                        continue
+                    block = []
+                    for j in range(i, min(i + 4, end)):
+                        if j > i and re.match(r"^\s*- (uses|name):", lines[j]):
+                            break
+                        block.append(lines[j])
+                    self.assertNotIn(
+                        "persist-credentials: false", "\n".join(block),
+                        f"{name}: job {job_name} 要 git push 却关掉了 checkout 凭据，"
+                        "push 会失败（且监控结果不会入库）")
+        self.assertGreaterEqual(checked, 2, "未找到含 git push 的 job，测试本身可能失效")
+
     def test_deploy_workflow_names_match(self):
-        """deploy.yml 的 workflow_run.workflows 必须与 ci/monitor 的 name 完全一致。"""
         wf_dir = os.path.join(BASE_DIR, ".github", "workflows")
 
         def name_of(filename):

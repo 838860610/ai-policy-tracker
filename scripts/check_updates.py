@@ -94,6 +94,7 @@ MAX_RESPONSE_BYTES = 10 * 1024 * 1024
 MAX_RETRY_AFTER_SECONDS = 300
 CONNECT_TIMEOUT_CAP = 5    # 连接阶段超时上限（秒）：域名不可达时快速失败
 RETRY_BUDGET_SECONDS = 120  # 单个目标网络重试的总时间上限（秒），避免不可达域名拖垮整轮
+DNS_RESOLVE_TIMEOUT = 5     # SSRF 检查里的 DNS 解析等待上限（秒）
 
 # 监控目标的中文名（控制台输出与待核实队列用）
 TARGET_LABELS = {"main": "主监控页", "toc": "个人版条款", "tob": "企业版条款"}
@@ -408,6 +409,16 @@ def compute_text_hash(text):
 
 
 def safe_fetch_url(url, resolve_dns=True):
+    """SSRF 防护：只允许公网 HTTPS URL。
+
+    关键区分——"明确解析到私有/保留地址"必须拒绝，但"DNS 没解析出来或解析太慢"
+    属于**无法判定**，不能当成拒绝：
+      - 解析失败（gaierror）或超时（GitHub runner 上偶发）时，后续 requests
+        用自己的解析逻辑同样连不上，会自然抛出连接异常；
+      - 若在这里一律拒绝，合法公网 URL 会被误杀，整轮监控把该目标记成
+        "仅允许解析到公网地址的 HTTPS URL"——真实故障原因被掩盖（CI 实测）。
+    宁可让请求自然失败，也不要把网络问题误报成安全策略拒绝。
+    """
     try:
         parsed = urlparse(str(url))
     except ValueError:
@@ -443,14 +454,14 @@ def safe_fetch_url(url, resolve_dns=True):
 
     worker = threading.Thread(target=lookup, daemon=True)
     worker.start()
-    if not lookup_done.wait(timeout=3):
-        return False
+    if not lookup_done.wait(timeout=DNS_RESOLVE_TIMEOUT):
+        return True   # 解析超时：无法判定，交由 requests 自然失败
     if not addresses:
-        return False
+        return True   # 解析失败：同上（见 docstring）
     for address in addresses:
         try:
             if not ipaddress.ip_address(address[4][0]).is_global:
-                return False
+                return False   # 明确解析到私有/保留地址：拒绝
         except ValueError:
             return False
     return True

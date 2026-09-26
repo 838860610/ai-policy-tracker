@@ -55,8 +55,10 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v7
-        with:
-          persist-credentials: false
+        # 本 job 要 git push 生成物，必须保留 checkout 写入的凭据，否则报
+        # "could not read Username for 'https://github.com'"。写权限已由
+        # permissions: contents: write 限定到最小范围；validate job 不 push，
+        # 那边仍用 persist-credentials: false。
 
       - uses: actions/setup-python@v7
         with:
