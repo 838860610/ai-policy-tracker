@@ -45,7 +45,8 @@
   "targets": {
     "main": {
       "fetch_method": "browser",
-      "content_selector": "#app-content"
+      "content_selector": "#doc-viewer-container",
+      "wait_for_selector": "#doc-viewer-container"
     }
   }
 }
