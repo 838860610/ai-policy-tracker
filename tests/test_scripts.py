@@ -431,15 +431,75 @@ class TestResponseDecoding(unittest.TestCase):
 
     def test_dynamic_update_timestamp_does_not_change_hash(self):
         """回归：阿里云帮助中心标题旁的"更新时间：2026-09-10 15:03:51"含时分秒，
-        每次页面重新发布都变（实测 15:03:51 → 07:03:51），正文零差异却误报 changed。"""
+        每次页面重新发布都变（实测 15:03:51 → 07:03:51），正文零差异却误报 changed。
+        火山方舟协议页文末的"最近更新时间：2026.09.18 14:35:02"是点号分隔，同属此类。"""
         body = "隐私与安全 说明 我们如何处理您的数据。" * 200
-        variants = ["2026-09-10 15:03:51", "2026-09-10 07:03:51",
-                    "2026-09-12", "2026年9月10日 15:03", "2026/09/10 15:03:51"]
-        hashes = set()
-        for stamp in variants:
-            raw = f"<html><body><main>更新时间：{stamp} 复制 MD 格式 {body}</main></body></html>"
-            hashes.add(CHECK_UPDATES.compute_text_hash(CHECK_UPDATES.extract_text(raw)))
-        self.assertEqual(len(hashes), 1, "带标签的更新时间元信息应被剥离")
+        labels = ["更新时间：", "最近更新时间：", "更新于", "最后更新时间：",
+                  "Last updated:", "Updated at:"]
+        stamps = ["2026-09-10 15:03:51", "2026-09-10 07:03:51", "2026-09-12",
+                  "2026年9月10日 15:03", "2026/09/10 15:03:51",
+                  "2026.09.18 14:35:02"]
+        baseline = CHECK_UPDATES.compute_text_hash(
+            CHECK_UPDATES.extract_text(f"<html><body><main>{body}</main></body></html>"))
+        for label in labels:
+            for stamp in stamps:
+                raw = (f"<html><body><main>{body}{label}{stamp}</main></body></html>")
+                self.assertEqual(
+                    CHECK_UPDATES.compute_text_hash(CHECK_UPDATES.extract_text(raw)),
+                    baseline,
+                    f"{label}{stamp} 未被剥离")
+
+    def test_wait_until_text_stable_stops_when_growth_ceases(self):
+        """分批注入的文档站必须等到"长度不再增长"再取文，
+        否则会稳定地停在半截内容上（看起来从未变化，实则漏掉后半段条款）。"""
+        class FakePage:
+            def __init__(self, series):
+                self.series = series
+                self.calls = 0
+                self.waits = 0
+
+            def wait_for_timeout(self, ms):
+                self.waits += 1
+
+            def evaluate(self, js, sel=None):
+                value = self.series[min(self.calls, len(self.series) - 1)]
+                self.calls += 1
+                return value
+
+        # 仍在快速增长时不该提前返回
+        growing = FakePage([1000, 5000, 20000, 60000])
+        self.assertEqual(
+            CHECK_UPDATES.wait_until_text_stable(growing, None, 0, max_rounds=4), 60000)
+        # 稳定后立刻收敛，不必跑满 max_rounds
+        stable = FakePage([1000, 1000, 1000, 1000, 1000])
+        self.assertEqual(
+            CHECK_UPDATES.wait_until_text_stable(stable, None, 0, max_rounds=40), 1000)
+        self.assertLess(stable.waits, 10, "长度稳定后应尽快退出")
+        # 全程为 0（挑战页）不应死等
+        empty = FakePage([0, 0, 0])
+        self.assertEqual(
+            CHECK_UPDATES.wait_until_text_stable(empty, None, 0, max_rounds=5), 0)
+
+    def test_measure_rendered_text_uses_selector_and_longest_match(self):
+        """按实际取文容器测长度、且多个匹配取最长——与 extract_text 一致。"""
+        class FakePage:
+            def __init__(self, value):
+                self.value = value
+
+            def evaluate(self, js, sel=None):
+                self.seen_selector = sel
+                return self.value
+
+        page = FakePage(1234)
+        self.assertEqual(CHECK_UPDATES.measure_rendered_text(page, "#app-content"), 1234)
+        self.assertEqual(page.seen_selector, "#app-content")
+        self.assertEqual(CHECK_UPDATES.measure_rendered_text(page, None), 1234)
+        self.assertIsNone(page.seen_selector)
+        # evaluate 抛异常时返回 0，不能让整次抓取失败
+        class Broken:
+            def evaluate(self, js, sel=None):
+                raise RuntimeError("navigation destroyed")
+        self.assertEqual(CHECK_UPDATES.measure_rendered_text(Broken(), "#x"), 0)
 
     def test_legal_dates_in_body_are_preserved(self):
         """去噪只针对带标签的元信息，条款里的日期必须原样保留。"""
@@ -905,6 +965,43 @@ class TestFetchHealth(unittest.TestCase):
         raw = "<html><body><main><p>兜底正文仍然可用。</p></main></body></html>"
         text = CHECK_UPDATES.extract_text(raw, content_selector=".not-exists")
         self.assertIn("兜底正文仍然可用", text)
+
+    def test_content_selector_picks_longest_match(self):
+        """选择器常同时命中正文容器与页脚/侧栏小容器，必须取文本最长的。
+        只取第一个会因 DOM 顺序变化而抓到页脚（trae 的 [class*=content]
+        命中 3 个 1.2 万字符的正文容器 + 3 个 0～217 字符的小容器）。"""
+        raw = ("<html><body>"
+               '<div class="content-footer"><a>条款</a><a>联系我们</a></div>'
+               '<div class="content-wrap">' + "政策正文内容。" * 200 + "</div>"
+               '<div class="content-empty"></div>'
+               "</body></html>")
+        text = CHECK_UPDATES.extract_text(raw, content_selector="[class*=content]")
+        self.assertIn("政策正文内容", text)
+        self.assertNotIn("联系我们", text)
+
+    def test_shell_description_distinguishes_failure_modes(self):
+        """'正文仅 0 字符' 必须能区分挑战页/登录墙/404/纯空壳——处置完全不同。"""
+        challenge = CHECK_UPDATES.describe_shell(
+            "<html><head><title>Just a moment...</title></head>"
+            "<body>Checking your browser before accessing</body></html>")
+        self.assertIn("Just a moment", challenge)
+        shell = CHECK_UPDATES.describe_shell("<html><body><div id='app'></div></body></html>")
+        self.assertIn("空文档", shell)
+        self.assertIn("无响应内容", CHECK_UPDATES.describe_shell(None))
+
+    def test_short_body_message_includes_actual_page_clues(self):
+        response = _FakeResponse(
+            "text/html; charset=utf-8",
+            "<html><head><title>Just a moment...</title></head>"
+            "<body>Checking your browser</body></html>".encode("utf-8"),
+            encoding="utf-8")
+        with mock.patch.object(CHECK_UPDATES, "load_baseline_text", return_value=None):
+            with mock.patch.object(CHECK_UPDATES, "fetch_with_retry",
+                                   return_value=(response, False)):
+                result = CHECK_UPDATES.check_target(
+                    "demo", "Demo", "main", "https://example.com/p", {}, 1)
+        self.assertEqual(result["status"], "suspicious")
+        self.assertIn("Just a moment", result["message"])
 
     def test_target_level_fetch_config_overrides_product_level(self):
         policy = {"policy_url": "https://example.com/main", "fetch_method": "requests",

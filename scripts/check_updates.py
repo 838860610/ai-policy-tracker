@@ -201,8 +201,10 @@ HELP_UI_ANCHORS = ("Need more help?", "Enable Dark Mode", "Related Articles",
 # 注意：只剥离带上述标签的元信息，正文里"自2025年1月1日起施行"之类不受影响；
 # 且政策真变更仍会通过条款文字变化被检出。
 DYNAMIC_TIMESTAMP_RE = re.compile(
-    r"(?:更新时间|更新于|最后更新[时间]?|Last updated|Updated at)"
-    r"\s*[:：]?\s*\d{4}\s*[-/年]\s*\d{1,2}\s*[-/月]\s*\d{1,2}\s*日?"
+    # 注意用非捕获组 (?:时间)? —— 写成 [时间]? 是字符组，只匹配"时"或"间"一个字符，
+    # 会让"最后更新时间："整体匹配失败（实测阿里云帮助中心就是这个写法）
+    r"(?:最近更新时间|最后更新(?:时间)?|更新时间|更新于|Last updated|Updated at)"
+    r"\s*[:：]?\s*\d{4}\s*[-/.年]\s*\d{1,2}\s*[-/.月]\s*\d{1,2}\s*日?"
     # 时分秒前的分隔符用 \s* 而非 \s+：前面的 \s*日? 已经可能吃掉空格，
     # 用 \s+ 会导致整组匹配不到（实测 "15:03:51" 被漏掉）
     r"(?:\s*\d{1,2}\s*:\s*\d{2}(?:\s*:\s*\d{2})?)?")
@@ -251,7 +253,13 @@ def extract_text(raw_html, content_selector=None):
         root = None
         if selector:
             try:
-                root = soup.select_one(selector)
+                matches = soup.select(selector)
+                if matches:
+                    # 选择器常同时命中正文容器、侧栏、页脚小容器，取文本最长的那个：
+                    # 只取第一个会因 DOM 顺序变化而抓到页脚（实测 trae 的
+                    # [class*=content] 命中 3 个 1.2 万字符的正文容器 + 3 个
+                    # 0～217 字符的小容器）
+                    root = max(matches, key=lambda el: len(el.get_text(strip=True)))
             except (NotImplementedError, ValueError):
                 root = None
         if root is None:
@@ -605,6 +613,58 @@ def fetch_with_retry(url, etag, last_modified, timeout, budget=RETRY_BUDGET_SECO
     raise last_exc
 
 
+MEASURE_TEXT_JS = """(sel) => {
+    let best = 0;
+    const nodes = sel ? document.querySelectorAll(sel)
+                       : [document.body].filter(Boolean);
+    for (const el of nodes) {
+        best = Math.max(best, (el.innerText || '').length);
+    }
+    return best;
+}"""
+
+
+def measure_rendered_text(page, content_selector=None):
+    """测量页面里"实际取文那个容器"的可见文本长度。
+
+    按 content_selector 而非 body 测：SPA 场景下两者可能反向（侧栏导航展开会让
+    body 变长而正文容器仍未填充完），按 body 选会挑中最不完整的那次渲染。
+    对多个匹配同样取最长，与 extract_text 的选择保持一致。
+    """
+    try:
+        return int(page.evaluate(MEASURE_TEXT_JS, content_selector) or 0)
+    except Exception:
+        return 0
+
+
+def wait_until_text_stable(page, content_selector, initial_len,
+                           timeout=30, interval_ms=500, growth_ratio=1.05,
+                           stable_rounds=2, max_rounds=40):
+    """轮询到"可见文本长度不再增长"为止，返回稳定后的长度。
+
+    为什么需要它：长文档站的分批注入（实测火山方舟协议页完整 2.1 万字符、
+    半截 1.2 万字符）配合固定等待，会**稳定地**停在半截内容上——不再波动，
+    却把不完整版本固化成基线，看起来"从未变化"实则漏掉了后半段条款。
+    连续 stable_rounds 次采样增长不足 growth_ratio 才算稳定。
+    """
+    length = initial_len
+    stable = 0
+    for _ in range(max_rounds):
+        try:
+            page.wait_for_timeout(interval_ms)
+        except Exception:
+            break
+        current = measure_rendered_text(page, content_selector)
+        if current and current <= length * growth_ratio:
+            stable += 1
+            if stable >= stable_rounds:
+                break
+        else:
+            stable = 0
+        length = max(length, current)
+    return length
+
+
 def pick_longest_render(renders):
     """从多次渲染结果里挑正文最长的一次。
 
@@ -618,7 +678,7 @@ def pick_longest_render(renders):
     return best_html, best_len
 
 
-def fetch_browser(url, timeout=30, wait_selector=None):
+def fetch_browser(url, timeout=30, wait_selector=None, content_selector=None):
     """无头浏览器抓取，用于 Cloudflare 等反爬挑战页。
 
     仅当目标 fetch_method=browser 时调用，依赖可选 playwright（不在主依赖中）。
@@ -626,6 +686,8 @@ def fetch_browser(url, timeout=30, wait_selector=None):
 
     wait_selector：可选 CSS 选择器，等待该节点出现（异步渲染正文容器），
         命中即认为已渲染，可显著缩短 SPA 文档页的抓取耗时。
+    content_selector：与 check_target 同一个 CSS 选择器。仅用于按目标容器
+        （而非 body）衡量渲染完整度，让"取最长的一次"与实际取文范围一致。
 
     可选增强：设置环境变量 OPENAI_CF_CLEARANCE 可导入已在真人浏览器通过
     "Verify you are human" 后得到的 cf_clearance 令牌，大幅提升通过率。
@@ -692,17 +754,12 @@ def fetch_browser(url, timeout=30, wait_selector=None):
                 )
             except Exception:
                 pass
-            try:
-                # 给懒加载章节一点时间，再取正文长度判断渲染完整度
-                page.wait_for_timeout(600)
-            except Exception:
-                pass
-            inner = ""
-            try:
-                inner = page.evaluate("document.body ? document.body.innerText : ''")
-            except Exception:
-                pass
-            nlen = len(normalize_text(inner)) if inner else 0
+            nlen = measure_rendered_text(page, content_selector)
+            # 等"内容不再增长"而不是固定睡几秒：长文档站（实测火山方舟协议页
+            # 2.1 万 vs 1.2 万字符）分批注入正文，固定 600ms 会稳定停在半截内容上——
+            # 那样虽然不再波动，却把不完整版本固化成了基线（关键词计数只有一半）。
+            nlen = wait_until_text_stable(
+                page, content_selector, nlen, timeout=timeout)
             renders.append((nlen, page.content()))
             # 不做"长度够大就提前退出"的优化：各页面完整正文长度差异极大
             # （support.google.com 帮助页完整 5.6 万字符，文档站协议页 1.2 万），
@@ -807,6 +864,29 @@ def collect_targets(policy):
     return [(spec["key"], spec["url"]) for spec in collect_target_specs(policy)]
 
 
+def describe_shell(raw_html, limit=90):
+    """正文过短时，附上实际拿到的页面线索（标题/前若干字符）。
+
+    没有它，"正文仅 0 字符" 无法区分挑战页、登录墙、404 与纯空壳——而这几种
+    要采取的处置完全不同。CI 日志里最需要的就是这个信息。
+    """
+    if not raw_html:
+        return "（无响应内容）"
+    if BeautifulSoup is not None:
+        soup = BeautifulSoup(raw_html, "html.parser")
+        title = (soup.title.get_text(strip=True) if soup.title else "")
+        body = re.sub(r"\s+", " ", soup.get_text(" ", strip=True))[:limit]
+    else:
+        title = ""
+        body = re.sub(r"\s+", " ", re.sub(r"(?s)<[^>]+>", " ", raw_html))[:limit]
+    parts = []
+    if title:
+        parts.append(f"标题《{title}》")
+    if body:
+        parts.append(f"页面首段「{body}」")
+    return "；实际拿到：" + "，".join(parts) if parts else "；实际拿到：空文档"
+
+
 def base_target_result(url, prev_target, **extra):
     """构造目标级结果，继承跨轮次稳定字段（上次变更时间、最后成功时间）。"""
     result = {
@@ -881,7 +961,8 @@ def check_target(pid, name, key, url, prev_target, timeout, method="requests", c
     raw_html, was_304, resp = None, False, None
     if method == "browser":
         try:
-            raw_html, was_304 = fetch_browser(url, timeout, wait_selector=wait_for_selector)
+            raw_html, was_304 = fetch_browser(url, timeout, wait_selector=wait_for_selector,
+                                             content_selector=content_selector)
             print(f"  [浏览器] {name} ({pid}·{label}): 已用无头浏览器抓取")
         except Exception as e:
             print(f"  [失败] {name} ({pid}·{label}): 浏览器抓取失败 - {e}")
@@ -890,7 +971,6 @@ def check_target(pid, name, key, url, prev_target, timeout, method="requests", c
                                       health=health_for_failure(baseline_ready),
                                       health_reason="browser_error",
                                       message=f"浏览器抓取失败：{e}")
-
     try:
         now = datetime.datetime.now().isoformat()
 
@@ -929,7 +1009,7 @@ def check_target(pid, name, key, url, prev_target, timeout, method="requests", c
                 url, prev_target, current_hash=prev_hash, status="suspicious",
                 health=health_for_failure(baseline_ready), health_reason=reason,
                 message=f"抓取正文过短（{len(normalized)} 字符 < {min_body_chars}），"
-                        f"疑似 JS 渲染或反爬{kept}",
+                        f"疑似 JS 渲染或反爬{kept}{describe_shell(raw_html)}",
                 last_checked=now,
             )
 

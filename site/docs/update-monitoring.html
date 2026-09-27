@@ -687,18 +687,19 @@ WantedBy=timers.target
 <p>注意：选 <code>sources[]</code> 来源时要确认它<strong>本身是静态可读的</strong>。<code>minimax/source_platform_privacy</code> 就是一次反面例子——登记的是 <code>platform.minimaxi.com/protocol/privacy-policy</code>，本身是 Next.js 空壳，结果监控目标从 1 个空壳变成 2 个空壳。登记前先 <code>curl</code> 一下看静态 HTML 里有没有正文。</p>
 <p><code>baichuan</code> 是另一个反面教材的<strong>反面</strong>：静态 HTML 里有 <code>captchaContainer</code>（登录/验证码组件），看起来像硬登录墙，实际用 browser 渲染后能拿到完整《百川用户协议》（13437 字符）。<strong>先试跑拿证据再决定降级方案</strong>，别凭静态 HTML 的特征猜。</p>
 </blockquote>
-<h3>已知残留：容器内渲染完整度仍会波动</h3>
-<p><code>content_selector</code> 能消除"选错 root"（页面有时包 <code>&lt;main&gt;</code>、有时不包），但消除不了"容器内内容没渲染完"。<code>doubao-api</code> 是已知案例：<code>#app-content</code> 内实测 11564 ↔ 20934 字符波动（差 80%），三次渲染取最长仍偶发拿到残缺版，于是每几轮误报一次 <code>changed</code>。</p>
-<p>这类页面的共同特征：正文极长（2 万字符以上）且分批注入。三个可选应对，按成本排序：</p>
-<ol>
-<li><strong>接受误报</strong>（当前做法）——<code>changed</code> 进待核实队列，<code>policy_verify</code> 一眼能看出是"同一份协议、一个长一个短"，<code>--resolve</code> 收尾即可。误报不会静默出错，也不会污染数据；</li>
-<li><strong>换更短的来源</strong>——同一政策的 FAQ / 摘要页通常比全文页稳定得多；</li>
-<li><strong>接受更高的误报率</strong>——若该政策变动频繁，宁可多看几次 <code>changed</code>。</li>
-</ol>
-<p>不建议的做法：为了压住误报而调高 <code>min_body_chars</code>。那会把"渲染未完成"误判成"空壳降级"，反而让健康队列长期亮红灯，把真问题淹没掉。</p>
+<h3>长文档站必须等到"内容不再增长"</h3>
+<p>SPA 文档站常把正文<strong>分批注入</strong>。用固定等待（原来 <code>wait_for_timeout(600)</code>）会<strong>稳定地</strong>停在半截内容上——不再波动，却把不完整版本固化成基线，看起来"从未变化"，实则漏掉后半段条款。</p>
+<p><code>wait_until_text_stable()</code> 轮询到可见文本长度连续两次采样增长不足 5% 才返回；<code>measure_rendered_text()</code> 按<strong>实际取文那个容器</strong>（<code>content_selector</code>）测长度，而非 <code>body</code>——SPA 场景下两者可能反向（侧栏导航展开会让 <code>body</code> 变长而正文容器尚未填充完），按 <code>body</code> 选会挑中最不完整的那次渲染。</p>
+<p>配合后 <code>doubao-api</code> 连续多轮"内容未变化"。该页实测数据：静态 HTML 在 0 ↔ 11510 字符间波动（SSR 不稳定），browser 渲染后 <code>#app-content</code> 在 4 秒内稳定于约 1.06 万字符且 60 秒不再变化。</p>
+<blockquote>
+<p><strong>一个诚实的不确定性</strong>：曾观测到该页偶发返回约 2.09 万字符的版本（关键词计数约为稳定版的两倍），无法判定那是"页面重复渲染了双份内容"还是"更完整的版本"——因为它此后未再复现，样本已丢。页面实测能稳定提供的只有约 1.06 万字符，所以基线取稳定版。若将来发现条款内容明显缺失，应优先怀疑此处并重新抓取核对。</p>
+</blockquote>
+<h3>content_selector 命中多个时要取最长的</h3>
+<p>文档站的选择器常同时命中正文容器、侧栏、页脚等小容器。<code>select_one</code> 只取第一个，会因 DOM 顺序变化而抓到页脚（实测 <code>trae</code> 的 <code>[class*=content]</code> 命中 3 个 1.2 万字符的正文容器 + 3 个 0～217 字符的小容器）。现在统一取<strong>文本最长</strong>的匹配，与 <code>pick_longest_render</code> 同一哲学。</p>
+<p>优先用稳定 <code>id</code> 或属性包含选择器（<code>[class*=content]</code>），<strong>不要用带构建 hash 的 class</strong>（<code>content-KzCsn4</code>、<code>contentFlex-Gj6M</code>）——站点每次重新构建都会变。</p>
 <h3>不要给构建产物 class 配 content_selector</h3>
-<p>文档站（SPA + CSS-in-JS）的正文容器 class 常带构建 hash（如 <code>contentFlex-Gj6M</code>），站点每次重新构建都会变。把它写进 <code>content_selector</code> 看似精确，实际会在下次构建后静默失效——<code>extract_text</code> 对未命中的选择器会回退到默认启发式，噪声又回来了。判断标准：class 名里带随机 hash 就不配。</p>
-<p><strong>优先配稳定的 <code>id</code></strong>。<code>doubao-api</code> 就是这么修好的：文档站页面结构会波动（有时把正文包进 <code>&lt;main&gt;</code>、有时不包），<code>extract_text</code> 的 root 因此在"仅正文 20951 字符"和"导航+正文 12500 字符"之间跳变，每轮都误报 changed。锁定 <code>#app-content</code>（id 由站点保证稳定）后连续多轮"内容未变化"。</p>
+<p>文档站（SPA + CSS-in-JS）的正文容器 class 常带构建 hash（如 <code>contentFlex-Gj6M</code>、<code>content-KzCsn4</code>），站点每次重新构建都会变。把它写进 <code>content_selector</code> 看似精确，实际会在下次构建后静默失效——<code>extract_text</code> 对未命中的选择器会回退到默认启发式，噪声又回来了。判断标准：class 名里带随机 hash 就不配。</p>
+<p><strong>优先配稳定的 <code>id</code> 或属性包含选择器</strong>：<code>doubao-api</code> 用 <code>#app-content</code>（id 由站点保证稳定），<code>trae</code> 用 <code>[class*=content]</code>（属性包含，不受 hash 影响）。<code>trae</code> 配完后正文从"导航+正文"变成纯正文（<code>TraeCode</code>/<code>定价</code>/<code>登录</code> 等导航词消失，"隐私政策"×33、"个人信息"×81 等正文计数零差异）。</p>
 <h3>browser 的 locale 与访问地区会影响站点返回的版本</h3>
 <p><code>fetch_browser</code> 用 <code>locale="zh-CN"</code> 打开页面，<strong>多语言/多地区站点会据此切换返回版本</strong>，而 <code>requests</code> 路径没有这个行为。两个已实测的后果：</p>
 <ul>

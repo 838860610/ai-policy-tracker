@@ -13,7 +13,8 @@
       "role": "privacy",
       "url": "https://platform.minimaxi.com/protocol/privacy-policy",
       "monitored": true,
-      "fetch_method": "browser"
+      "fetch_method": "browser",
+      "note": "选源教训（2026-09-27）：该 URL 本身是 Next.js 空壳（静态 HTML 只有 <div id=\"__next\"> 与 __NEXT_DATA__ 的 i18n 文案，协议正文在客户端组件里），一度让监控目标从 1 个空壳变成 2 个空壳。现已配 fetch_method=browser 抓取成功。登记 sources[] 前务必先确认来源本身静态可读，否则等于换了个同样抓不到的页面。"
     }
   ],
   "last_verified": "2026-08-30",

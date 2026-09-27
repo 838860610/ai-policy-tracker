@@ -64,5 +64,12 @@
   "recommendations": [
     "个人版用户在意训练时，按隐私政策内指引限制数据使用；敏感代码避免使用云端功能",
     "企业用户宜选用企业版（默认不训练），并核对《火山引擎 AI 服务规则及免责声明》的例外场景"
-  ]
+  ],
+  "targets": {
+    "main": {
+      "fetch_method": "browser",
+      "content_selector": "[class*=content]",
+      "wait_for_selector": "[class*=content]"
+    }
+  }
 }
