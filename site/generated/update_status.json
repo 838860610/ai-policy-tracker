@@ -4,7 +4,7 @@
     "hash_scheme": "text-v4-bs4",
     "total_products": 48,
     "total_targets": 70,
-    "changed": 2,
+    "changed": 1,
     "failed": 0,
     "suspicious": 1,
     "skipped": 1,
@@ -600,11 +600,11 @@
     },
     "gemini": {
       "name": "Gemini",
-      "status": "changed",
+      "status": "ok",
       "health": "ok",
       "health_issues": 0,
       "url": "https://policies.google.com/terms?gl=US&hl=zh-CN",
-      "message": "⚠️ 政策可能已更新，待核实（个人版条款）",
+      "message": "内容未变化（本次核实后已确认）",
       "last_checked": "2026-09-27T07:38:24.401482",
       "targets": {
         "main": {
@@ -625,16 +625,17 @@
           "url": "https://support.google.com/gemini/answer/13594961?hl=zh-CN&gl=US",
           "hash_scheme": "text-v4-bs4",
           "last_checked": "2026-09-27T07:38:17.493409",
-          "last_changed_date": "2026-09-27T07:38:17.387904",
+          "last_changed_date": null,
           "last_good_at": "2026-09-27T07:38:17.387904",
           "health": "ok",
           "current_hash": "50033c7c849473fdb889da7a054500a802500dcfca57d9ca3b784ca890573559",
-          "status": "changed",
-          "message": "⚠️ 政策可能已更新，待核实",
+          "status": "ok",
+          "message": "已人工核实（policy_verify --resolve）",
           "health_reason": null,
           "fetch_method": "browser",
           "content_etag": null,
-          "content_last_modified": null
+          "content_last_modified": null,
+          "resolved_at": "2026-09-27T15:51:50.924291"
         },
         "tob": {
           "url": "https://knowledge.workspace.google.com/admin/generative-ai/generative-ai-in-google-workspace-privacy-hub",

@@ -692,11 +692,15 @@ WantedBy=timers.target
 <p><code>wait_until_text_stable()</code> 轮询到可见文本长度连续两次采样增长不足 5% 才返回；<code>measure_rendered_text()</code> 按<strong>实际取文那个容器</strong>（<code>content_selector</code>）测长度，而非 <code>body</code>——SPA 场景下两者可能反向（侧栏导航展开会让 <code>body</code> 变长而正文容器尚未填充完），按 <code>body</code> 选会挑中最不完整的那次渲染。</p>
 <p>配合后 <code>doubao-api</code> 连续多轮"内容未变化"。该页实测数据：静态 HTML 在 0 ↔ 11510 字符间波动（SSR 不稳定），browser 渲染后 <code>#app-content</code> 在 4 秒内稳定于约 1.06 万字符且 60 秒不再变化。</p>
 <blockquote>
-<p><strong>一个诚实的不确定性</strong>：曾观测到该页偶发返回约 2.09 万字符的版本（关键词计数约为稳定版的两倍），无法判定那是"页面重复渲染了双份内容"还是"更完整的版本"——因为它此后未再复现，样本已丢。页面实测能稳定提供的只有约 1.06 万字符，所以基线取稳定版。若将来发现条款内容明显缺失，应优先怀疑此处并重新抓取核对。</p>
+<p><strong>关于 2.09 万字符版本</strong>：CI 上抓到过约 2.09 万字符的版本，一度无法判定那是"更完整"还是"重复渲染"。后经对照确认是<strong>后者</strong>——两份的关键词计数精确翻倍（<code>豆包大模型服务协议</code> ×2→×4、<code>输出内容</code> ×9→×18、<code>模型服务协议</code> ×18→×25），且 2.09 万 = 1.15 万 + 一份完整的 9345 字符协议正文（含历史版本链接列表）。即该页偶尔把同一份协议渲染两遍。基线取 1.15 万的单份版本；<code>wait_until_text_stable()</code> 上线后已连续多轮稳定。</p>
 </blockquote>
 <h3>content_selector 命中多个时要取最长的</h3>
 <p>文档站的选择器常同时命中正文容器、侧栏、页脚等小容器。<code>select_one</code> 只取第一个，会因 DOM 顺序变化而抓到页脚（实测 <code>trae</code> 的 <code>[class*=content]</code> 命中 3 个 1.2 万字符的正文容器 + 3 个 0～217 字符的小容器）。现在统一取<strong>文本最长</strong>的匹配，与 <code>pick_longest_render</code> 同一哲学。</p>
 <p>优先用稳定 <code>id</code> 或属性包含选择器（<code>[class*=content]</code>），<strong>不要用带构建 hash 的 class</strong>（<code>content-KzCsn4</code>、<code>contentFlex-Gj6M</code>）——站点每次重新构建都会变。</p>
+<p><code>wait_for_selector</code> 还能顺带解决 Cloudflare 挑战：挑战页过掉之前正文容器不会出现，以"正文容器出现"为渲染完成标志比单纯等 <code>innerText</code> 长度更精确（挑战页自身也可能超过阈值）。</p>
+<h4>但环境差异导致的失败无法靠配置消除</h4>
+<p><code>trae</code> 在 CI（GitHub 美国 runner）上连续多轮抓取失败，<code>describe_shell()</code> 显示<strong>实际拿到：空文档</strong>——Chromium 根本没拿到响应 HTML，属连接层失败而非渲染问题（Cloudflare 对数据中心 IP 的常见行为）。同一目标在本地（中国 IP）可正常抓到 12272 字符正文。</p>
+<p>这类情况<strong>不要试图用配置修</strong>：<code>content_selector</code> / <code>wait_for_selector</code> / 超时都只影响渲染，而连接根本没建立。<code>degraded</code> 语义在这里的价值是——快照仍然有效、页面继续展示上次正文、站点恢复可达后监控自愈。真要根治只能换源（找静态可读的等价页面）或申请 Cloudflare 放行。</p>
 <h3>不要给构建产物 class 配 content_selector</h3>
 <p>文档站（SPA + CSS-in-JS）的正文容器 class 常带构建 hash（如 <code>contentFlex-Gj6M</code>、<code>content-KzCsn4</code>），站点每次重新构建都会变。把它写进 <code>content_selector</code> 看似精确，实际会在下次构建后静默失效——<code>extract_text</code> 对未命中的选择器会回退到默认启发式，噪声又回来了。判断标准：class 名里带随机 hash 就不配。</p>
 <p><strong>优先配稳定的 <code>id</code> 或属性包含选择器</strong>：<code>doubao-api</code> 用 <code>#app-content</code>（id 由站点保证稳定），<code>trae</code> 用 <code>[class*=content]</code>（属性包含，不受 hash 影响）。<code>trae</code> 配完后正文从"导航+正文"变成纯正文（<code>TraeCode</code>/<code>定价</code>/<code>登录</code> 等导航词消失，"隐私政策"×33、"个人信息"×81 等正文计数零差异）。</p>
