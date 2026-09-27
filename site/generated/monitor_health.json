@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-09-27T07:43:08.710238",
+  "updated_at": "2026-09-27T08:10:22.146342",
   "items": {
     "trae:main": {
       "pid": "trae",
@@ -11,11 +11,11 @@
       "health_reason": "empty_body",
       "status": "suspicious",
       "message": "抓取正文过短（0 字符 < 500），疑似 JS 渲染或反爬，已保留上次有效快照；实际拿到：空文档",
-      "last_checked": "2026-09-27T07:34:33.061777",
+      "last_checked": "2026-09-27T08:02:40.661790",
       "last_good_at": "2026-09-26T23:38:42.502276",
-      "consecutive_runs": 5,
+      "consecutive_runs": 6,
       "first_seen": "2026-09-26T16:13:18.850142",
-      "last_seen": "2026-09-27T07:43:08.710238",
+      "last_seen": "2026-09-27T08:10:22.146342",
       "next_action": "已保留上次有效快照；用 --only <pid>:<key> 单独重试并确认正文"
     }
   }
