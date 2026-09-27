@@ -69,7 +69,8 @@
     "main": {
       "fetch_method": "browser",
       "content_selector": "[class*=content]",
-      "wait_for_selector": "[class*=content]"
+      "wait_for_selector": "[class*=content]",
+      "monitor_scope": "local"
     }
   }
 }

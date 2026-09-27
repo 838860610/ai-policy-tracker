@@ -179,6 +179,11 @@ yuanqi 少 28）——而这些字段正是政策版本标识。标记必须用<
 <td>正整数</td>
 <td>该目标的正文下限，覆盖默认 500</td>
 </tr>
+<tr>
+<td><code>monitor_scope</code></td>
+<td><code>ci</code>（默认）/ <code>local</code></td>
+<td><code>local</code> 表示该目标只能在本地跑（CI 连不上），以本地结果为准，详见下节</td>
+</tr>
 </tbody>
 </table>
 <p>配置示例（同一产品里只有企业版条款和 FAQ 页需要浏览器抓取，主监控页仍是普通请求）：</p>
@@ -644,7 +649,57 @@ WantedBy=timers.target
 </tr>
 </tbody>
 </table>
-<h2>监控流程</h2>
+<h2>本地专属监控（<code>monitor_scope: local</code>）</h2>
+<p>有些站点在 GitHub runner 上<strong>根本连不上</strong>——不是反爬挑战，是连接层就失败。<code>trae</code> 就是典型：Cloudflare 拒绝数据中心 IP，<code>describe_shell()</code> 显示"实际拿到：空文档"（Chromium 没拿到任何响应 HTML），而同一 URL 在本地（中国 IP）可正常抓到 1.2 万字符正文。</p>
+<p>这类目标用 <code>targets.&lt;key&gt;.monitor_scope: "local"</code> 标记，表示<strong>只能在本地跑，以本地结果为准</strong>：</p>
+<pre><code class="language-json">"targets": {
+  "main": {
+    "fetch_method": "browser",
+    "content_selector": "[class*=content]",
+    "monitor_scope": "local"
+  }
+}
+</code></pre>
+<h3>运行范围由 <code>--scope</code> 决定</h3>
+<table>
+<thead>
+<tr>
+<th>命令</th>
+<th>行为</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--scope ci</code></td>
+<td>跳过 <code>monitor_scope: local</code> 的目标（<code>monitor.yml</code> 用这个）</td>
+</tr>
+<tr>
+<td><code>--scope local</code></td>
+<td><strong>只</strong>跑 <code>monitor_scope: local</code> 的目标</td>
+</tr>
+<tr>
+<td><code>--scope all</code>（默认）</td>
+<td>全跑，向后兼容</td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-bash"># 本地跑全部本地专属目标，并自动 commit 结果（不 push）
+./scripts/local_monitor.sh
+
+# 只跑一个目标
+./scripts/local_monitor.sh --only trae:main --timeout 60
+</code></pre>
+<p><code>local_monitor.sh</code> 只 <code>git add</code> 四个监控产物（<code>update_status.json</code>、<code>monitor_health.json</code>、<code>pending_verification.json</code>、<code>snapshots/</code>），不会捎带工作区里其他未提交的改动；<strong>push 留给你手动确认</strong>——<code>git push origin main</code> 会触发 CI 与 Pages 真实发布。</p>
+<h3>CI 跳过时必须沿用上次结果</h3>
+<p>被 <code>--scope ci</code> 跳过的目标，会带着 <code>skipped_this_run: true</code> 和 <code>monitor_scope: "local"</code> <strong>原样保留上次的状态</strong>，包括快照引用和 <code>last_checked</code>。</p>
+<p>这一点很关键：若像 <code>monitor: false</code> 那样把跳过写成 <code>status: "skipped"</code>，监控覆盖率会在状态文件里凭空缩水，而 <code>prune_orphan_snapshots</code> 还会把这些目标的快照当成"不再监控"删掉——正是早期版本踩过的坑。</p>
+<p>同时健康队列里这类目标的 <code>consecutive_runs</code> <strong>不会因为没被检查而虚增</strong>：CI 每周跑一次却从不上手检查，连续轮数会一路涨到吓人，但那是"没查"而不是"查了还坏"。<code>last_seen</code> 同样保持不变，<code>checked_this_run: false</code> 标记本轮未检查。</p>
+<h3>什么时候该用这个机制</h3>
+<ul>
+<li>✅ 连接层失败：CI 环境根本连不上（Cloudflare 拒绝数据中心 IP、境内/境外网络隔离）</li>
+<li>✅ 站点对渲染环境敏感：CI 上需要额外前置条件（特定 cookie、代理、特定地区）</li>
+<li>❌ 不要用来掩盖"CI 抓不到但本地能抓到"以外的问题——比如静态 HTML 是空壳、选择器没配好，那些属于抓取配置问题，应先修配置</li>
+</ul>
 <pre><code>1. 读取 site/data/products.json（ID 索引）
 2. 逐个加载 site/data/policies/{id}.json，展开 main / versions / sources[] 监控目标及其抓取配置
 3. 读取 site/generated/update_status.json（如存在）中上次的状态

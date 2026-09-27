@@ -212,6 +212,8 @@ python3 -m venv .venv
 # 只重试某几个产品/目标（其余沿用上次状态，不重跑全量）
 .venv/bin/python scripts/check_updates.py --only gemini:main
 .venv/bin/python scripts/check_updates.py --products minimax
+# 本地专属监控：跑 monitor_scope=local 的目标（如 CI 连不上的 trae），自动 commit 不 push
+./scripts/local_monitor.sh
 ```
 
 脚本对 HTML、Markdown、纯文本和 PDF 政策正文进行结构化提取、归一化并计算哈希，同时使用 ETag/If-Modified-Since 条件请求。检测结果写入 `site/generated/update_status.json`，首页会分别展示已确认变更、检查失败、正文可疑和未监控产品；监控运行时间与人工核实日期分开显示。
@@ -227,7 +229,9 @@ python3 -m venv .venv
 
 正文过短（默认 < 500 字符）或抓取失败时脚本**不会覆盖已有基线**，只把 `health` 标成降级/无基线/被拦截。这类目标进入独立队列 `site/generated/monitor_health.json`（记录失败原因、连续不健康轮次与建议动作，恢复后自动消失），首页 banner 下方可展开"抓取降级明细"。这样一次 Cloudflare 挑战不会伪装成"政策可能已更新"。
 
-抓取方式支持按目标配置：`versions.*` / `sources[]` 条目可单独设置 `fetch_method`（`requests` / `browser`）、`content_selector`、`wait_for_selector`、`min_body_chars`，不需要为一个站点把整产品都切成浏览器抓取。处置流程：
+有些站点在 GitHub runner 上**根本连不上**（如 `trae`：Cloudflare 拒绝数据中心 IP，抓取时"实际拿到：空文档"，而本地能正常抓到 1.2 万字符正文）。这类目标用 `monitor_scope: "local"` 标记，改由 `./scripts/local_monitor.sh` 在本地跑并以本地结果为准；CI 用 `--scope ci` 跳过它们，但会**沿用上次状态**（不会把覆盖率写缩水，快照也不会被当孤儿清理）。
+
+抓取方式支持按目标配置：`targets.main` / `versions.*` / `sources[]` 条目可单独设置 `fetch_method`（`requests` / `browser`）、`content_selector`、`wait_for_selector`、`min_body_chars`、`monitor_scope`，不需要为一个站点把整产品都切成浏览器抓取。处置流程：
 
 ```bash
 # 1. 确认是网络抖动还是抓取方式问题（长超时单目标重试）

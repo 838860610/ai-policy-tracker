@@ -510,6 +510,10 @@
       var runs = item.consecutive_runs
         ? "，连续 " + PT.escapeHtml(String(item.consecutive_runs)) + " 轮"
         : "";
+      // 本地专属监控：本轮没被检查，别把"连续 N 轮"算到它头上
+      if (item.monitor_scope === "local") {
+        runs += "（本地监控，本轮未检查）";
+      }
       var action = item.next_action
         ? "；建议：" + PT.escapeHtml(item.next_action)
         : "";

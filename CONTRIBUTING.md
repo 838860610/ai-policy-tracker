@@ -168,6 +168,7 @@ git push origin update/xxx-policy
 | `wait_for_selector` | 同上 | 浏览器抓取时等待该节点出现即视为已渲染，缩短 SPA 页耗时 |
 | `min_body_chars` | 同上 | 该目标的正文下限，覆盖默认 500 字符 |
 | `targets` | 顶层（只含 `main` 键） | 顶层 `policy_url` 对应 `main` 目标的配置载体。`toc`/`tob` 写进 `versions.*`，补充来源写进 `sources[]` 条目——不要在 `targets` 里重复定义，避免两处配置歧义 |
+| `monitor_scope` | 顶层 / `targets.main` / `versions.*` / `sources[]` 条目 | `ci`（默认，两边都跑）或 `local`（**仅本地跑**）。用于 GitHub runner 连不上的站点（如 `trae`——Cloudflare 拒绝数据中心 IP），改由 `./scripts/local_monitor.sh` 在本地跑，以本地结果为准 |
 
 四个载体的优先级是 **目标级 > 产品级 > 全局默认**，所以 `targets.main.fetch_method` 会覆盖顶层 `fetch_method`，而顶层仍对其余目标生效（既有数据文件无需迁移）。
 

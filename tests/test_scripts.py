@@ -1042,6 +1042,102 @@ class TestFetchHealth(unittest.TestCase):
         self.assertEqual(specs["main"]["method"], "browser")
         self.assertEqual(specs["toc"]["method"], "requests")
 
+    def test_monitor_scope_defaults_to_ci(self):
+        policy = {"policy_url": "https://example.com/main"}
+        specs = {spec["key"]: spec for spec in CHECK_UPDATES.collect_target_specs(policy)}
+        self.assertEqual(specs["main"]["monitor_scope"], "ci")
+        # 非法值退回默认，不让配置写错就静默改变监控范围
+        bad = {"policy_url": "https://example.com/main",
+               "targets": {"main": {"monitor_scope": "sometimes"}}}
+        specs = {spec["key"]: spec for spec in CHECK_UPDATES.collect_target_specs(bad)}
+        self.assertEqual(specs["main"]["monitor_scope"], "ci")
+
+    def test_ci_scope_skips_local_targets_and_carries_last_result(self):
+        """CI 连不上的目标（trae）由本地跑：CI 必须跳过它，且**沿用上次结果**——
+        若写成 skipped，监控覆盖率会在状态文件里凭空缩水，快照也会被当孤儿删掉。"""
+        policy = {"policy_url": "https://example.com/main",
+                  "targets": {"main": {"monitor_scope": "local"}},
+                  "versions": {"toc": {"policy_link": "https://example.com/toc",
+                                       "monitor_scope": "local"}}}
+        prev = {"targets": {
+            "main": {"url": "https://example.com/main", "status": "ok", "health": "ok",
+                     "last_checked": "2026-01-01T00:00:00"},
+        }}
+        with contextlib.redirect_stdout(io.StringIO()):
+            result = CHECK_UPDATES.check_product(
+                "demo", policy, prev, 1, 0, scope="ci")
+        self.assertEqual(sorted(result["targets"]), ["main"])
+        kept = result["targets"]["main"]
+        self.assertTrue(kept["skipped_this_run"])
+        self.assertEqual(kept["monitor_scope"], "local")
+        # 关键：last_checked 不能被本轮刷新，否则"上次成功"看起来是刚刚
+        self.assertEqual(kept["last_checked"], "2026-01-01T00:00:00")
+        self.assertIn("本地监控", result["message"])
+
+    def test_local_scope_runs_only_local_targets(self):
+        policy = {"policy_url": "https://example.com/main",
+                  "targets": {"main": {"monitor_scope": "local"}},
+                  "versions": {"toc": {"policy_link": "https://example.com/toc"}}}
+        html = "<html><body><main>" + "本地专属目标正文内容。" * 80 + "</main></body></html>"
+        response = _FakeResponse("text/html; charset=utf-8", html.encode("utf-8"),
+                                 encoding="utf-8")
+        with mock.patch.object(CHECK_UPDATES, "load_baseline_text", return_value=None):
+            with mock.patch.object(CHECK_UPDATES, "save_snapshot"):
+                with mock.patch.object(CHECK_UPDATES, "fetch_with_retry",
+                                       return_value=(response, False)):
+                    with contextlib.redirect_stdout(io.StringIO()):
+                        result = CHECK_UPDATES.check_product(
+                            "demo", policy, {}, 1, 0, scope="local")
+        self.assertEqual(list(result["targets"]), ["main"])  # toc 是 ci 范围，不跑
+        self.assertEqual(result["targets"]["main"]["monitor_scope"], "local")
+
+    def test_scope_all_runs_everything(self):
+        policy = {"policy_url": "https://example.com/main",
+                  "targets": {"main": {"monitor_scope": "local"}},
+                  "versions": {"toc": {"policy_link": "https://example.com/toc"}}}
+        html = "<html><body><main>" + "正文内容。" * 200 + "</main></body></html>"
+        response = _FakeResponse("text/html; charset=utf-8", html.encode("utf-8"),
+                                 encoding="utf-8")
+        with mock.patch.object(CHECK_UPDATES, "load_baseline_text", return_value=None):
+            with mock.patch.object(CHECK_UPDATES, "save_snapshot"):
+                with mock.patch.object(CHECK_UPDATES, "fetch_with_retry",
+                                       return_value=(response, False)):
+                    with contextlib.redirect_stdout(io.StringIO()):
+                        result = CHECK_UPDATES.check_product(
+                            "demo", policy, {}, 1, 0)
+        self.assertEqual(sorted(result["targets"]), ["main", "toc"])  # 默认全跑
+
+    def test_health_queue_does_not_inflate_runs_for_unchecked_targets(self):
+        """本轮没检查的目标不能虚增"连续 N 轮"——那会让告警看起来比实际严重。"""
+        with tempfile.TemporaryDirectory() as directory:
+            path = os.path.join(directory, "monitor_health.json")
+            with mock.patch.object(CHECK_UPDATES, "HEALTH_FILE", path):
+                unhealthy = {"demo": {"name": "Demo", "targets": {"main": {
+                    "url": "https://e.com/p", "health": "degraded", "status": "suspicious",
+                    "message": "抓取正文过短", "monitor_scope": "local"}}}}
+                CHECK_UPDATES.update_monitor_health(unhealthy)
+                first = CHECK_UPDATES.load_health_items()["demo:main"]
+                self.assertEqual(first["consecutive_runs"], 1)
+                self.assertIn("local_monitor.sh", first["next_action"])
+                self.assertEqual(first["monitor_scope"], "local")
+                # 第二轮仍未检查（CI 跳过）：轮数与 last_seen 都保持不变
+                skipped = {"demo": {"name": "Demo", "targets": {"main": {
+                    "url": "https://e.com/p", "health": "degraded", "status": "suspicious",
+                    "message": "抓取正文过短", "monitor_scope": "local",
+                    "skipped_this_run": True,
+                    "last_checked": first["last_checked"]}}}}
+                second = CHECK_UPDATES.update_monitor_health(skipped)["demo:main"]
+                self.assertEqual(second["consecutive_runs"], 1)
+                self.assertEqual(second["last_seen"], first["last_seen"])
+                self.assertFalse(second["checked_this_run"])
+                # 真正检查到（本地跑了）才 +1
+                checked = {"demo": {"name": "Demo", "targets": {"main": {
+                    "url": "https://e.com/p", "health": "degraded", "status": "suspicious",
+                    "message": "抓取正文过短", "monitor_scope": "local"}}}}
+                third = CHECK_UPDATES.update_monitor_health(checked)["demo:main"]
+                self.assertEqual(third["consecutive_runs"], 2)
+                self.assertTrue(third["checked_this_run"])
+
     def test_malformed_main_carrier_falls_back_to_top_level(self):
         """targets 结构异常时不崩溃，退回顶层配置（validate_data 会另行报错）。"""
         for broken in ([], {"main": "browser"}, {"toc": {"fetch_method": "browser"}}, "x"):
@@ -1218,8 +1314,8 @@ class TestPartialRetry(unittest.TestCase):
             health_path = os.path.join(directory, "monitor_health.json")
 
             def fake_check_product(pid, policy, prev, timeout, delay,
-                                   no_browser=False, only_keys=None):
-                checked.append((pid, only_keys))
+                                   no_browser=False, only_keys=None, scope="all"):
+                checked.append((pid, only_keys, scope))
                 return {"name": pid, "status": "ok", "health": "ok", "health_issues": 0,
                         "url": policy.get("policy_url", ""), "message": "内容未变化",
                         "last_checked": "2026-01-02T00:00:00",
@@ -1258,7 +1354,7 @@ class TestPartialRetry(unittest.TestCase):
                     "beta": {"policy_url": "https://b.com"}}
         checked = []
         code, data = self._run_main(["--only", "alpha:main"], prev, policies, checked)
-        self.assertEqual(checked, [("alpha", {"main"})])  # 只检查了 alpha 的 main
+        self.assertEqual(checked, [("alpha", {"main"}, "all")])  # 只检查了 alpha 的 main
         self.assertTrue(data["meta"]["partial_run"])
         self.assertEqual(data["products"]["alpha"]["status"], "ok")
         # 未检查的产品保持原样，且不被清空

@@ -83,6 +83,7 @@ SPA 页面正文异步渲染，单次抓取可能只出一半正文或只剩页�
 | `content_selector` | CSS 选择器 | 正文不在 `<main>` / `<article>` 内时指定容器（常见于文档预览页、富文本页） |
 | `wait_for_selector` | CSS 选择器 | 浏览器抓取时等待该节点出现即视为已渲染，缩短 SPA 页耗时 |
 | `min_body_chars` | 正整数 | 该目标的正文下限，覆盖默认 500 |
+| `monitor_scope` | `ci`（默认）/ `local` | `local` 表示该目标只能在本地跑（CI 连不上），以本地结果为准，详见下节 |
 
 配置示例（同一产品里只有企业版条款和 FAQ 页需要浏览器抓取，主监控页仍是普通请求）：
 
@@ -431,7 +432,54 @@ sudo systemctl enable --now ai-policy-check.timer
 | `products.{id}.last_changed_date` | 最后检测到变化的日期 |
 
 
-## 监控流程
+## 本地专属监控（`monitor_scope: local`）
+
+有些站点在 GitHub runner 上**根本连不上**——不是反爬挑战，是连接层就失败。`trae` 就是典型：Cloudflare 拒绝数据中心 IP，`describe_shell()` 显示"实际拿到：空文档"（Chromium 没拿到任何响应 HTML），而同一 URL 在本地（中国 IP）可正常抓到 1.2 万字符正文。
+
+这类目标用 `targets.<key>.monitor_scope: "local"` 标记，表示**只能在本地跑，以本地结果为准**：
+
+```json
+"targets": {
+  "main": {
+    "fetch_method": "browser",
+    "content_selector": "[class*=content]",
+    "monitor_scope": "local"
+  }
+}
+```
+
+### 运行范围由 `--scope` 决定
+
+| 命令 | 行为 |
+|------|------|
+| `--scope ci` | 跳过 `monitor_scope: local` 的目标（`monitor.yml` 用这个） |
+| `--scope local` | **只**跑 `monitor_scope: local` 的目标 |
+| `--scope all`（默认） | 全跑，向后兼容 |
+
+```bash
+# 本地跑全部本地专属目标，并自动 commit 结果（不 push）
+./scripts/local_monitor.sh
+
+# 只跑一个目标
+./scripts/local_monitor.sh --only trae:main --timeout 60
+```
+
+`local_monitor.sh` 只 `git add` 四个监控产物（`update_status.json`、`monitor_health.json`、`pending_verification.json`、`snapshots/`），不会捎带工作区里其他未提交的改动；**push 留给你手动确认**——`git push origin main` 会触发 CI 与 Pages 真实发布。
+
+### CI 跳过时必须沿用上次结果
+
+被 `--scope ci` 跳过的目标，会带着 `skipped_this_run: true` 和 `monitor_scope: "local"` **原样保留上次的状态**，包括快照引用和 `last_checked`。
+
+这一点很关键：若像 `monitor: false` 那样把跳过写成 `status: "skipped"`，监控覆盖率会在状态文件里凭空缩水，而 `prune_orphan_snapshots` 还会把这些目标的快照当成"不再监控"删掉——正是早期版本踩过的坑。
+
+同时健康队列里这类目标的 `consecutive_runs` **不会因为没被检查而虚增**：CI 每周跑一次却从不上手检查，连续轮数会一路涨到吓人，但那是"没查"而不是"查了还坏"。`last_seen` 同样保持不变，`checked_this_run: false` 标记本轮未检查。
+
+### 什么时候该用这个机制
+
+- ✅ 连接层失败：CI 环境根本连不上（Cloudflare 拒绝数据中心 IP、境内/境外网络隔离）
+- ✅ 站点对渲染环境敏感：CI 上需要额外前置条件（特定 cookie、代理、特定地区）
+- ❌ 不要用来掩盖"CI 抓不到但本地能抓到"以外的问题——比如静态 HTML 是空壳、选择器没配好，那些属于抓取配置问题，应先修配置
+
 
 ```
 1. 读取 site/data/products.json（ID 索引）

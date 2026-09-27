@@ -84,6 +84,7 @@ def warn(msg):
 
 FETCH_METHODS = ("requests", "browser")
 FETCH_FIELDS = ("fetch_method", "content_selector", "wait_for_selector", "min_body_chars")
+MONITOR_SCOPES = ("ci", "local")
 # 目标级载体里允许与抓取配置共存的业务字段（sources[] 条目）
 FETCH_CARRIER_EXTRA = ("id", "role", "url", "monitored", "title", "note")
 
@@ -109,8 +110,11 @@ def check_fetch_config(where, cfg, strict_unknown=False):
         value = cfg["min_body_chars"]
         if not isinstance(value, int) or isinstance(value, bool) or value < 0:
             err(f"{where}: min_body_chars 必须是非负整数，当前为 {value!r}")
+    if "monitor_scope" in cfg and cfg["monitor_scope"] not in MONITOR_SCOPES:
+        err(f"{where}: monitor_scope 必须是 {' 或 '.join(MONITOR_SCOPES)}，"
+            f"当前为 {cfg['monitor_scope']!r}（local 表示该目标只能本地跑）")
     if strict_unknown:
-        unknown = set(cfg) - set(FETCH_FIELDS)
+        unknown = set(cfg) - set(FETCH_FIELDS) - {"monitor_scope"}
         if unknown:
             err(f"{where}: 存在无法识别的字段 {sorted(unknown)}；"
                 f"抓取配置只支持 {list(FETCH_FIELDS)}")

@@ -774,6 +774,13 @@ def fetch_browser(url, timeout=30, wait_selector=None, content_selector=None):
 FETCH_CONFIG_FIELDS = ("fetch_method", "content_selector", "wait_for_selector", "min_body_chars")
 SUPPORTED_FETCH_METHODS = ("requests", "browser")
 
+# 监控范围：默认 ci（CI 与本地都跑）；local 表示只能在指定环境本地跑——
+# 用于 GitHub runner 连不上的站点（如 trae：Cloudflare 拒绝数据中心 IP，
+# describe_shell() 显示"实际拿到：空文档"），改由本地跑并以本地结果为准。
+MONITOR_SCOPES = ("ci", "local")
+DEFAULT_MONITOR_SCOPE = "ci"
+SCOPE_COMMANDS = {"ci": "CI 监控", "local": "本地监控"}
+
 
 def resolve_fetch_config(policy, target_source=None):
     """合并产品级与目标级抓取配置。
@@ -798,11 +805,15 @@ def resolve_fetch_config(policy, target_source=None):
         min_chars = MIN_BODY_CHARS
     if min_chars < 0:
         min_chars = MIN_BODY_CHARS
+    scope = str(pick("monitor_scope", DEFAULT_MONITOR_SCOPE) or DEFAULT_MONITOR_SCOPE)
+    if scope not in MONITOR_SCOPES:
+        scope = DEFAULT_MONITOR_SCOPE
     return {
         "method": method,
         "min_body_chars": min_chars,
         "content_selector": str(pick("content_selector", "") or "").strip() or None,
         "wait_for_selector": str(pick("wait_for_selector", "") or "").strip() or None,
+        "monitor_scope": scope,
     }
 
 
@@ -825,6 +836,7 @@ def collect_target_specs(policy):
             "min_body_chars": config["min_body_chars"],
             "content_selector": config["content_selector"],
             "wait_for_selector": config["wait_for_selector"],
+            "monitor_scope": config["monitor_scope"],
         })
         seen.add(url)
 
@@ -896,6 +908,7 @@ def base_target_result(url, prev_target, **extra):
         "last_changed_date": prev_target.get("last_changed_date"),
         "last_good_at": prev_target.get("last_good_at"),
         "health": "ok",
+        "monitor_scope": prev_target.get("monitor_scope", DEFAULT_MONITOR_SCOPE),
     }
     result.update(extra)
     result.setdefault("health", "ok")
@@ -927,6 +940,7 @@ def check_target(pid, name, key, url, prev_target, timeout, method="requests", c
     min_body_chars = config.get("min_body_chars") or MIN_BODY_CHARS
     content_selector = config.get("content_selector")
     wait_for_selector = config.get("wait_for_selector")
+    monitor_scope = config.get("monitor_scope") or DEFAULT_MONITOR_SCOPE
     label = TARGET_LABELS.get(key, key)
     prev_hash = prev_target.get("current_hash") if prev_target.get("hash_scheme") == HASH_SCHEME else None
     baseline = load_baseline_text(pid, key)
@@ -1173,13 +1187,70 @@ def merge_partial_product(prev_info, new_info):
     return merged
 
 
-def check_product(pid, policy, prev_entry, timeout, delay, no_browser=False, only_keys=None):
-    """检查一个产品的全部（或指定）监控目标，返回聚合后的产品级状态。"""
+def check_product(pid, policy, prev_entry, timeout, delay, no_browser=False,
+                  only_keys=None, scope="all"):
+    """检查一个产品的全部（或指定）监控目标，返回聚合后的产品级状态。
+
+    scope 用于区分运行环境：
+      - "all"   两个环境都跑（默认，向后兼容）
+      - "ci"    CI 监控：跳过 monitor_scope=local 的目标
+      - "local" 仅本地监控：只跑 monitor_scope=local 的目标
+    被 scope 跳过的目标**沿用上次结果**（含快照引用与 last_checked），
+    只加 skipped_this_run / monitor_scope 标记——否则 CI 每轮都把这些目标
+    写成 skipped，监控覆盖率会在状态文件里凭空缩水。
+    """
     name = policy.get("name", pid)
-    specs = collect_target_specs(policy)
+    all_specs = collect_target_specs(policy)
     if only_keys:
         wanted = set(only_keys)
-        specs = [spec for spec in specs if spec["key"] in wanted]
+        all_specs = [spec for spec in all_specs if spec["key"] in wanted]
+
+    prev_targets = migrate_prev_targets(prev_entry)
+
+    if scope == "ci":
+        specs = [spec for spec in all_specs if spec["monitor_scope"] != "local"]
+        out_of_scope = [spec for spec in all_specs if spec["monitor_scope"] == "local"]
+    elif scope == "local":
+        specs = [spec for spec in all_specs if spec["monitor_scope"] == "local"]
+        out_of_scope = []
+    else:
+        specs, out_of_scope = list(all_specs), []
+
+    def carry_over(reason, spec_keys):
+        """把本轮不该检查的目标按上次结果原样带回。"""
+        carried = {}
+        for spec in spec_keys:
+            previous = prev_targets.get(spec["key"])
+            if not isinstance(previous, dict):
+                continue
+            kept = dict(previous)
+            kept["skipped_this_run"] = True
+            kept["skip_reason"] = reason
+            kept["monitor_scope"] = spec["monitor_scope"]
+            carried[spec["key"]] = kept
+        return carried
+
+    scope_skip_reason = f"该目标由{SCOPE_COMMANDS['local']}负责，请在本地运行 scripts/local_monitor.sh"
+
+    if out_of_scope:
+        carried = carry_over(scope_skip_reason, out_of_scope)
+        print(f"  [范围] {name} ({pid}): "
+              + "、".join(f"{TARGET_LABELS.get(s['key'], s['key'])}({s['monitor_scope']})"
+                          for s in out_of_scope)
+              + f" 在当前环境（{scope}）不检查，沿用上次结果")
+        if not specs:
+            if carried:
+                status, summary, unhealthy = aggregate_targets(carried)
+                return {
+                    "name": name, "status": status,
+                    "health": aggregate_health(carried), "health_issues": unhealthy,
+                    "url": out_of_scope[0]["url"],
+                    "message": summary + f"（本轮未检查：{scope_skip_reason}）",
+                    "last_checked": (prev_entry or {}).get("last_checked"),
+                    "targets": carried,
+                }
+            all_specs = specs  # 落到下面的"无目标"分支
+
     if not specs:
         print(f"  [跳过] {name} ({pid}): URL 为空、待核实或未匹配 --only 目标")
         return {"name": name, "status": "skipped", "health": "ok", "health_issues": 0,
@@ -1197,8 +1268,6 @@ def check_product(pid, policy, prev_entry, timeout, delay, no_browser=False, onl
         return {"name": name, "status": "skipped", "health": "ok", "health_issues": 0,
                 "message": "该产品已标记为不监控（无独立公开政策页）",
                 "last_checked": datetime.datetime.now().isoformat()}
-
-    prev_targets = migrate_prev_targets(prev_entry)
 
     if no_browser:
         # 未安装 playwright 的环境：只跳过需浏览器抓取的目标，其余目标照常检查
@@ -1244,6 +1313,11 @@ def check_product(pid, policy, prev_entry, timeout, delay, no_browser=False, onl
         if i < len(specs) - 1:
             time.sleep(delay)
 
+    for spec in specs:
+        target_results[spec["key"]]["monitor_scope"] = spec["monitor_scope"]
+        target_results[spec["key"]].setdefault("fetch_method", spec["method"])
+    # scope 之外的目标原样带回，与已检查的目标合并成一个完整的 targets
+    target_results.update(carry_over(scope_skip_reason, out_of_scope))
     status, summary, unhealthy = aggregate_targets(target_results)
     return {
         "name": name,
@@ -1392,6 +1466,14 @@ def update_monitor_health(products):
                 continue
             pk = f"{pid}:{key}"
             old = existing.get(pk) if isinstance(existing.get(pk), dict) else {}
+            # 本轮没检查（scope 之外）：轮数与 last_seen 都不动，否则"连续 N 轮"会
+            # 靠一个从没被检查的目标虚增——这会让告警看起来比实际严重
+            skipped = bool(target.get("skipped_this_run"))
+            local_only = target.get("monitor_scope") == "local"
+            next_action = HEALTH_ACTIONS.get(health, "检查抓取配置并重试")
+            if local_only:
+                next_action = ("该目标由本地监控（CI 连不上），"
+                               "请运行 scripts/local_monitor.sh 后提交结果")
             items[pk] = {
                 "pid": pid,
                 "name": info.get("name", pid),
@@ -1402,13 +1484,16 @@ def update_monitor_health(products):
                 "health_reason": target.get("health_reason"),
                 "status": target.get("status"),
                 "message": target.get("message", ""),
+                "monitor_scope": target.get("monitor_scope", DEFAULT_MONITOR_SCOPE),
+                "checked_this_run": not skipped,
                 "last_checked": target.get("last_checked"),
                 "last_good_at": target.get("last_good_at"),
-                # 连续不健康轮次：恢复后条目会被清除，下次再坏重新计数
-                "consecutive_runs": (old.get("consecutive_runs", 0) + 1) if old else 1,
+                # 连续不健康轮次：恢复后条目会被清除，下次再坏重新从 1 开始
+                "consecutive_runs": (old.get("consecutive_runs", 0) + 1)
+                if old and not skipped else old.get("consecutive_runs", 1),
                 "first_seen": old.get("first_seen", now),
-                "last_seen": now,
-                "next_action": HEALTH_ACTIONS.get(health, "检查抓取配置并重试"),
+                "last_seen": old.get("last_seen", now) if skipped and old else now,
+                "next_action": next_action,
             }
     # 队列完全由当前状态重建：已恢复或已下线监控的目标自动消失
     atomic_write_json(HEALTH_FILE, {"updated_at": now, "items": items})
@@ -1433,6 +1518,9 @@ def main():
                         help="仅检查指定目标，格式 pid:key（可逗号分隔，如 gemini:toc,minimax:main）")
     parser.add_argument("--no-prune", action="store_true",
                         help="不清理已不再监控的孤儿快照目录")
+    parser.add_argument("--scope", choices=("all", "ci", "local"), default="all",
+                        help="运行环境范围：ci 跳过 monitor_scope=local 的目标，"
+                             "local 只跑这些目标，all 全跑（默认）")
     args = parser.parse_args()
 
     print("=" * 60)
@@ -1510,7 +1598,8 @@ def main():
                                "last_checked": datetime.datetime.now().isoformat()}
             continue
         result = check_product(pid, policy, prev, args.timeout, args.delay,
-                               no_browser=args.no_browser, only_keys=only_keys)
+                               no_browser=args.no_browser, only_keys=only_keys,
+                               scope=args.scope)
         if partial and isinstance(prev, dict) and prev.get("targets"):
             result = merge_partial_product(prev, result)
         new_status[pid] = result
@@ -1546,10 +1635,22 @@ def main():
     degraded_count = sum(item.get("health") == "degraded" for item in health_items.values())
     no_baseline_count = sum(item.get("health") == "no_baseline" for item in health_items.values())
 
+    local_only_count = sum(
+        1 for info in new_status.values()
+        for t in (info.get("targets") or {}).values()
+        if t.get("monitor_scope") == "local")
+    local_skipped_count = sum(
+        1 for info in new_status.values()
+        for t in (info.get("targets") or {}).values()
+        if t.get("monitor_scope") == "local" and t.get("skipped_this_run"))
+
     status_data = {
         "meta": {
             "last_run": datetime.datetime.now().isoformat(),
             "hash_scheme": HASH_SCHEME,
+            "scope": args.scope,
+            "local_only_targets": local_only_count,
+            "local_targets_skipped": local_skipped_count,
             "total_products": len(pids),
             "total_targets": total_targets,
             "changed": changed_count,

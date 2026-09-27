@@ -24,6 +24,10 @@
 - **修复 `--only` 未真正筛选**：`--only gemini:main` 过去会重跑全部 48 个产品（局部重试形同虚设）。现在只检查选中目标，其余继承上次状态
 - **修复被跳过产品的快照被误删**：孤儿快照清理过去按"本轮状态里的 targets"判定活跃目标，`--no-browser` 跳过或 `monitor: false` 的产品会被当成已下线，快照目录（含 `latest.txt` / `prev.txt` / 日期存档）整片删除——快照是检测→核实回路唯一的持久历史。改为按**配置**（`policies/{id}.json` 展开的监控目标）判定；`--no-browser` 跳过整产品时改为沿用上次目标结果（标 `skipped_this_run`），不再抹掉 CI 建立的覆盖
 - **目标级配置补齐 `main` 载体**：`main` 的 URL（`policy_url`）在顶层，天然没有内层对象可挂配置——此前"同一产品 main 需 browser、toc 是静态页"配不出来。新增 `targets.main`（只含 `main` 键；`toc`/`tob` 仍写 `versions.*`、补充来源仍写 `sources[]`，避免两处配置歧义），顶层字段继续生效，既有数据文件无需迁移。`validate_data.py` 抽出 `check_fetch_config()` 统一校验四处载体的 `fetch_method` 取值、选择器类型与正文下限类型，`targets.main` 额外检查拼写错误
+- **本地专属监控（`monitor_scope: local`）**：新增目标级 `monitor_scope` 字段与 `--scope {all,ci,local}` 参数。用于 GitHub runner **连不上**的站点——`trae` 被 Cloudflare 拒绝数据中心 IP（`describe_shell()` 显示"实际拿到：空文档"，Chromium 根本没拿到响应 HTML），而同一 URL 在本地可正常抓到 12272 字符正文。现标记为 `local`，由 `./scripts/local_monitor.sh` 在本地跑并以本地结果为准；`monitor.yml` 改用 `--scope ci` 跳过它们
+  - 被跳过的目标**沿用上次结果**（含快照引用与 `last_checked`）而非写成 `skipped`——否则监控覆盖率会在状态文件里缩水，快照还会被 `prune_orphan_snapshots` 当成"不再监控"删掉
+  - 健康队列里这类目标的 `consecutive_runs` 与 `last_seen` 不因未检查而虚增，并标 `checked_this_run: false`；否则"每周查一次却从不上手"会让轮数一路涨到吓人
+  - `local_monitor.sh` 只 `git add` 四个监控产物，不捎带工作区其他改动；**不 push**（`git push origin main` 会触发 CI 与 Pages 真实发布，留给人工确认）
 - **长文档站等待"内容不再增长"而非固定等待**：SPA 文档站分批注入正文，固定 `wait_for_timeout(600)` 会**稳定地**停在半截内容上——不再波动，却把不完整版本固化成基线，看起来"从未变化"实则漏掉后半段条款。新增 `wait_until_text_stable()`（连续两次采样增长不足 5% 才返回）与 `measure_rendered_text()`（按 `content_selector` 而非 `body` 测长度，避免侧栏展开导致 body 长而正文未填充完时选错渲染）
 - **`content_selector` 命中多个时取文本最长的**：文档站选择器常同时命中正文容器与页脚/侧栏小容器，`select_one` 只取第一个会因 DOM 顺序变化抓到页脚（实测 `trae` 的 `[class*=content]` 命中 3 个 1.2 万字符正文容器 + 3 个 0～217 字符小容器）
 - **修复"最后更新时间"标签匹配失败**：`DYNAMIC_TIMESTAMP_RE` 里写成字符组 `最后更新[时间]?`，而 `[时间]` 只匹配一个字符，导致"最后更新时间："（阿里云帮助中心的实际写法）整体匹配失败、时间戳泄漏进哈希；同时补上点号分隔格式（火山方舟协议页文末"最近更新时间：2026.09.18 14:35:02"）

@@ -57,7 +57,10 @@ jobs:
         continue-on-error: true
         env:
           OPENAI_CF_CLEARANCE: ${{ secrets.OPENAI_CF_CLEARANCE }}
-        run: python scripts/check_updates.py --delay 0.5 --timeout 20 --fail-on-error
+        # --scope ci：跳过 monitor_scope=local 的目标（如 trae —— GitHub runner
+        # 连不上，Cloudflare 拒绝数据中心 IP）。这类目标由本地跑
+        # scripts/local_monitor.sh，以本地结果为准。
+        run: python scripts/check_updates.py --scope ci --delay 0.5 --timeout 20 --fail-on-error
 
       - name: 提交监控状态、快照与待核实队列
         run: |
