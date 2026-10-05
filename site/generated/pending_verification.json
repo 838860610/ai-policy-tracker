@@ -1,4 +1,35 @@
 {
-  "updated_at": "2026-09-28T06:34:58.734463",
-  "items": {}
+  "updated_at": "2026-10-05T06:47:56.829089",
+  "items": {
+    "gemini:tob": {
+      "pid": "gemini",
+      "name": "Gemini",
+      "key": "tob",
+      "label": "企业版条款",
+      "url": "https://knowledge.workspace.google.com/admin/generative-ai/generative-ai-in-google-workspace-privacy-hub",
+      "status": "changed",
+      "first_seen": "2026-10-05T06:47:56.829089",
+      "last_seen": "2026-10-05T06:47:56.829089"
+    },
+    "xunfei-api:main": {
+      "pid": "xunfei-api",
+      "name": "讯飞开放平台（星火大模型 API）",
+      "key": "main",
+      "label": "主监控页",
+      "url": "https://www.xfyun.cn/doc/policy/SparkInterfacePolicy.html",
+      "status": "changed",
+      "first_seen": "2026-10-05T06:47:56.829089",
+      "last_seen": "2026-10-05T06:47:56.829089"
+    },
+    "stepfun-api:main": {
+      "pid": "stepfun-api",
+      "name": "阶跃开放平台",
+      "key": "main",
+      "label": "主监控页",
+      "url": "https://platform.stepfun.com/docs/zh/agreement/userservice.md",
+      "status": "changed",
+      "first_seen": "2026-10-05T06:47:56.829089",
+      "last_seen": "2026-10-05T06:47:56.829089"
+    }
+  }
 }

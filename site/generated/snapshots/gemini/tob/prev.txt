@@ -16,6 +16,7 @@ Google Workspace Help
 Administrators
 Generative AI
 指南
+该内容对您有帮助吗？
 发送反馈
 Google Workspace 隐私信息中心 - 生成式 AI
 使用集合让一切井井有条
@@ -446,6 +447,7 @@ Gemini 如何保护用户免受恶意内容和提示注入等威胁？
 添加了 Gemini 应用问题
 2024 年 12 月 17 日
 发布了 Google Workspace 隐私信息中心 - 生成式 AI
+该内容对您有帮助吗？
 发送反馈
 如未另行说明，那么本页面中的内容已根据
 知识共享署名 4.0 许可
