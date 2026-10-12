@@ -1,8 +1,8 @@
 TRAE
-TraeCode
+TRAE
 TraeWork
-TraeCode Plugin
-TraeCode CLI
+TRAE Plugin
+TRAE CLI
 企业版
 AI 助手
 TRAE

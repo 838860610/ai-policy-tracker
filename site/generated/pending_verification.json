@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-10-05T06:47:56.829089",
+  "updated_at": "2026-10-12T07:09:23.316973",
   "items": {
     "gemini:tob": {
       "pid": "gemini",
@@ -9,7 +9,7 @@
       "url": "https://knowledge.workspace.google.com/admin/generative-ai/generative-ai-in-google-workspace-privacy-hub",
       "status": "changed",
       "first_seen": "2026-10-05T06:47:56.829089",
-      "last_seen": "2026-10-05T06:47:56.829089"
+      "last_seen": "2026-10-12T07:09:23.316973"
     },
     "xunfei-api:main": {
       "pid": "xunfei-api",
@@ -30,6 +30,46 @@
       "status": "changed",
       "first_seen": "2026-10-05T06:47:56.829089",
       "last_seen": "2026-10-05T06:47:56.829089"
+    },
+    "workbuddy:toc": {
+      "pid": "workbuddy",
+      "name": "WorkBuddy（AI 办公智能体）",
+      "key": "toc",
+      "label": "个人版条款",
+      "url": "https://privacy.qq.com/document/preview/771d9a58551449e9a7e7445ebfe04966",
+      "status": "changed",
+      "first_seen": "2026-10-12T07:09:23.316973",
+      "last_seen": "2026-10-12T07:09:23.316973"
+    },
+    "trae:tob": {
+      "pid": "trae",
+      "name": "Trae（AI IDE）",
+      "key": "tob",
+      "label": "企业版条款",
+      "url": "https://docs.trae.cn/enterprise_privacy-policy-for-trae-enterprise",
+      "status": "changed",
+      "first_seen": "2026-10-12T07:09:23.316973",
+      "last_seen": "2026-10-12T07:09:23.316973"
+    },
+    "minimax:source_platform_privacy": {
+      "pid": "minimax",
+      "name": "MiniMax（海螺 AI / 开放平台）",
+      "key": "source_platform_privacy",
+      "label": "source_platform_privacy",
+      "url": "https://platform.minimaxi.com/protocol/privacy-policy",
+      "status": "changed",
+      "first_seen": "2026-10-12T07:09:23.316973",
+      "last_seen": "2026-10-12T07:09:23.316973"
+    },
+    "yuewen:main": {
+      "pid": "yuewen",
+      "name": "阶跃 AI（原跃问）",
+      "key": "main",
+      "label": "主监控页",
+      "url": "https://chat.stepfun.com/legal/terms",
+      "status": "changed",
+      "first_seen": "2026-10-12T07:09:23.316973",
+      "last_seen": "2026-10-12T07:09:23.316973"
     }
   }
 }
