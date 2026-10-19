@@ -1,4 +1,24 @@
 {
-  "updated_at": "2026-10-12T07:09:23.322399",
-  "items": {}
+  "updated_at": "2026-10-19T05:55:40.912299",
+  "items": {
+    "qihoo-zhinao:toc": {
+      "pid": "qihoo-zhinao",
+      "name": "360 智脑",
+      "key": "toc",
+      "label": "个人版条款",
+      "url": "https://browser.360.cn/se/ai/agreement/privacy.html",
+      "health": "degraded",
+      "health_reason": "network",
+      "status": "failed",
+      "message": "检查失败：请求异常 - ReadTimeout",
+      "monitor_scope": "ci",
+      "checked_this_run": true,
+      "last_checked": "2026-10-19T05:55:38.952435",
+      "last_good_at": "2026-10-12T07:09:20.158094",
+      "consecutive_runs": 1,
+      "first_seen": "2026-10-19T05:55:40.912299",
+      "last_seen": "2026-10-19T05:55:40.912299",
+      "next_action": "已保留上次有效快照；用 --only <pid>:<key> 单独重试并确认正文"
+    }
+  }
 }

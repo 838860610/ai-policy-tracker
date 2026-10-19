@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-10-12T07:09:23.316973",
+  "updated_at": "2026-10-19T05:55:40.905346",
   "items": {
     "gemini:tob": {
       "pid": "gemini",
@@ -9,7 +9,7 @@
       "url": "https://knowledge.workspace.google.com/admin/generative-ai/generative-ai-in-google-workspace-privacy-hub",
       "status": "changed",
       "first_seen": "2026-10-05T06:47:56.829089",
-      "last_seen": "2026-10-12T07:09:23.316973"
+      "last_seen": "2026-10-19T05:55:40.905346"
     },
     "xunfei-api:main": {
       "pid": "xunfei-api",
@@ -70,6 +70,66 @@
       "status": "changed",
       "first_seen": "2026-10-12T07:09:23.316973",
       "last_seen": "2026-10-12T07:09:23.316973"
+    },
+    "ima:main": {
+      "pid": "ima",
+      "name": "ima（腾讯 AI 知识管家）",
+      "key": "main",
+      "label": "主监控页",
+      "url": "https://privacy.qq.com/document/preview/aca5ed13893d47cfa31697704c2dd366",
+      "status": "changed",
+      "first_seen": "2026-10-19T05:55:40.905346",
+      "last_seen": "2026-10-19T05:55:40.905346"
+    },
+    "gemini:toc": {
+      "pid": "gemini",
+      "name": "Gemini",
+      "key": "toc",
+      "label": "个人版条款",
+      "url": "https://support.google.com/gemini/answer/13594961?hl=zh-CN&gl=US",
+      "status": "changed",
+      "first_seen": "2026-10-19T05:55:40.905346",
+      "last_seen": "2026-10-19T05:55:40.905346"
+    },
+    "qianfan:main": {
+      "pid": "qianfan",
+      "name": "百度智能云千帆",
+      "key": "main",
+      "label": "主监控页",
+      "url": "https://cloud.baidu.com/doc/qianfan/s/Cmh4stmpy",
+      "status": "changed",
+      "first_seen": "2026-10-19T05:55:40.905346",
+      "last_seen": "2026-10-19T05:55:40.905346"
+    },
+    "bigmodel:main": {
+      "pid": "bigmodel",
+      "name": "智谱开放平台（bigmodel.cn）",
+      "key": "main",
+      "label": "主监控页",
+      "url": "https://docs.bigmodel.cn/cn/terms/user-agreement",
+      "status": "changed",
+      "first_seen": "2026-10-19T05:55:40.905346",
+      "last_seen": "2026-10-19T05:55:40.905346"
+    },
+    "skyproduction:main": {
+      "pid": "skyproduction",
+      "name": "SkyProduction（昆仑万维）",
+      "key": "main",
+      "label": "主监控页",
+      "url": "https://www.skyproduction.cn/terms",
+      "status": "changed",
+      "first_seen": "2026-10-19T05:55:40.905346",
+      "last_seen": "2026-10-19T05:55:40.905346"
+    },
+    "nano-ai:main": {
+      "pid": "nano-ai",
+      "name": "纳米 AI（360）",
+      "key": "main",
+      "label": "主监控页",
+      "url": "https://www.n.cn/agreement/protocol",
+      "status": "changed",
+      "first_seen": "2026-10-19T05:55:40.905346",
+      "last_seen": "2026-10-19T05:55:40.905346"
     }
   }
 }
