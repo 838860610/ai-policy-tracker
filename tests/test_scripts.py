@@ -21,7 +21,14 @@ import tempfile
 import time
 import unittest
 from unittest import mock
-from datetime import date
+from datetime import date, datetime, timedelta, timezone
+
+# 与 scripts/validate_data.py 一致：按北京时间判断"今天"，避免 CI（UTC）误判
+PROJECT_TZ = timezone(timedelta(hours=8))
+
+
+def today_in_project_tz():
+    return datetime.now(PROJECT_TZ).date()
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # 站点根目录：index.html / css / js / data / generated / docs 都在其下，
@@ -86,7 +93,7 @@ class TestDataIntegrity(unittest.TestCase):
         for pid, data in self.policies.items():
             lv = data["last_verified"]
             self.assertRegex(lv, pattern, f"{pid}.last_verified 格式应为 YYYY-MM-DD")
-            self.assertLessEqual(date.fromisoformat(lv), date.today(),
+            self.assertLessEqual(date.fromisoformat(lv), today_in_project_tz(),
                                  f"{pid}.last_verified 晚于今天")
 
     def test_policy_url_is_https(self):

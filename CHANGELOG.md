@@ -41,6 +41,7 @@
 
 ### Fixed
 
+- **CI 时区误判**：`validate_data.py` 与回归测试原用 runner 的 UTC 日期判断 `last_verified` 是否为未来日期，北京时间 00:00–08:00 会把当天数据判错；改为统一按 Asia/Shanghai 计算“今天”
 - **表格表头吸附失效**：`.table-wrapper` 的 `overflow-x: auto` 使它成为滚动容器，`thead th { position: sticky }` 在纵向不生效，48 行滚到后面完全看不到列名。桌面改为放开 overflow、表头吸附在 56px 顶栏下方；窄屏改为容器内滚动
 - **首页“人工核实”日期过期**：页面一直显示 `meta.last_updated`（2026-08-31），与实际 `last_verified`（2026-10-22）脱节，且 Hero 只显示 `MM-DD` 丢年份。改为数据驱动并显示完整日期
 - **小字对比度不足**：`--text-tertiary` 在深色背景上仅 4.14:1，低于 WCAG AA；调至 `#8b8b94`（约 5.9:1），并补对比度回归测试

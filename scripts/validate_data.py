@@ -27,6 +27,15 @@ POLICIES_DIR = os.path.join(DATA_DIR, "policies")
 
 ID_PATTERN = re.compile(r"^[a-z0-9-]+$")
 
+# 数据里的 last_verified 按北京时间填写；GitHub runner 默认 UTC，
+# 直接用 date.today() 会在北京时间 00:00-08:00 把当天数据误判成"未来日期"。
+PROJECT_TZ = datetime.timezone(datetime.timedelta(hours=8))
+
+
+def today_in_project_tz():
+    return datetime.datetime.now(PROJECT_TZ).date()
+
+
 # 训练结论佐证的宽匹配词（key_clauses 引文含任一即视为有佐证）
 TRAINING_SYNONYMS = ["训练", "优化", "改进", "提升", "机器学习", "train", "training", "improve"]
 # 来源标注：key_clauses 每条应以（来源）结尾
@@ -133,7 +142,7 @@ def check_version(where, v):
             err(f"{where}: last_verified 格式应为 YYYY-MM-DD，当前为 {version_date!r}")
         else:
             try:
-                if datetime.date.fromisoformat(version_date) > datetime.date.today():
+                if datetime.date.fromisoformat(version_date) > today_in_project_tz():
                     err(f"{where}: last_verified={version_date} 晚于今天")
             except ValueError:
                 err(f"{where}: last_verified={version_date!r} 不是有效日期")
@@ -254,7 +263,7 @@ def validate_policy(pid, path):
             d = datetime.date.fromisoformat(lv)
             if d < datetime.date(2025, 1, 1):
                 warn(f"{pid}: last_verified={lv} 距今较久，建议重新核实")
-            elif d > datetime.date.today():
+            elif d > today_in_project_tz():
                 err(f"{pid}: last_verified={lv} 晚于今天")
         except ValueError:
             err(f"{pid}: last_verified={lv!r} 不是有效日期")
@@ -400,7 +409,7 @@ def main():
             err(f"products.json: meta.last_updated 格式应为 YYYY-MM-DD，当前为 {last_updated!r}")
         else:
             try:
-                if datetime.date.fromisoformat(last_updated) > datetime.date.today():
+                if datetime.date.fromisoformat(last_updated) > today_in_project_tz():
                     err(f"products.json: meta.last_updated={last_updated} 晚于今天")
             except ValueError:
                 err(f"products.json: meta.last_updated={last_updated!r} 不是有效日期")
