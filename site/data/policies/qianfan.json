@@ -7,8 +7,9 @@
   "description": "百度智能云大模型服务与 Agent 开发平台。纯开发者产品（个人/企业统一条款，已原文验证），从文心一言条目拆分独立",
   "product_url": "https://cloud.baidu.com/product-s/qianfan_home",
   "policy_url": "https://cloud.baidu.com/doc/qianfan/s/Cmh4stmpy",
+  "content_selector": ".post__body",
   "toc_note": "纯开发者产品（API/平台），无消费端条款；本条目为文心一言条目 ToB 块拆分独立（2026-08-29）",
-  "last_verified": "2026-08-29",
+  "last_verified": "2026-10-22",
   "versions": {
     "tob": {
       "used_for_training": false,
@@ -25,7 +26,7 @@
         "我们不会使用您的输入和模型输出数据、上传的知识文档、数据集进行训练，也不会将您的数据集与任何第三方共享。（千帆用户协议5.1(6)）"
       ],
       "policy_link": "https://cloud.baidu.com/doc/qianfan/s/Cmh4stmpy",
-      "last_verified": "2026-08-29",
+      "last_verified": "2026-10-22",
       "label": "开发者服务（个人/企业统一条款）"
     }
   },

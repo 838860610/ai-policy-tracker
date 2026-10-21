@@ -33,12 +33,14 @@
 ```bash
 .venv/bin/python scripts/gen_docs.py         # site/docs/*.md → *.html（.md 是唯一源）
 .venv/bin/python scripts/gen_data_bundle.py  # 生成 site/generated/bundle.json
+.venv/bin/python scripts/gen_product_pages.py  # site/detail.html → site/p/{id}.html + sitemap
 .venv/bin/python scripts/gen_og_image.py     # 社交卡片（需 pillow，维护用依赖）
 ```
 
 **不要手工编辑**：`site/generated/**`（`bundle.json` / `update_status.json` /
-`monitor_health.json` / `pending_verification.json` / `snapshots/` / `og-card.png`）
-和 `site/docs/*.html`——它们都是脚本产物，改了会被 CI 覆盖。
+`monitor_health.json` / `pending_verification.json` / `snapshots/` / `og-card.png`）、
+`site/docs/*.html`、`site/p/*.html` 和 `site/sitemap.xml`——它们都是脚本产物，
+改了会被 CI 覆盖。
 
 ---
 
@@ -48,8 +50,9 @@
 |------|------|
 | `site/data/products.json` | 产品 ID 索引（只定展示顺序，不存数据） |
 | `site/data/policies/{id}.json` | **唯一人工真源**：政策字段、版本政策、监控配置、timeline |
-| `site/` | 站点根（`site/index.html` → `/`），含 `data/` `generated/` `js/` `css/` `docs/` |
+| `site/` | 站点根（`site/index.html` → `/`），含 `data/` `generated/` `js/` `css/` `docs/` `p/` |
 | `site/generated/` | 脚本产物，**入库**（首页与 Pages 直接读取，CI 提交） |
+| `site/p/{id}.html` | 每产品独立详情页（`gen_product_pages.py` 产物，入库；含专属 OG/canonical） |
 | `scripts/` | 监控与构建脚本（`check_updates.py` 是核心，见下） |
 | `skills/policy-change-verify/` | 本地核实 skill：抓新旧快照 diff、起草数据修改、`--resolve` 收尾 |
 | `tests/test_scripts.py` | 全部回归测试（单文件，类按关注点分组） |
@@ -175,11 +178,12 @@ Cloudflare 挑战页 / 登录墙 / 404 / 纯空壳 / 空文档（空文档 = 连
 
 ## 9. 提交前自查清单
 
-- [ ] 跑完第 1 节的四条校验命令，全绿
+- [ ] 跑完第 1 节的校验命令，全绿
 - [ ] 改过数据 → `gen_readme_table.py --check` 通过
 - [ ] 改过 `site/docs/*.md` → `gen_docs.py` 已重新生成且 `--check` 通过
+- [ ] 改过 `site/detail.html` 或产品数据 → `gen_product_pages.py` 已重新生成且 `--check` 通过
 - [ ] 改过 `site/js|css` → `ASSET_VERSION` 与 `?v=` 已同步
 - [ ] 新增抓取行为 → 在 `tests/test_scripts.py` 补了对应回归测试
-- [ ] 没有手工编辑 `site/generated/**` 或 `site/docs/*.html`
+- [ ] 没有手工编辑 `site/generated/**`、`site/docs/*.html`、`site/p/*.html` 或 `site/sitemap.xml`
 - [ ] 提交信息用 `feat/fix/docs/chore` 前缀，说明"改了什么、为什么"（`CONTRIBUTING.md` 有格式）
 - [ ] `CHANGELOG.md` 的 `[Unreleased]` 已更新

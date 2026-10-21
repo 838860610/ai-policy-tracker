@@ -5,7 +5,7 @@
   "region": "美国",
   "description": "用户对话数据可能用于训练，可通过关闭活动记录阻止",
   "policy_url": "https://policies.google.com/terms?gl=US&hl=zh-CN",
-  "last_verified": "2026-08-30",
+  "last_verified": "2026-10-22",
   "versions": {
     "toc": {
       "used_for_training": true,
@@ -24,7 +24,7 @@
         "Chats reviewed by human reviewers (and related data like your language, device type, location info, or feedback) are not deleted when you delete your activity. Instead, they are retained for up to three years.（Gemini Apps Privacy Hub·How long we retain your data）"
       ],
       "policy_link": "https://support.google.com/gemini/answer/13594961?hl=zh-CN&gl=US",
-      "last_verified": "2026-08-30",
+      "last_verified": "2026-10-22",
       "label": "个人版",
       "verification_notes": [
         "2026-09-19 逐字复核：引文出自 Gemini Apps Privacy Hub（support.google.com/gemini/answer/13594961，最后更新 2026-08-10），非 13278892（该页为活动记录管理操作页）。toc 第 1 条原为截断句，已补全 unless you choose to send Google feedback 与 72 小时保留句；第 3 条原为意译，已替换为原文整句。tob 两条与 Generative AI in Google Workspace Privacy Hub 逐字一致，无需修改。",
@@ -48,7 +48,7 @@
         "Admins can choose to automatically delete conversations after 3, 18, or 36 months. The default is 18 months.（Generative AI in Google Workspace Privacy Hub，最后更新 2026-08-14）"
       ],
       "policy_link": "https://knowledge.workspace.google.com/admin/generative-ai/generative-ai-in-google-workspace-privacy-hub",
-      "last_verified": "2026-08-30",
+      "last_verified": "2026-10-22",
       "label": "Google Workspace版",
       "fetch_method": "browser",
       "verification_notes": [

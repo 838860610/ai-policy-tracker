@@ -7,9 +7,10 @@
   "description": "AI 工业化内容生产平台'天工短剧工作台'（skyproduction.cn，昆仑万维科技股份有限公司运营）。条款已核实：《SkyProduction用户服务协议》+《隐私政策》（2026-07-15 生效，条款以 JS 分块内嵌于官网）。6.4 明示授权将输入/生成/发布内容用于'改进我们的产品与模型技术'，退出为联系式（客服/邮箱）；6.3 版权归用户。统一条款适用于法人、其他组织及年满18周岁自然人",
   "product_url": "https://www.skyproduction.cn/",
   "policy_url": "https://www.skyproduction.cn/terms",
+  "content_selector": ".markdown-body",
   "toc_note": null,
   "tob_note": "企业版为主要形态",
-  "last_verified": "2026-08-30",
+  "last_verified": "2026-10-22",
   "versions": {
     "toc": {
       "label": "个人版（个人/企业统一条款，18+）",
@@ -30,7 +31,7 @@
         "我们还会使用您输入的数据信息提高SkyProduction 对您输入内容的理解能力，以便不断改进 SkyProduction 的识别和响应的速度和质量，提高SkyProduction的智能性。（SkyProduction 隐私政策1.3(2)，2026-07-15 生效）"
       ],
       "policy_link": "https://www.skyproduction.cn/terms",
-      "last_verified": "2026-08-30"
+      "last_verified": "2026-10-22"
     }
   },
   "analysis_summary": "SkyProduction（天工短剧工作台，昆仑万维）条款已核实（2026-07-15 生效，条款以 JS 分块内嵌官网）。6.4 明示'改进我们的产品与模型技术'授权（同意即默认参与），退出仅客服/邮箱联系式 → 退出困难；未载明去标识化前提 → 红色（同 CodeBuddy 口径）。版权归用户（6.3）但发布内容授出含肖像权的宽许可（6.5）。统一条款适用个人与企业。",

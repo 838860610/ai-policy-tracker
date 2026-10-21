@@ -64,11 +64,13 @@ Questions are welcome via Issues — use the "数据纠错" template if you spot
 ```bash
 # 重新生成 site/generated/bundle.json（首页数据合并包，由 products.json + 全部 policies 重建）
 .venv/bin/python scripts/gen_data_bundle.py
+# 重新生成 site/p/{id}.html 与 site/sitemap.xml（每个产品一个独立静态详情页）
+.venv/bin/python scripts/gen_product_pages.py
 ```
 
-`site/sitemap.xml` 目前是入库的静态文件（不由脚本自动生成），增删产品时需手工同步：在 `<url>` 列表中加入或删除对应的 `<loc>…/detail.html?id=<id></loc>` 条目。测试 `test_sitemap_matches_products` 会校验 sitemap 与 `products.json` 的 id 集合**完全一致**，多一个少一个都失败。
+`site/p/*.html` 与 `site/sitemap.xml` 都是 `scripts/gen_product_pages.py` 的产物，**不要手工编辑**。生成器以 `site/detail.html` 为模板，写入产品专属 title/描述/OG/canonical 与静态 `<noscript>` 摘要；sitemap 的 id 集合与 `products.json` **完全一致**，多一个少一个都会让 `test_sitemap_matches_products` 失败。
 
-> 实战踩坑：曾删除 `pangu`/`skyreels` 两个产品后漏了重新生成上述两个产物，导致 `test_bundle_is_slim_and_complete` 与 `test_sitemap_matches_products` 双双失败、CI 红灯。记住——`products.json` 一变，这两个文件必须跟着变。
+> 实战踩坑：曾删除 `pangu`/`skyreels` 两个产品后漏了重新生成产物，导致 `test_bundle_is_slim_and_complete` 与 `test_sitemap_matches_products` 双双失败、CI 红灯。记住——`products.json` 一变，bundle、sitemap、产品静态页必须跟着变（CI 的 `gen_product_pages.py --check` 会拦下）。
 
 > 注：`update_status.json` / `pending_verification.json` / `monitor_health.json` / `snapshots/` 由监控脚本每轮按当前索引重建；已删除产品或已移除监控目标的旧快照和队列项会在下一轮监控后清理（`monitor_health.json` 每轮整体重建，目标恢复后条目自动消失）。
 

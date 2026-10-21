@@ -21,7 +21,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
   <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"></noscript>
-  <link rel="stylesheet" href="css/style.css?v=20260926-1">
+  <link rel="stylesheet" href="css/style.css?v=20261022-2">
 </head>
 <body>
   <noscript>
@@ -64,7 +64,7 @@
     <div class="hero-inner">
       <div class="hero-eyebrow">
         <span class="pulse-dot"></span>
-        <span>实时监控 · 48 款 AI 产品 · 隐私政策对比</span>
+        <span id="heroEyebrowText">每周自动监控 · 48 款 AI 产品 · 隐私政策对比</span>
       </div>
       <h1 class="hero-title">
         你的数据，<br>
@@ -77,7 +77,7 @@
         <div class="stat"><span class="stat-num" id="statTotal">—</span><span class="stat-label">产品总数</span></div>
         <div class="stat"><span class="stat-num" id="statTrain">—</span><span class="stat-label">使用数据训练</span></div>
         <div class="stat"><span class="stat-num" id="statHigh">—</span><span class="stat-label">高风险产品</span></div>
-        <div class="stat"><span class="stat-num" id="statUpdated">—</span><span class="stat-label">人工核实</span></div>
+        <div class="stat"><span class="stat-num" id="statUpdated">—</span><span class="stat-label">最近核实</span></div>
       </div>
     </div>
     <div class="hero-grid" aria-hidden="true"></div>
@@ -90,17 +90,20 @@
     <section class="controls" aria-label="筛选与搜索">
       <div class="controls-left">
         <div class="filter-group" id="regionFilter" role="group" aria-label="按地区筛选">
-          <button class="filter-btn active" data-region="all">全部地区</button>
+          <span class="filter-label">地区</span>
+          <button class="filter-btn active" data-region="all">全部</button>
           <button class="filter-btn" data-region="cn">国内</button>
           <button class="filter-btn" data-region="overseas">海外</button>
         </div>
         <div class="filter-group" id="trainingFilter" role="group" aria-label="按是否使用用户数据训练筛选">
-          <button class="filter-btn active" data-training="all">用数据训练: 全部</button>
+          <span class="filter-label">训练</span>
+          <button class="filter-btn active" data-training="all">全部</button>
           <button class="filter-btn" data-training="yes">会</button>
           <button class="filter-btn" data-training="no">不会</button>
         </div>
         <div class="filter-group" id="riskFilter" role="group" aria-label="按风险筛选">
-          <button class="filter-btn active" data-risk="all">风险: 全部</button>
+          <span class="filter-label">风险</span>
+          <button class="filter-btn active" data-risk="all">全部</button>
           <button class="filter-btn" data-risk="green">低</button>
           <button class="filter-btn" data-risk="yellow">中</button>
           <button class="filter-btn" data-risk="red">高</button>
@@ -115,12 +118,12 @@
       </div>
     </section>
 
-    <!-- 风险图例 -->
-    <section class="risk-legend" aria-label="风险等级判定标准">
-      <div class="risk-legend-head">
-        <div class="risk-legend-title">风险等级判定标准</div>
+    <!-- 风险图例：默认折叠，避免把首屏数据挤到折叠线以下 -->
+    <details class="risk-legend" id="riskLegend">
+      <summary class="risk-legend-head">
+        <span class="risk-legend-title">风险等级判定标准</span>
         <a class="risk-legend-link" href="docs/methodology.html">查看完整方法论 →</a>
-      </div>
+      </summary>
       <div class="risk-legend-items">
         <article class="risk-legend-item item-green">
           <header class="legend-head">
@@ -144,7 +147,13 @@
           <p>满足<strong>任一</strong>：训练且无退出机制或退出困难 · 长期留存无明确删除机制 · 训练场景下未去标识化 · 条款模糊边界不清</p>
         </article>
       </div>
-    </section>
+    </details>
+
+    <!-- 结果计数：筛选后明确还剩多少条 -->
+    <div class="result-bar" aria-live="polite">
+      <span id="resultCount"></span>
+      <span class="result-bar-hint">点击任意产品行展开详情</span>
+    </div>
 
     <!-- 对比表格 -->
     <section class="table-wrapper" aria-label="产品政策对比表">
@@ -180,7 +189,7 @@
     </footer>
   </main>
 
-  <script src="js/common.js?v=20260926-1"></script>
-  <script src="js/app.js?v=20260926-1"></script>
+  <script src="js/common.js?v=20261022-2"></script>
+  <script src="js/app.js?v=20261022-2"></script>
 </body>
 </html>

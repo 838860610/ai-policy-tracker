@@ -6,7 +6,7 @@
   <meta name="description" content="AI 用户政策追踪器政策更新监控说明：变化检测、快照留档与本地 skill 核实。">
   <title>政策更新监控 - AI 用户政策追踪器</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%9B%A1%EF%B8%8F%3C/text%3E%3C/svg%3E">
-  <link rel="stylesheet" href="../css/style.css?v=20260926-1">
+  <link rel="stylesheet" href="../css/style.css?v=20261022-2">
 </head>
 <body>
   <div class="header">
@@ -308,7 +308,7 @@ python3 -m venv .venv
 <p>网络类错误（超时、连接失败）会自动重试 2 次，按 5s、10s 退避。</p>
 <h3>局部重试：不重跑全量也能验证修复</h3>
 <p><code>--products</code> / <code>--only</code> 属于<strong>局部重试</strong>：只请求被选中的目标，其余产品/目标直接继承上次状态（<code>partial_run: true</code>），并自动跳过孤儿快照清理。这样修完一个站点的抓取配置后，验证成本从"全量 70+ 目标十几分钟"降到"单目标几十秒"。</p>
-<p>局部重试同样会重算 <code>update_status.json</code>、待核实队列和健康队列，因此适合"抓取修好了/改 URL 了"这类收尾动作。</p>
+<p>局部重试同样会重算 <code>update_status.json</code>、待核实队列和健康队列，因此适合"抓取修好了/改 URL 了"这类收尾动作。未被选中的产品/目标会标 <code>skipped_this_run</code>，健康队列的 <code>consecutive_runs</code> 不会因为重试其他目标而虚增。</p>
 <h3>输出示例</h3>
 <pre><code>============================================================
 AI 政策更新监控脚本
@@ -806,6 +806,7 @@ WantedBy=timers.target
 </ul>
 <blockquote>
 <p>注意：<code>site/generated/update_status.json</code>、<code>site/generated/monitor_health.json</code> 与 <code>site/generated/snapshots/</code> 都由监控流程生成并<strong>入库</strong>——前两者供首页与 Pages 直接读取展示监控状态与健康队列，后者作为跨环境共享的持久历史供本地 agent 做 diff。<code>monitor.yml</code> 每次运行后自动提交这三者与 <code>pending_verification.json</code>。</p>
+<p><strong>部署与监控失败解耦</strong>：<code>deploy.yml</code> 只在数据校验失败时拒绝部署；"政策更新监控"即使因单个目标超时变红，也会部署本轮已提交的结果。否则一次网络抖动就会让线上数据冻结到下一周。</p>
 </blockquote>
 <h2>本地核实（policy-change-verify skill）</h2>
 <p>监控只负责"发现变化 + 留档"，<strong>不在 CI 内做 AI 分析，也不自动建 Issue</strong>。核实与改数据全部在本地由 <code>policy-change-verify</code> skill 完成。</p>

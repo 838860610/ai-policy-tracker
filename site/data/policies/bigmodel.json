@@ -4,11 +4,11 @@
   "company": "智谱AI",
   "region": "中国",
   "icon": "🔮",
-  "description": "智谱大模型开放平台（GLM 系列 API）。纯开发者产品（个人/企业统一条款，已原文验证），从智谱清言条目拆分独立",
+  "description": "智谱开放平台（GLM 系列 API）。纯开发者产品（个人/企业统一条款，已原文验证），从智谱清言条目拆分独立",
   "product_url": "https://bigmodel.cn/",
   "policy_url": "https://docs.bigmodel.cn/cn/terms/user-agreement",
   "toc_note": "纯开发者产品（API），无消费端条款；本条目为智谱清言条目 ToB 块拆分独立（2026-08-29）",
-  "last_verified": "2026-08-30",
+  "last_verified": "2026-10-22",
   "versions": {
     "tob": {
       "used_for_training": true,
@@ -27,7 +27,7 @@
         "4.6 智谱仅在为您提供服务和满足合规要求所需的最小必要范围内存储您的数据，且会进行必要的匿名化和加密处理。（服务协议4.6）"
       ],
       "policy_link": "https://docs.bigmodel.cn/cn/terms/user-agreement",
-      "last_verified": "2026-08-30",
+      "last_verified": "2026-10-22",
       "label": "开发者服务（个人/企业统一条款）"
     }
   },

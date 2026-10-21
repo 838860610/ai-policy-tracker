@@ -7,8 +7,9 @@
   "description": "讯飞开放平台大语言模型 API 服务。纯开发者产品（个人/企业统一条款，已原文验证），从讯飞星火条目拆分独立",
   "product_url": "https://www.xfyun.cn/",
   "policy_url": "https://www.xfyun.cn/doc/policy/SparkInterfacePolicy.html",
+  "content_selector": ".content__default",
   "toc_note": "纯开发者产品（API），无消费端条款；本条目为讯飞星火条目 ToB 块拆分独立（2026-08-29）",
-  "last_verified": "2026-08-30",
+  "last_verified": "2026-10-22",
   "versions": {
     "tob": {
       "used_for_training": true,
@@ -26,7 +27,7 @@
         "8.2 ……如知识产权等权利人认为我们侵犯其合法权益的，可以通过我们的邮箱cbg_open_complaint_ml@iflytek.com进行举报，向我们进行如实反馈，并提供相应的证明材料。（接口服务协议8.2；原引文'拒绝渠道：'为自拟标签，2026-08-30 修正）"
       ],
       "policy_link": "https://www.xfyun.cn/doc/policy/SparkInterfacePolicy.html",
-      "last_verified": "2026-08-30",
+      "last_verified": "2026-10-22",
       "label": "开发者服务（个人/企业统一条款）"
     }
   },

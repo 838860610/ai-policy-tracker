@@ -28,7 +28,7 @@
   --bg-hover: #16161a;
   --text: #ededf0;
   --text-secondary: #a1a1aa;
-  --text-tertiary: #71717a;
+  --text-tertiary: #8b8b94;
   --border: rgba(255, 255, 255, 0.08);
   --border-strong: rgba(255, 255, 255, 0.14);
   --border-tree: rgba(255, 255, 255, 0.06);
@@ -95,7 +95,8 @@ a:hover { color: var(--primary); text-decoration: none; }
 .glow {
   position: absolute;
   border-radius: 50%;
-  filter: blur(120px);
+  /* 不再用大半径模糊（120px）：在移动端/低端 GPU 上是持续绘制开销，
+     radial-gradient 的 transparent 70% 已经提供足够柔和的边缘 */
   opacity: 0.5;
 }
 .glow-a { width: 520px; height: 520px; top: -180px; left: -120px; background: radial-gradient(circle, rgba(99,102,241,0.35), transparent 70%); }
@@ -155,7 +156,7 @@ a:hover { color: var(--primary); text-decoration: none; }
 .hero {
   position: relative;
   z-index: 1;
-  padding: 72px 24px 56px;
+  padding: 44px 24px 32px;
   text-align: center;
   overflow: hidden;
 }
@@ -176,7 +177,7 @@ a:hover { color: var(--primary); text-decoration: none; }
   font-size: 12px;
   color: var(--text-secondary);
   font-family: var(--font-mono);
-  margin-bottom: 24px;
+  margin-bottom: 16px;
 }
 .pulse-dot {
   width: 7px; height: 7px;
@@ -191,11 +192,11 @@ a:hover { color: var(--primary); text-decoration: none; }
   100% { box-shadow: 0 0 0 0 rgba(52,211,153,0); }
 }
 .hero-title {
-  font-size: clamp(34px, 5.5vw, 56px);
+  font-size: clamp(30px, 4.6vw, 48px);
   font-weight: 700;
   line-height: 1.08;
   letter-spacing: -0.035em;
-  margin-bottom: 20px;
+  margin-bottom: 14px;
   color: var(--text);
 }
 .hero-title-accent {
@@ -210,7 +211,7 @@ a:hover { color: var(--primary); text-decoration: none; }
   line-height: 1.7;
   color: var(--text-secondary);
   max-width: 620px;
-  margin: 0 auto 36px;
+  margin: 0 auto 24px;
 }
 .hero-stats {
   display: grid;
@@ -225,7 +226,7 @@ a:hover { color: var(--primary); text-decoration: none; }
   box-shadow: var(--shadow);
 }
 .stat {
-  padding: 18px 12px;
+  padding: 14px 12px;
   background: var(--bg-elev);
   display: flex;
   flex-direction: column;
@@ -238,6 +239,12 @@ a:hover { color: var(--primary); text-decoration: none; }
   letter-spacing: -0.03em;
   color: var(--text);
   font-variant-numeric: tabular-nums;
+}
+/* 最近核实日期是 10 位字符串，比数字更宽，降一档字号避免挤压 */
+.stat-num.stat-num-date {
+  font-size: 15px;
+  font-family: var(--font-mono);
+  letter-spacing: -0.02em;
 }
 .stat-label {
   font-size: 11px;
@@ -275,7 +282,7 @@ a:hover { color: var(--primary); text-decoration: none; }
   gap: 14px;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 20px;
+  margin-bottom: 16px;
   background: var(--bg-card);
   padding: 14px 16px;
   border-radius: var(--radius);
@@ -298,6 +305,17 @@ a:hover { color: var(--primary); text-decoration: none; }
   background: rgba(255,255,255,0.025);
   border: 1px solid var(--border);
   border-radius: 999px;
+}
+
+/* 分组小标题：三组筛选统一为「地区 / 训练 / 风险」 */
+.filter-label {
+  padding-left: 8px;
+  padding-right: 2px;
+  color: var(--text-tertiary);
+  font-size: 11px;
+  font-family: var(--font-mono);
+  letter-spacing: 0.04em;
+  white-space: nowrap;
 }
 
 .filter-btn {
@@ -368,27 +386,41 @@ a:hover { color: var(--primary); text-decoration: none; }
   pointer-events: none;
 }
 
-/* ---------- 风险图例 ---------- */
+/* ---------- 风险图例（默认折叠的 details） ---------- */
 .risk-legend {
   background: var(--bg-card);
   border-radius: var(--radius);
   border: 1px solid var(--border);
   box-shadow: var(--shadow);
-  padding: 18px 20px;
-  margin-bottom: 18px;
+  padding: 12px 18px;
+  margin-bottom: 14px;
 }
+.risk-legend summary { list-style: none; cursor: pointer; }
+.risk-legend summary::-webkit-details-marker { display: none; }
 .risk-legend-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 14px;
+  gap: 12px;
 }
+.risk-legend[open] .risk-legend-head { margin-bottom: 14px; }
 .risk-legend-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   font-size: 13px;
   font-weight: 600;
   color: var(--text);
   letter-spacing: -0.01em;
 }
+.risk-legend-title::before {
+  content: "▸";
+  display: inline-block;
+  color: var(--text-tertiary);
+  font-size: 11px;
+  transition: transform 0.18s ease;
+}
+.risk-legend[open] .risk-legend-title::before { transform: rotate(90deg); }
 .risk-legend-link {
   font-size: 12px;
   color: var(--text-secondary);
@@ -441,12 +473,26 @@ a:hover { color: var(--primary); text-decoration: none; }
 .item-yellow { border-color: var(--yellow-border); background: var(--yellow-bg); }
 .item-red { border-color: var(--red-border); background: var(--red-bg); }
 
+/* ---------- 结果计数 ---------- */
+.result-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: -2px 2px 10px;
+  color: var(--text-tertiary);
+  font-size: 12px;
+  font-family: var(--font-mono);
+}
+.result-bar-hint { white-space: nowrap; }
+
 /* ---------- 表格容器 ---------- */
 .table-wrapper {
   background: var(--bg-card);
   border-radius: var(--radius);
   border: 1px solid var(--border);
   box-shadow: var(--shadow);
+  /* 窄屏需要横向滚动；桌面宽度下由下面的媒体查询放开，让表头跟随页面滚动 */
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
 }
@@ -881,6 +927,23 @@ table tbody tr:last-child td { border-bottom: none; }
   padding: 50px;
   color: var(--text-tertiary);
 }
+.no-data .link-btn { margin-top: 12px; }
+.link-btn {
+  padding: 7px 14px;
+  background: var(--primary-bg);
+  color: var(--primary-2);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: 12.5px;
+  font-family: var(--font-sans);
+  transition: all 0.18s ease;
+}
+.link-btn:hover {
+  color: #fff;
+  border-color: rgba(99,102,241,0.5);
+  background: rgba(99,102,241,0.22);
+}
 
 /* ============================================================
    详情页（detail.html）样式
@@ -1036,6 +1099,65 @@ table tbody tr:last-child td { border-bottom: none; }
   text-decoration: none;
   border-color: rgba(99,102,241,0.5);
 }
+
+/* 详情页站内导航（同厂商 / 上一个-下一个） */
+.detail-nav {
+  display: grid;
+  gap: 18px;
+  margin-bottom: 20px;
+  padding: 20px 24px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+.detail-nav[hidden] { display: none; }
+.nav-label {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-family: var(--font-mono);
+  margin-bottom: 10px;
+}
+.nav-links { display: flex; flex-wrap: wrap; gap: 8px; }
+.nav-links a {
+  padding: 6px 12px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+}
+.nav-links a:hover {
+  color: #fff;
+  border-color: rgba(99,102,241,0.5);
+  background: rgba(99,102,241,0.18);
+}
+.nav-pager {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+.nav-pager a {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-elev);
+}
+.nav-pager a:hover { border-color: var(--border-strong); background: var(--bg-hover); }
+.nav-pager span {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  font-family: var(--font-mono);
+}
+.nav-pager strong { font-size: 14px; color: var(--primary-2); }
+.nav-next { text-align: right; }
 
 /* Tabs */
 .tabs {
@@ -1195,14 +1317,22 @@ table tbody tr:last-child td { border-bottom: none; }
 /* ============================================================
    响应式
    ============================================================ */
+/* 桌面：表格不横向溢出，直接跟随页面滚动；表头吸附在固定顶栏下方 */
+@media (min-width: 769px) {
+  .table-wrapper { overflow: visible; }
+  #compareTable thead th { top: 56px; }
+}
+
 @media (max-width: 768px) {
   body { padding-top: 52px; }
   .topbar { height: 52px; }
+  /* 移动端少画一层大面积光晕，降低首屏合成开销 */
+  .glow-c { display: none; }
   .topbar-inner { padding: 0 16px; }
   .topbar-nav { gap: 14px; }
   .topbar-nav a { font-size: 12px; }
 
-  .hero { padding: 48px 18px 36px; }
+  .hero { padding: 32px 18px 24px; }
   .hero-subtitle { font-size: 14px; }
   .hero-stats { grid-template-columns: repeat(2, 1fr); }
 
@@ -1212,6 +1342,10 @@ table tbody tr:last-child td { border-bottom: none; }
     flex-direction: column;
     align-items: stretch;
     padding: 12px;
+  }
+  .table-wrapper {
+    max-height: calc(100vh - 120px);
+    overflow: auto;
   }
   .controls-left { flex-direction: column; align-items: stretch; }
   .filter-group { flex-wrap: wrap; justify-content: center; }
@@ -1237,10 +1371,140 @@ table tbody tr:last-child td { border-bottom: none; }
   table th, table td { padding: 9px 8px; }
 
   .detail-card { padding: 16px; }
+  .detail-nav { padding: 16px; }
   .info-grid { grid-template-columns: 1fr; }
   .risk-legend-items { grid-template-columns: 1fr; }
   .detail-panels { grid-template-columns: 1fr; }
   .detail-row > td { padding: 12px 14px 14px; }
+}
+
+/* ============================================================
+   窄屏：5 列表格改为卡片式，核心信息不再藏在横向滚动里
+   ============================================================ */
+@media (max-width: 640px) {
+  .hero { padding: 26px 16px 20px; }
+  .hero-title { font-size: 27px; }
+  .hero-subtitle { margin-bottom: 18px; font-size: 13px; }
+  .stat { padding: 10px 8px; }
+  .stat-num { font-size: 21px; }
+  .stat-num.stat-num-date { font-size: 13px; }
+  .nav-pager { grid-template-columns: 1fr; }
+  .nav-next { text-align: left; }
+
+  /* 三组筛选横向滑动，而不是各占一行把表格挤出首屏 */
+  .controls-left {
+    flex-direction: row;
+    flex-wrap: nowrap;
+    width: 100%;
+    overflow-x: auto;
+    padding-bottom: 2px;
+    scrollbar-width: none;
+    /* 右侧渐隐，提示还有筛选项可横向滑动 */
+    -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 26px), transparent);
+    mask-image: linear-gradient(90deg, #000 calc(100% - 26px), transparent);
+  }
+  .controls-left::-webkit-scrollbar { display: none; }
+  .filter-group { flex: 0 0 auto; }
+
+  .table-wrapper {
+    max-height: none;
+    overflow: visible;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+  }
+  .scroll-hint { display: none; }
+  .result-bar-hint { display: none; }
+
+  #compareTable { min-width: 0; display: block; }
+  #compareTable thead { display: none; }
+  #compareTable tbody { display: block; }
+  #compareTable tr { display: block; }
+  #compareTable tr[hidden] { display: none !important; }
+
+  #compareTable td {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 7px 14px;
+    border: none;
+    text-align: left !important;
+    white-space: normal;
+  }
+
+  /* 厂商分组变成区块标题 */
+  #compareTable tr.group-row { margin: 14px 0 8px; }
+  #compareTable tr.group-row > td {
+    display: block;
+    padding: 8px 12px;
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+  }
+  #compareTable tr.group-row .row-pin { position: static; width: auto; }
+
+  /* 产品行变成一张卡片 */
+  #compareTable tr.product-row {
+    margin-bottom: 8px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+  #compareTable tr.product-row > td.cell-name {
+    display: block;
+    position: static;
+    min-width: 0;
+    padding: 12px 14px 10px;
+    border-bottom: 1px solid var(--border);
+    box-shadow: none;
+  }
+  #compareTable tr.product-row > td.cell-name strong { font-size: 14px; }
+  #compareTable tr.product-row > td.cell-name::before,
+  #compareTable tr.product-row > td.cell-name::after { display: none; }
+
+  /* 每个数据单元格前面显示列名 */
+  #compareTable tr.product-row > td:not(.cell-name)::before {
+    content: attr(data-label);
+    color: var(--text-tertiary);
+    font-size: 11.5px;
+    font-family: var(--font-mono);
+    letter-spacing: 0.04em;
+  }
+  #compareTable tr.product-row:hover > td,
+  #compareTable tr.product-row.open > td,
+  #compareTable tr.product-row.open > td.cell-name { background: transparent; }
+
+  /* 展开的详情与卡片拼成一体 */
+  #compareTable tr.product-row.open {
+    margin-bottom: 0;
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+  }
+  #compareTable tr.detail-row > td {
+    display: block;
+    padding: 0;
+    background: transparent;
+  }
+  #compareTable tr.detail-row .detail-indent {
+    margin: 0 0 10px;
+    padding: 12px 14px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-top: none;
+    border-left: 2px solid var(--primary);
+    border-image: none;
+    border-radius: 0 0 var(--radius) var(--radius);
+  }
+  #compareTable tr.detail-row .row-pin { position: static; width: auto; }
+  #compareTable tr.detail-row .detail-panels { grid-template-columns: 1fr; }
+
+  #compareTable .no-data {
+    display: block;
+    padding: 36px 16px;
+    text-align: center;
+  }
 }
 
 /* 尊重减少动效偏好 */
@@ -1251,4 +1515,10 @@ table tbody tr:last-child td { border-bottom: none; }
     transition-duration: 0.01ms !important;
   }
   .pulse-dot { animation: none; }
+  /* 减少动效偏好通常也伴随低性能设备：关掉持续的毛玻璃重绘 */
+  .topbar,
+  .detail-header .back-btn {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
 }

@@ -11,6 +11,8 @@
 
 ### Added
 
+- **产品独立静态详情页**：新增 `scripts/gen_product_pages.py`，以 `site/detail.html` 为模板生成 48 个 `site/p/{id}.html`，每个页面有独立 `title`、描述、`og:title/description/url`、`twitter` 卡片与 `canonical`，并写入静态 `<noscript>` 摘要；`site/sitemap.xml` 改由同一脚本生成。首页所有详情链接切到 `p/{id}.html`，旧 `detail.html?id=` 入口继续可用
+- **详情页站内导航与版本深链**：同厂商其他产品、按列表顺序的上一个/下一个；`?tab=toc|tob` 可直接打开指定版本，切换标签时同步地址栏
 - **抓取健康队列**：新增 `site/generated/monitor_health.json`，与"政策变化待核实队列"分离。每轮由 `update_status.json` 完全重建，记录 `health`、失败原因、连续不健康轮次与建议动作；目标恢复后条目自动消失
 - **目标级抓取配置**：`versions.*` 与 `sources[]` 条目支持 `fetch_method`、`content_selector`、`wait_for_selector`、`min_body_chars`，不必为一个站点把整产品都切成浏览器抓取；`--no-browser` 现在只跳过 `browser` 目标
 - **局部重试**：`check_updates.py` 新增 `--products`、`--only <pid>:<key>`、`--no-prune`，只重跑选中目标、其余继承上次状态（`meta.partial_run`），修完抓取配置后无需重跑全量
@@ -19,6 +21,12 @@
 
 ### Changed
 
+- **光晕性能降级**：移除首页 3 个 420–520px 光晕的 `filter: blur(120px)`（大半径模糊在移动端/低端 GPU 上持续合成），改用 `radial-gradient` 的天然柔边；≤768px 少画一层光晕，`prefers-reduced-motion` 下关闭顶栏与返回按钮的 `backdrop-filter`
+- **首页展示优化**：压缩 Hero 与统计卡片、风险图例改为默认折叠的 `<details>`，1440×900 下表格从折叠线以下（920px）提前到 708px；窄屏把三组筛选改为单行横向滑动，表格改为卡片式（每个单元格带列名），375×812 下表格提前到 767px 且不再需要横向拖拽找风险列
+- **首页核实日期改取数据最大值**：不再读 `products.json` 的 `meta.last_updated`（会停留在旧日期），改为取所有产品 `last_verified` 的最大值，并显示完整 `YYYY-MM-DD`；`gen_data_bundle.py` 白名单补 `last_verified`，否则首页取不到该字段
+- **列表可用性**：新增“显示 X / 48 个产品”计数与无结果时的“清除全部筛选”按钮；厂商分组行可聚焦、可用 Enter/空格折叠并同步 `aria-expanded`；详情页 tabs 补 `role=tab/tablist/tabpanel`、`aria-selected` 与左右方向键切换
+- **降噪与基线清理**：为 `qianfan`、`xunfei-api`、`skyproduction` 配置正文容器选择器（`.post__body` / `.content__default` / `.markdown-body`），为 `trae` 企业版补 `.topic-markdown`；同时把 `HASH_SCHEME` 升到 `text-v5`，让选择器变更后的首轮自动重建基线，不产生新的误报
+- **核实并更新 12 个产品数据**：逐项比对 10-19 监控快照，确认 `gemini`、`bigmodel`、`qianfan`、`skyproduction`、`trae`、`xunfei-api` 等为非条款变化；更新 `ima`、`nano-ai`、`stepfun-api`、`workbuddy`、`minimax`、`yuewen` 的生效日期、条款摘录与说明，`last_verified` 统一为 2026-10-22，待核实队列清零
 - **状态语义拆分**：目标与产品级结果新增 `health` 字段（`ok`/`initialized`/`rebaselined`/`degraded`/`no_baseline`/`blocked`）与 `last_good_at`、`health_reason`、`fetch_method`。首次建基线由 suspicious 改为 `ok` + `initialized`（不再算异常）；正文过短或抓取失败**不覆盖已有基线**，只标降级/无基线/被拦截；403/405/429/451 归为 `blocked`
 - **修复待核实队列被静默清空**：`update_pending_verification` 期望 `{pid: info}` 映射，调用处却传了 `{"products": {...}}` 包装，导致每轮监控都把未解决的 `changed` 项当成"已移除目标"清空。补回归测试
 - **修复 `--only` 未真正筛选**：`--only gemini:main` 过去会重跑全部 48 个产品（局部重试形同虚设）。现在只检查选中目标，其余继承上次状态
@@ -30,6 +38,17 @@
   - `local_monitor.sh` 只 `git add` 四个监控产物，不捎带工作区其他改动；**不 push**（`git push origin main` 会触发 CI 与 Pages 真实发布，留给人工确认）
 - **长文档站等待"内容不再增长"而非固定等待**：SPA 文档站分批注入正文，固定 `wait_for_timeout(600)` 会**稳定地**停在半截内容上——不再波动，却把不完整版本固化成基线，看起来"从未变化"实则漏掉后半段条款。新增 `wait_until_text_stable()`（连续两次采样增长不足 5% 才返回）与 `measure_rendered_text()`（按 `content_selector` 而非 `body` 测长度，避免侧栏展开导致 body 长而正文未填充完时选错渲染）
 - **`content_selector` 命中多个时取文本最长的**：文档站选择器常同时命中正文容器与页脚/侧栏小容器，`select_one` 只取第一个会因 DOM 顺序变化抓到页脚（实测 `trae` 的 `[class*=content]` 命中 3 个 1.2 万字符正文容器 + 3 个 0～217 字符小容器）
+
+### Fixed
+
+- **表格表头吸附失效**：`.table-wrapper` 的 `overflow-x: auto` 使它成为滚动容器，`thead th { position: sticky }` 在纵向不生效，48 行滚到后面完全看不到列名。桌面改为放开 overflow、表头吸附在 56px 顶栏下方；窄屏改为容器内滚动
+- **首页“人工核实”日期过期**：页面一直显示 `meta.last_updated`（2026-08-31），与实际 `last_verified`（2026-10-22）脱节，且 Hero 只显示 `MM-DD` 丢年份。改为数据驱动并显示完整日期
+- **小字对比度不足**：`--text-tertiary` 在深色背景上仅 4.14:1，低于 WCAG AA；调至 `#8b8b94`（约 5.9:1），并补对比度回归测试
+- **首页主表训练列全部显示"未明确"**：`trainCell()` 读取的是版本对象的 `training_status`，调用处却传了 `toc && toc.used_for_training` 布尔值，导致 48 行两列全部落到 `unknown`。改为传 `toc` / `tob` 对象，并补回归测试
+- **监控失败导致 Pages 部署被跳过**：`monitor.yml` 因单个目标超时会失败，而 `deploy.yml` 只认上游成功，线上数据会被冻结一周。部署条件改为：数据校验失败仍不部署，但"政策更新监控"失败时照常部署已提交的结果
+- **时间戳标签含 `(UTC)` 时未剥离**：`最后更新时间 (UTC)：2026-10-15` 会泄漏进哈希，日期更新被误报为政策变更；正则现允许标签与冒号之间的时区/地区后缀
+- **局部重试虚增健康轮次**：`--products/--only` 未检查的产品现在会标 `skipped_this_run`，`consecutive_runs` 不再因重试其他目标而上涨
+- **`min_body_chars: 0` 被忽略**：配置值 0 不再被 `or` 回退成默认 500
 - **修复"最后更新时间"标签匹配失败**：`DYNAMIC_TIMESTAMP_RE` 里写成字符组 `最后更新[时间]?`，而 `[时间]` 只匹配一个字符，导致"最后更新时间："（阿里云帮助中心的实际写法）整体匹配失败、时间戳泄漏进哈希；同时补上点号分隔格式（火山方舟协议页文末"最近更新时间：2026.09.18 14:35:02"）
 - **正文过短时记录实际页面线索**：新增 `describe_shell()`，把标题与页面首段写进 message，让"正文仅 0 字符"能区分 Cloudflare 挑战页 / 登录墙 / 404 / 纯空壳——这几种处置完全不同，此前 CI 日志里只有一句"正文仅 0 字符"，无法判断
 - **`trae` 抓取修复**：配 `targets.main.content_selector: "[class*=content]"`（属性包含选择器，不受构建 hash 影响）+ `wait_for_selector`。修复后正文由"导航+正文"变为纯正文，`TraeCode`/`定价`/`登录` 等导航词消失而"隐私政策"×33、"个人信息"×81 零差异。**但 CI（美国 runner）上仍连不上**——`describe_shell()` 显示"实际拿到：空文档"，即 Chromium 根本没拿到响应 HTML，属连接层失败（Cloudflare 对数据中心 IP）而非渲染问题，本地可正常抓取。这类环境差异无法靠抓取配置消除，只能换源或申请放行；`degraded` 语义保证快照有效、页面继续展示上次正文、恢复可达后自愈

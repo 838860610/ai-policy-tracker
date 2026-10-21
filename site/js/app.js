@@ -8,16 +8,9 @@
   var productsMeta = null;   // data/products.json 的 meta（静态回退字段）
   var state = { q: "", region: "all", training: "all", risk: "all" };
 
-  /* 厂商归一化与排序键：与 scripts/gen_readme_table.py 的 VENDOR_RULES/VENDOR_SORT 保持同步 */
-  var VENDOR_RULES = [
-    ["火山引擎", "字节跳动"], ["字节跳动", "字节跳动"], ["腾讯", "腾讯"],
-    ["阿里云", "阿里巴巴"], ["阿里巴巴", "阿里巴巴"], ["百度", "百度"],
-    ["深度求索", "DeepSeek（深度求索）"], ["OpenAI", "OpenAI"], ["Anthropic", "Anthropic"],
-    ["Google", "Google"], ["智谱AI", "智谱AI"], ["月之暗面", "月之暗面（Moonshot AI）"],
-    ["科大讯飞", "科大讯飞"], ["快手", "快手"], ["MiniMax", "MiniMax"],
-    ["阶跃星辰", "阶跃星辰"], ["昆仑万维", "昆仑万维"], ["商汤", "商汤科技"],
-    ["360", "360"], ["华为", "华为"], ["百川", "百川智能"], ["零一万物", "零一万物"]
-  ];
+  /* 厂商归一化在 common.js（详情页导航复用）；这里只需要首页分组排序键。
+     排序键与 scripts/gen_readme_table.py 的 VENDOR_SORT 保持同步。 */
+  var vendorOf = PT.vendorOf;
   var VENDOR_SORT = {
     "阿里巴巴": "alibaba", "百川智能": "baichuan", "百度": "baidu", "华为": "huawei",
     "阶跃星辰": "jieyue", "科大讯飞": "kedaxunfei", "快手": "kuaishou",
@@ -90,8 +83,15 @@
     return items;
   }
 
-  /* 数据人工核实日期：监控运行时间只用于监控提示，不冒充数据更新时间 */
+  /* 数据人工核实日期：取所有产品 last_verified 的最大值。
+     products.json 的 meta.last_updated 是索引维护日期，容易与实际核实进度脱节。 */
   function effectiveLastUpdated() {
+    var latest = "";
+    allProducts.forEach(function (p) {
+      var d = p && p.last_verified;
+      if (typeof d === "string" && /^\d{4}-\d{2}-\d{2}$/.test(d) && d > latest) latest = d;
+    });
+    if (latest) return latest;
     if (productsMeta && productsMeta.last_updated) return productsMeta.last_updated;
     return "";
   }
@@ -245,11 +245,17 @@
         isPlaceholder ? "占位条目：条款待收集" : "无企业版（详见条目 tob_note）"));
     return (
       '<div class="row-pin"><div class="detail-indent">' +
-      '<div class="dp-link"><a href="detail.html?id=' + PT.escapeHtml(p.id) +
-      '">查看完整详情页 →</a></div>' +
+      '<div class="dp-link"><a href="p/' + PT.escapeHtml(p.id) +
+      '.html">查看完整详情页 →</a></div>' +
       '<div class="detail-panels">' + panels + "</div>" +
       "</div></div>"
     );
+  }
+
+  function updateResultCount(shown) {
+    var el = document.getElementById("resultCount");
+    if (!el) return;
+    el.textContent = "显示 " + shown + " / " + allProducts.length + " 个产品";
   }
 
   function render() {
@@ -264,8 +270,12 @@
     });
 
     var filtered = allProducts.filter(matchesFilters);
+    updateResultCount(filtered.length);
     if (filtered.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="5" class="no-data">没有符合条件的产品</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="5" class="no-data">' +
+        "<div>没有符合条件的产品</div>" +
+        '<button type="button" class="link-btn" id="clearFilters">清除全部筛选</button>' +
+        "</td></tr>";
       return;
     }
 
@@ -284,8 +294,10 @@
     var html = "";
     vendors.forEach(function (v) {
       var list = groups[v];
-      html += '<tr class="group-row" data-open="' + (collapsedVendors[v] ? "false" : "true") +
-        '" data-vendor="' + PT.escapeHtml(v) + '">' +
+      var isOpen = !collapsedVendors[v];
+      html += '<tr class="group-row" data-open="' + (isOpen ? "true" : "false") +
+        '" data-vendor="' + PT.escapeHtml(v) +
+        '" tabindex="0" role="button" aria-expanded="' + (isOpen ? "true" : "false") + '">' +
         '<td colspan="5"><div class="row-pin"><span class="tri">▾</span> ' + PT.escapeHtml(v) +
         '<span class="group-count">' + list.length + ' 款产品</span></div></td></tr>';
       list.forEach(function (p, idx) {
@@ -299,10 +311,10 @@
         html += '<tr class="product-row' + lastCls + '" data-id="' + PT.escapeHtml(p.id) +
           '" tabindex="0" role="button" aria-expanded="false"' + rowHidden + '>' +
           '<td class="cell-name"><strong>' + PT.escapeHtml(p.name) + "</strong>" + flag + "</td>" +
-          "<td>" + trainCell(toc && toc.used_for_training) + "</td>" +
-          "<td>" + trainCell(tob && tob.used_for_training) + "</td>" +
-          "<td>" + riskMini(toc) + "</td>" +
-          "<td>" + riskMini(tob) + "</td></tr>" +
+          '<td data-label="个人版训练">' + trainCell(toc) + "</td>" +
+          '<td data-label="企业版训练">' + trainCell(tob) + "</td>" +
+          '<td data-label="个人版风险">' + riskMini(toc) + "</td>" +
+          '<td data-label="企业版风险">' + riskMini(tob) + "</td></tr>" +
           // 详情行按需渲染：50 个产品的展开面板不必在每次筛选时都重建，
           // 只在真正展开时生成（首次展开前保持空单元格）
           '<tr class="detail-row" hidden data-pid="' + PT.escapeHtml(p.id) +
@@ -341,6 +353,7 @@
   function toggleGroup(row) {
     var open = row.getAttribute("data-open") !== "true";
     row.setAttribute("data-open", open ? "true" : "false");
+    row.setAttribute("aria-expanded", open ? "true" : "false");
     var sib = row.nextElementSibling;
     while (sib && !sib.classList.contains("group-row")) {
       if (!open) {
@@ -356,9 +369,25 @@
     }
   }
 
+  /** 空状态：一键清空搜索与三组筛选。 */
+  function clearFilters() {
+    state.q = "";
+    state.region = "all";
+    state.training = "all";
+    state.risk = "all";
+    var box = document.getElementById("searchBox");
+    if (box) box.value = "";
+    setActive(document.getElementById("regionFilter"), "data-region", "all");
+    setActive(document.getElementById("trainingFilter"), "data-training", "all");
+    setActive(document.getElementById("riskFilter"), "data-risk", "all");
+    writeStateToUrl();
+    render();
+  }
+
   function initRowEvents() {
     var tbody = document.getElementById("tableBody");
     tbody.addEventListener("click", function (e) {
+      if (e.target.closest("#clearFilters")) { clearFilters(); return; }
       var gr = e.target.closest("tr.group-row");
       if (gr) { toggleGroup(gr); return; }
       var pr = e.target.closest("tr.product-row");
@@ -366,6 +395,8 @@
     });
     tbody.addEventListener("keydown", function (e) {
       if (e.key !== "Enter" && e.key !== " ") return;
+      var gr = e.target.closest("tr.group-row");
+      if (gr) { e.preventDefault(); toggleGroup(gr); return; }
       var pr = e.target.closest("tr.product-row");
       if (pr) { e.preventDefault(); toggleDetail(pr); }
     });
@@ -455,7 +486,15 @@
     setNum("statTrain", trainCount);
     setNum("statHigh", highCount);
     var upd = effectiveLastUpdated();
-    setNum("statUpdated", upd ? upd.slice(5) : "—");
+    var dateEl = document.getElementById("statUpdated");
+    if (dateEl) {
+      dateEl.textContent = upd || "—";
+      dateEl.classList.toggle("stat-num-date", !!upd);
+    }
+    var eyebrow = document.getElementById("heroEyebrowText");
+    if (eyebrow) {
+      eyebrow.textContent = "每周自动监控 · " + total + " 款 AI 产品 · 隐私政策对比";
+    }
     var hs = document.getElementById("heroStats");
     if (hs) hs.removeAttribute("aria-hidden");
   }
@@ -519,7 +558,7 @@
         : "";
       return '<li><span class="health-tag health-' + PT.escapeHtml(item.health) + '">' +
         PT.escapeHtml(HEALTH_LABELS[item.health] || item.health) + "</span>" +
-        '<a href="detail.html?id=' + encodeURIComponent(item.pid) + '">' +
+        '<a href="p/' + encodeURIComponent(item.pid) + '.html">' +
         PT.escapeHtml(item.name || item.pid) + "</a>（" +
         PT.escapeHtml(item.label || item.key) + "）" + urlHtml +
         '<span class="health-note">' + PT.escapeHtml(item.message || "") + runs +
@@ -562,7 +601,7 @@
     var links = changed.map(function (id) {
       var p = byId[id];
       var label = p ? p.name : id;
-      return '<a href="detail.html?id=' + encodeURIComponent(id) + '">' +
+      return '<a href="p/' + encodeURIComponent(id) + '.html">' +
         PT.escapeHtml(label) + "</a>";
     }).join("、");
     var headline = changed.length > 0

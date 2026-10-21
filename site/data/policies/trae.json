@@ -8,7 +8,7 @@
   "description": "字节 AI IDE。个人版（引力弹弓运营）默认参与去标识化训练（可按官方指引限制），代码库有本地/云端双模式差异化条款；企业版（火山引擎运营）默认不训练",
   "product_url": "https://www.trae.cn/",
   "policy_url": "https://www.trae.cn/privacy-policy",
-  "last_verified": "2026-08-29",
+  "last_verified": "2026-10-22",
   "versions": {
     "toc": {
       "label": "个人版",
@@ -50,7 +50,8 @@
         "4.1.4 若具体功能和场景中涉及第三方提供服务商（包括第三方 AI 模型提供方），合作方范围……第三方 AI 模型的最新范围以《TRAE企业版三方大模型备案公示》页面的最新公示为准。（企业版隐私政策4.1.4）"
       ],
       "policy_link": "https://docs.trae.cn/enterprise_privacy-policy-for-trae-enterprise",
-      "last_verified": "2026-08-29"
+      "content_selector": ".topic-markdown",
+      "last_verified": "2026-10-22"
     }
   },
   "timeline": [],

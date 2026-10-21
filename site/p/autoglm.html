@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <base href="../">
+  <meta name="description" content="AutoGLM 训练为加入式（初始化自愿加入&#x27;优化提升计划&#x27;，去标识化处理，联系式撤回）。注意使用限制：生成内容仅限非商业、个人研究学习使用。">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="AI 用户政策追踪器">
+  <meta property="og:title" content="AutoGLM（智谱） 隐私政策与训练数据设置——AI 用户政策追踪器">
+  <meta property="og:description" content="AutoGLM 训练为加入式（初始化自愿加入&#x27;优化提升计划&#x27;，去标识化处理，联系式撤回）。注意使用限制：生成内容仅限非商业、个人研究学习使用。">
+  <meta property="og:url" content="https://838860610.github.io/ai-policy-tracker/p/autoglm.html">
+  <meta property="og:image" content="https://838860610.github.io/ai-policy-tracker/generated/og-card.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="AutoGLM（智谱） 隐私政策与训练数据设置——AI 用户政策追踪器">
+  <meta name="twitter:description" content="AutoGLM 训练为加入式（初始化自愿加入&#x27;优化提升计划&#x27;，去标识化处理，联系式撤回）。注意使用限制：生成内容仅限非商业、个人研究学习使用。">
+  <link rel="canonical" href="https://838860610.github.io/ai-policy-tracker/p/autoglm.html">
+  <title>AutoGLM（智谱） 的隐私政策与训练数据设置 - AI 用户政策追踪器</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%9B%A1%EF%B8%8F%3C/text%3E%3C/svg%3E">
+  <link rel="stylesheet" href="css/style.css?v=20261022-2">
+</head>
+<body data-product-id="autoglm">
+  <noscript>
+    <div style="padding:24px;max-width:760px;margin:0 auto;color:#a1a1aa;line-height:1.8">
+      <p><strong>AutoGLM（智谱）</strong>（智谱AI · 中国）</p>
+      <p>AutoGLM 训练为加入式（初始化自愿加入'优化提升计划'，去标识化处理，联系式撤回）。注意使用限制：生成内容仅限非商业、个人研究学习使用。</p>
+      <p>本页完整内容（训练开关、退出机制、数据留存、关键条款）需要启用 JavaScript 才能展示。</p>
+    </div>
+  </noscript>
+  <div class="detail-header">
+    <div class="container">
+      <a href="index.html" class="back-btn">&larr; 返回首页</a>
+      <h1 id="productName">加载中...</h1>
+      <div class="meta" id="productMeta"></div>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="loading" id="loading">正在加载详情...</div>
+    <div id="detailContent" style="display:none">
+      <div class="detail-card" id="descCard">
+        <h2>产品简介</h2>
+        <p id="productDesc" style="color:var(--text-secondary);line-height:1.8"></p>
+      </div>
+
+      <div class="detail-card">
+        <div class="tabs" role="tablist" aria-label="版本切换">
+          <button class="tab active" data-tab="toc" id="tabToc" role="tab" aria-selected="true" aria-controls="contentToc">个人版 (ToC)</button>
+          <button class="tab" data-tab="tob" id="tabTob" role="tab" aria-selected="false" aria-controls="contentTob" tabindex="-1">企业版 (ToB)</button>
+        </div>
+        <div class="tab-content active" id="contentToc" role="tabpanel" aria-labelledby="tabToc"></div>
+        <div class="tab-content" id="contentTob" role="tabpanel" aria-labelledby="tabTob" aria-hidden="true"></div>
+      </div>
+
+      <div class="detail-card" id="timelineCard" style="display:none">
+        <h2>政策变更时间线</h2>
+        <div class="timeline" id="timeline"></div>
+      </div>
+
+      <div class="detail-card">
+        <h2>分析摘要</h2>
+        <div class="summary-box" id="analysisSummary"></div>
+      </div>
+
+      <div class="detail-card">
+        <h2>关键发现</h2>
+        <ul class="findings-list" id="keyFindings"></ul>
+      </div>
+
+      <div class="detail-card">
+        <h2>使用建议</h2>
+        <ul class="recommendations-list" id="recommendations"></ul>
+      </div>
+
+      <div class="detail-card">
+        <h2>核实信息</h2>
+        <div class="info-grid">
+          <div class="info-item">
+            <div class="label">最后核实日期</div>
+            <div class="value" id="lastVerified"></div>
+          </div>
+          <div class="info-item">
+            <div class="label">政策链接</div>
+            <div class="value"><a href="#" id="policyLink" target="_blank" rel="noopener noreferrer">查看官方政策</a></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <nav class="detail-nav" id="detailNav" aria-label="产品导航" hidden></nav>
+  </div>
+
+  <div class="footer">
+    <p>AI 用户政策追踪器 | <a href="index.html">返回首页</a></p>
+    <p>免责声明：本数据仅供参考，不构成法律建议。请以官方最新政策为准。</p>
+  </div>
+
+  <script src="js/common.js?v=20261022-2"></script>
+  <script src="js/detail.js?v=20261022-2"></script>
+</body>
+</html>

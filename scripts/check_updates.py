@@ -81,8 +81,9 @@ HEALTH_FILE = os.path.join(BASE_DIR, "site", "generated", "monitor_health.json")
 # 哈希算法版本：提取/归一化逻辑变化时递增，旧状态会自动重建基线而不是误报"已变更"
 # - text-v2：修复响应解码（此前中文被 latin-1 回退解成 mojibake）
 # - text-v4：加入结构化正文选择、PDF 处理和更保守的动态节点过滤。
+# - text-v5：时间戳标签允许 (UTC) 等时区后缀，避免日期更新误报为政策变更。
 EXTRACTOR = "bs4" if BeautifulSoup is not None else "regex"
-HASH_SCHEME = f"text-v4-{EXTRACTOR}"
+HASH_SCHEME = f"text-v5-{EXTRACTOR}"
 RETRY_TIMES = 2          # 网络类错误重试次数
 RETRY_BACKOFF = 5        # 重试间隔基数（秒）
 # 正文最小长度：低于此值视为"空壳正文"（SPA / 反爬只返回标题骨架），
@@ -204,6 +205,8 @@ DYNAMIC_TIMESTAMP_RE = re.compile(
     # 注意用非捕获组 (?:时间)? —— 写成 [时间]? 是字符组，只匹配"时"或"间"一个字符，
     # 会让"最后更新时间："整体匹配失败（实测阿里云帮助中心就是这个写法）
     r"(?:最近更新时间|最后更新(?:时间)?|更新时间|更新于|Last updated|Updated at)"
+    # 时区/地区后缀可出现在标签与冒号之间（如 "最后更新时间 (UTC)：2026-10-15"）
+    r"(?:\s*[（(][^)）]{1,20}[)）])?"
     r"\s*[:：]?\s*\d{4}\s*[-/.年]\s*\d{1,2}\s*[-/.月]\s*\d{1,2}\s*日?"
     # 时分秒前的分隔符用 \s* 而非 \s+：前面的 \s*日? 已经可能吃掉空格，
     # 用 \s+ 会导致整组匹配不到（实测 "15:03:51" 被漏掉）
@@ -937,7 +940,9 @@ def check_target(pid, name, key, url, prev_target, timeout, method="requests", c
     if not isinstance(prev_target, dict):
         prev_target = {}
     config = config or {}
-    min_body_chars = config.get("min_body_chars") or MIN_BODY_CHARS
+    min_body_chars = config.get("min_body_chars")
+    if min_body_chars is None:
+        min_body_chars = MIN_BODY_CHARS
     content_selector = config.get("content_selector")
     wait_for_selector = config.get("wait_for_selector")
     monitor_scope = config.get("monitor_scope") or DEFAULT_MONITOR_SCOPE
@@ -1167,12 +1172,34 @@ def aggregate_health(target_results):
     return worst
 
 
+def mark_unselected_targets_skipped(products, selected_pids):
+    """局部运行时，把未选中产品的目标标记为本轮未检查。
+
+    没有这个标记，update_monitor_health 会把沿用下来的不健康目标当成
+    "本轮又检查了一次"，导致 --only 重试一次就让 consecutive_runs +1。
+    """
+    selected = set(selected_pids)
+    for pid, info in products.items():
+        if pid in selected or not isinstance(info, dict):
+            continue
+        for target in (info.get("targets") or {}).values():
+            if isinstance(target, dict):
+                target["skipped_this_run"] = True
+                target["skip_reason"] = "本轮未检查（--products/--only）"
+
+
 def merge_partial_product(prev_info, new_info):
     """局部重试时把新结果合并回上次状态：只覆盖被检查的目标，其余目标沿用上次结果。"""
     merged = json.loads(json.dumps(prev_info)) if isinstance(prev_info, dict) else {}
     merged_targets = merged.get("targets")
     if not isinstance(merged_targets, dict):
         merged_targets = {}
+    checked = set((new_info.get("targets") or {}).keys())
+    for key, target in merged_targets.items():
+        if key in checked or not isinstance(target, dict):
+            continue
+        target["skipped_this_run"] = True
+        target["skip_reason"] = "本轮未检查（--products/--only）"
     for key, target in (new_info.get("targets") or {}).items():
         merged_targets[key] = target
     merged["targets"] = merged_targets
@@ -1572,6 +1599,7 @@ def main():
     if partial:
         new_status = {pid: json.loads(json.dumps(info))
                       for pid, info in prev_status.items() if pid in set(pids)}
+        mark_unselected_targets_skipped(new_status, selected_pids)
         for pid in pids:
             new_status.setdefault(pid, {"name": pid, "status": "skipped",
                                         "health": "ok", "health_issues": 0,

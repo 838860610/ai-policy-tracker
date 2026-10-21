@@ -14,7 +14,7 @@
   <link rel="canonical" href="https://838860610.github.io/ai-policy-tracker/detail.html">
   <title>产品详情 - AI 用户政策追踪器</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%9B%A1%EF%B8%8F%3C/text%3E%3C/svg%3E">
-  <link rel="stylesheet" href="css/style.css?v=20260926-1">
+  <link rel="stylesheet" href="css/style.css?v=20261022-2">
 </head>
 <body>
   <noscript>
@@ -39,12 +39,12 @@
       </div>
 
       <div class="detail-card">
-        <div class="tabs">
-          <button class="tab active" data-tab="toc" id="tabToc">个人版 (ToC)</button>
-          <button class="tab" data-tab="tob" id="tabTob">企业版 (ToB)</button>
+        <div class="tabs" role="tablist" aria-label="版本切换">
+          <button class="tab active" data-tab="toc" id="tabToc" role="tab" aria-selected="true" aria-controls="contentToc">个人版 (ToC)</button>
+          <button class="tab" data-tab="tob" id="tabTob" role="tab" aria-selected="false" aria-controls="contentTob" tabindex="-1">企业版 (ToB)</button>
         </div>
-        <div class="tab-content active" id="contentToc"></div>
-        <div class="tab-content" id="contentTob"></div>
+        <div class="tab-content active" id="contentToc" role="tabpanel" aria-labelledby="tabToc"></div>
+        <div class="tab-content" id="contentTob" role="tabpanel" aria-labelledby="tabTob" aria-hidden="true"></div>
       </div>
 
       <div class="detail-card" id="timelineCard" style="display:none">
@@ -81,6 +81,8 @@
         </div>
       </div>
     </div>
+
+    <nav class="detail-nav" id="detailNav" aria-label="产品导航" hidden></nav>
   </div>
 
   <div class="footer">
@@ -88,7 +90,7 @@
     <p>免责声明：本数据仅供参考，不构成法律建议。请以官方最新政策为准。</p>
   </div>
 
-  <script src="js/common.js?v=20260926-1"></script>
-  <script src="js/detail.js?v=20260926-1"></script>
+  <script src="js/common.js?v=20261022-2"></script>
+  <script src="js/detail.js?v=20261022-2"></script>
 </body>
 </html>

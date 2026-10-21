@@ -241,6 +241,128 @@ class TestLayout(unittest.TestCase):
         self.assertIn("generated/monitor_health.json", app)
         self.assertNotIn("data/bundle.json", app)
 
+    def test_home_table_passes_version_objects_to_train_cell(self):
+        """回归：trainCell 读取 v.training_status，曾误传布尔值
+        （toc && toc.used_for_training），导致主表两列全部显示"未明确"。"""
+        with open(os.path.join(SITE_DIR, "js", "app.js"), encoding="utf-8") as f:
+            app = f.read()
+        self.assertNotIn("trainCell(toc && toc.used_for_training)", app)
+        self.assertNotIn("trainCell(tob && tob.used_for_training)", app)
+        self.assertIn("trainCell(toc)", app)
+        self.assertIn("trainCell(tob)", app)
+
+    def test_desktop_table_header_sticks_below_topbar(self):
+        """回归：.table-wrapper 的 overflow-x 会让表头 sticky 失效。
+
+        桌面必须放开 overflow，并把表头吸附在 56px 固定顶栏下方；
+        否则 48 行滚到后面就看不到列名。
+        """
+        with open(os.path.join(SITE_DIR, "css", "style.css"), encoding="utf-8") as f:
+            css = f.read()
+        match = re.search(r"@media \(min-width: 769px\) \{(.*?)\n\}", css, re.S)
+        self.assertIsNotNone(match, "缺少桌面端表头吸附的媒体查询")
+        block = match.group(1)
+        self.assertIn(".table-wrapper { overflow: visible; }", block)
+        self.assertIn("#compareTable thead th { top: 56px; }", block)
+
+    def test_mobile_table_renders_as_cards(self):
+        """窄屏不再横向滚动找列：表格改为卡片，每个单元格带列名。"""
+        with open(os.path.join(SITE_DIR, "js", "app.js"), encoding="utf-8") as f:
+            app = f.read()
+        self.assertIn('data-label="个人版训练"', app)
+        self.assertIn('data-label="企业版风险"', app)
+        with open(os.path.join(SITE_DIR, "css", "style.css"), encoding="utf-8") as f:
+            css = f.read()
+        match = re.search(r"@media \(max-width: 640px\) \{(.*?)\n\}", css, re.S)
+        self.assertIsNotNone(match, "缺少窄屏卡片布局的媒体查询")
+        block = match.group(1)
+        self.assertIn("#compareTable thead { display: none; }", block)
+        self.assertIn("content: attr(data-label)", block)
+
+    def test_group_rows_are_keyboard_operable(self):
+        """厂商分组行必须可聚焦、可键盘折叠，并同步 aria-expanded。"""
+        with open(os.path.join(SITE_DIR, "js", "app.js"), encoding="utf-8") as f:
+            app = f.read()
+        self.assertIn('tabindex="0" role="button" aria-expanded="', app)
+        self.assertIn('row.setAttribute("aria-expanded"', app)
+        self.assertIn('e.target.closest("tr.group-row")', app)
+
+    def test_empty_state_has_result_count_and_clear_filters(self):
+        """筛选无结果时要说明条数并提供一键清除，避免被误认为数据缺失。"""
+        with open(os.path.join(SITE_DIR, "js", "app.js"), encoding="utf-8") as f:
+            app = f.read()
+        for needle in ("resultCount", "clearFilters", "清除全部筛选"):
+            self.assertIn(needle, app)
+        with open(os.path.join(SITE_DIR, "index.html"), encoding="utf-8") as f:
+            html = f.read()
+        self.assertIn('id="resultCount"', html)
+
+    def test_verified_date_is_derived_from_product_last_verified(self):
+        """首页核实日期不能再读 meta.last_updated（会停留在旧日期）。
+
+        bundle 白名单必须带上 last_verified，否则首页取不到字段。
+        """
+        with open(os.path.join(SITE_DIR, "js", "app.js"), encoding="utf-8") as f:
+            app = f.read()
+        self.assertIn('p.last_verified', app)
+        self.assertIn("stat-num-date", app)
+        bundle_module = load_script("gen_data_bundle")
+        self.assertIn("last_verified", bundle_module.BUNDLE_TOP_FIELDS)
+        bundle = load_json(os.path.join(SITE_DIR, "generated", "bundle.json"))
+        missing = [p["id"] for p in bundle["policies"] if not p.get("last_verified")]
+        self.assertEqual(missing, [], "bundle 缺少 last_verified 字段")
+
+    def test_detail_tabs_expose_aria_roles(self):
+        with open(os.path.join(SITE_DIR, "detail.html"), encoding="utf-8") as f:
+            html = f.read()
+        for needle in ('role="tablist"', 'role="tab"', 'role="tabpanel"', 'aria-selected'):
+            self.assertIn(needle, html)
+        with open(os.path.join(SITE_DIR, "js", "detail.js"), encoding="utf-8") as f:
+            js = f.read()
+        self.assertIn('setAttribute("aria-selected"', js)
+        self.assertIn('"ArrowRight"', js)
+
+    def test_tertiary_text_meets_wcag_aa(self):
+        """--text-tertiary 用于统计标签、页脚等小字，对比度须 >= 4.5:1。"""
+        with open(os.path.join(SITE_DIR, "css", "style.css"), encoding="utf-8") as f:
+            css = f.read()
+        fg = re.search(r"--text-tertiary:\s*#([0-9a-fA-F]{6})", css).group(1)
+        bg = re.search(r"--bg:\s*#([0-9a-fA-F]{6})", css).group(1)
+
+        def luminance(hex_color):
+            channels = [int(hex_color[i:i + 2], 16) / 255 for i in (0, 2, 4)]
+            linear = [c / 12.92 if c <= 0.04045 else ((c + 0.055) / 1.055) ** 2.4
+                      for c in channels]
+            return 0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2]
+
+        hi, lo = sorted([luminance(fg), luminance(bg)], reverse=True)
+        ratio = (hi + 0.05) / (lo + 0.05)
+        self.assertGreaterEqual(ratio, 4.5, f"--text-tertiary 对比度仅 {ratio:.2f}:1")
+
+    def test_detail_page_supports_static_entry_and_deep_links(self):
+        """详情页既支持 p/{id}.html 静态入口，也保留旧 ?id= 入口；
+        ?tab= 可深链到指定版本，切换时同步地址栏。"""
+        with open(os.path.join(SITE_DIR, "detail.html"), encoding="utf-8") as f:
+            html = f.read()
+        self.assertIn('id="detailNav"', html)
+        self.assertIn('aria-label="产品导航"', html)
+        with open(os.path.join(SITE_DIR, "js", "detail.js"), encoding="utf-8") as f:
+            js = f.read()
+        for needle in ("data-product-id", 'getQueryParam("tab")',
+                       "history.replaceState", "renderNav"):
+            self.assertIn(needle, js, f"detail.js 缺少：{needle}")
+
+    def test_ambient_glow_has_no_large_blur(self):
+        """3 个 500px 光晕曾用 filter: blur(120px)，移动端持续合成开销高。
+        改用 radial-gradient 的天然柔边，并在窄屏少画一层。"""
+        with open(os.path.join(SITE_DIR, "css", "style.css"), encoding="utf-8") as f:
+            css = f.read()
+        glow_block = re.search(r"\.glow\s*\{[^}]*\}", css)
+        self.assertIsNotNone(glow_block, "缺少 .glow 样式")
+        self.assertNotIn("filter: blur", glow_block.group(0))
+        self.assertIn(".glow-c { display: none; }", css)
+        self.assertIn("backdrop-filter: none", css)
+
     def test_monitor_health_queue_is_tracked_and_consistent(self):
         """健康队列必须入库（首页直接读取），且与 update_status.json 里的 health 对得上。"""
         health_path = os.path.join(SITE_DIR, "generated", "monitor_health.json")
@@ -435,6 +557,7 @@ class TestResponseDecoding(unittest.TestCase):
         火山方舟协议页文末的"最近更新时间：2026.09.18 14:35:02"是点号分隔，同属此类。"""
         body = "隐私与安全 说明 我们如何处理您的数据。" * 200
         labels = ["更新时间：", "最近更新时间：", "更新于", "最后更新时间：",
+                  "最后更新时间 (UTC)：", "最后更新时间（UTC）：",
                   "Last updated:", "Updated at:"]
         stamps = ["2026-09-10 15:03:51", "2026-09-10 07:03:51", "2026-09-12",
                   "2026年9月10日 15:03", "2026/09/10 15:03:51",
@@ -522,7 +645,7 @@ class TestResponseDecoding(unittest.TestCase):
     def test_hash_scheme_covers_extractor_variant(self):
         """哈希方案必须带提取器标识：bs4 与正则回退剥离的标签不同，
         若共用 scheme，一旦依赖缺失就会全库哈希漂移 → 批量误报。"""
-        self.assertTrue(CHECK_UPDATES.HASH_SCHEME.startswith("text-v4-"))
+        self.assertTrue(CHECK_UPDATES.HASH_SCHEME.startswith("text-v5-"))
         self.assertIn(CHECK_UPDATES.EXTRACTOR, CHECK_UPDATES.HASH_SCHEME)
         self.assertIn(CHECK_UPDATES.EXTRACTOR, ("bs4", "regex"))
 
@@ -815,6 +938,23 @@ class TestFetchHealth(unittest.TestCase):
         self.assertEqual(result["status"], "ok")
         self.assertEqual(result["health"], "initialized")
         self.assertIsNotNone(result["last_good_at"])
+
+    def test_min_body_chars_zero_is_respected(self):
+        """回归：config.get("min_body_chars") or MIN_BODY_CHARS 会把合法的 0
+        回退成 500，导致显式关闭长度下限的配置失效。"""
+        response = _FakeResponse(
+            "text/html; charset=utf-8",
+            "<html><body><main>短正文</main></body></html>".encode("utf-8"),
+            encoding="utf-8")
+        with mock.patch.object(CHECK_UPDATES, "load_baseline_text", return_value=None):
+            with mock.patch.object(CHECK_UPDATES, "save_snapshot"):
+                with mock.patch.object(CHECK_UPDATES, "fetch_with_retry",
+                                       return_value=(response, False)):
+                    result = CHECK_UPDATES.check_target(
+                        "demo", "Demo", "main", "https://example.com/p", {}, 1,
+                        config={"min_body_chars": 0})
+        self.assertEqual(result["health"], "initialized")
+        self.assertEqual(result["status"], "ok")
 
     def test_empty_body_without_baseline_is_no_baseline(self):
         with mock.patch.object(CHECK_UPDATES, "load_baseline_text", return_value=None):
@@ -1138,6 +1278,29 @@ class TestFetchHealth(unittest.TestCase):
                 self.assertEqual(third["consecutive_runs"], 2)
                 self.assertTrue(third["checked_this_run"])
 
+    def test_partial_run_marks_unselected_targets_as_skipped(self):
+        """回归：--only 局部重试时，未选中的产品会沿用上次状态；
+        若不标记 skipped_this_run，健康队列的 consecutive_runs 会被虚增。"""
+        with tempfile.TemporaryDirectory() as directory:
+            path = os.path.join(directory, "monitor_health.json")
+            with mock.patch.object(CHECK_UPDATES, "HEALTH_FILE", path):
+                prev = {
+                    "demo": {"name": "Demo", "targets": {"main": {
+                        "url": "https://e.com/p", "health": "degraded",
+                        "status": "suspicious", "message": "抓取正文过短"}}},
+                    "other": {"name": "Other", "targets": {"main": {
+                        "url": "https://o.com/p", "health": "degraded",
+                        "status": "suspicious", "message": "抓取正文过短"}}},
+                }
+                CHECK_UPDATES.update_monitor_health(prev)
+                partial = json.loads(json.dumps(prev))
+                CHECK_UPDATES.mark_unselected_targets_skipped(partial, ["demo"])
+                items = CHECK_UPDATES.update_monitor_health(partial)
+                self.assertEqual(items["demo:main"]["consecutive_runs"], 2)  # 真的检查了
+                self.assertTrue(items["demo:main"]["checked_this_run"])
+                self.assertEqual(items["other:main"]["consecutive_runs"], 1)  # 未检查
+                self.assertFalse(items["other:main"]["checked_this_run"])
+
     def test_malformed_main_carrier_falls_back_to_top_level(self):
         """targets 结构异常时不崩溃，退回顶层配置（validate_data 会另行报错）。"""
         for broken in ([], {"main": "browser"}, {"toc": {"fetch_method": "browser"}}, "x"):
@@ -1264,6 +1427,17 @@ class TestPartialRetry(unittest.TestCase):
         self.assertEqual(merged["message"], "内容未变化")
         # 原始入参不应被就地改写
         self.assertEqual(previous["status"], "failed")
+
+    def test_merge_partial_product_marks_untouched_target_skipped(self):
+        """--only 只检查产品内一个目标时，其余目标不是"又检查了一次"。"""
+        previous = {"name": "Demo", "targets": {
+            "main": {"status": "suspicious", "health": "degraded", "message": "超时"},
+            "tob": {"status": "ok", "health": "ok", "message": "内容未变化"}}}
+        new = {"name": "Demo", "targets": {
+            "tob": {"status": "ok", "health": "ok", "message": "内容未变化"}}}
+        merged = CHECK_UPDATES.merge_partial_product(previous, new)
+        self.assertTrue(merged["targets"]["main"].get("skipped_this_run"))
+        self.assertNotIn("skipped_this_run", merged["targets"]["tob"])
 
     def test_merge_partial_product_keeps_health_issue_of_other_target(self):
         previous = {"name": "Demo", "targets": {
@@ -1466,16 +1640,24 @@ class TestSiteConsistency(unittest.TestCase):
         return files
 
     def test_local_links_resolve(self):
-        """docs 页曾引用 ../site/css/style.css，部署后是死链 → 页面无样式。"""
+        """docs 页曾引用 ../site/css/style.css，部署后是死链 → 页面无样式。
+
+        site/p/*.html 用 <base href="../"> 改变了解析基准，这里必须遵循它，
+        否则这些页面里的 css/js 会被误判为死链。
+        """
         broken = []
         for path in self.html_files():
             with open(path, encoding="utf-8") as f:
                 content = f.read()
+            root = os.path.dirname(path)
+            base = re.search(r'<base href="([^"]+)"', content)
+            if base and not base.group(1).startswith(("http://", "https://", "/")):
+                root = os.path.normpath(os.path.join(root, base.group(1)))
             for target in self.HTML_LINK.findall(content):
                 if target.startswith(("http://", "https://", "data:", "mailto:", "#")):
                     continue
                 resolved = os.path.normpath(
-                    os.path.join(os.path.dirname(path), target.split("?")[0]))
+                    os.path.join(root, target.split("?")[0]))
                 if not os.path.exists(resolved):
                     broken.append(f"{os.path.relpath(path, BASE_DIR)} -> {target}")
         self.assertEqual(broken, [], f"无法解析的资源引用：{broken}")
@@ -1490,10 +1672,39 @@ class TestSiteConsistency(unittest.TestCase):
 
     def test_sitemap_matches_products(self):
         with open(os.path.join(SITE_DIR, "sitemap.xml"), encoding="utf-8") as f:
-            sitemap_ids = set(re.findall(r"detail\.html\?id=([a-z0-9-]+)", f.read()))
+            sitemap_ids = set(re.findall(r"p/([a-z0-9-]+)\.html", f.read()))
         with open(os.path.join(DATA_DIR, "products.json"), encoding="utf-8") as f:
             data_ids = set(json.load(f)["products"])
         self.assertEqual(sitemap_ids, data_ids, "sitemap 与 products.json 产品 id 不一致")
+
+    def test_product_pages_are_static_and_self_describing(self):
+        """每个产品都要有独立静态页：唯一 title/OG/canonical，无 JS 也能读到摘要。"""
+        with open(os.path.join(DATA_DIR, "products.json"), encoding="utf-8") as f:
+            ids = json.load(f)["products"]
+        missing = []
+        for pid in ids:
+            path = os.path.join(SITE_DIR, "p", pid + ".html")
+            if not os.path.exists(path):
+                missing.append(pid)
+                continue
+            with open(path, encoding="utf-8") as f:
+                content = f.read()
+            self.assertIn(f'<body data-product-id="{pid}">', content)
+            self.assertIn('<base href="../">', content)
+            self.assertIn(f"https://838860610.github.io/ai-policy-tracker/p/{pid}.html", content)
+            self.assertIn("<noscript>", content)
+            self.assertNotIn("产品详情——AI 用户政策追踪器", content)
+        self.assertEqual(missing, [], f"缺少产品静态页：{missing}")
+
+    def test_product_pages_are_up_to_date(self):
+        """模板或数据改动后必须重新生成，避免静态页与 detail.html 漂移。"""
+        module = load_script("gen_product_pages")
+        old_argv = sys.argv
+        try:
+            sys.argv = ["gen_product_pages.py", "--check"]
+            self.assertEqual(module.main(), 0)
+        finally:
+            sys.argv = old_argv
 
     def test_public_product_counts_match_data(self):
         index = load_json(os.path.join(DATA_DIR, "products.json"))
@@ -1568,6 +1779,17 @@ class TestSiteConsistency(unittest.TestCase):
         expected = {name_of("ci.yml"), name_of("monitor.yml")}
         self.assertEqual(referenced, expected,
                          f"部署触发的工作流名不匹配：引用 {referenced}，实际 {expected}")
+
+    def test_deploy_runs_after_monitor_failure(self):
+        """回归：单个目标抓取超时会让 monitor.yml 失败，但结果与快照已经提交；
+        部署若只认 conclusion == 'success'，线上数据会被一个超时冻结一周。"""
+        with open(os.path.join(BASE_DIR, ".github", "workflows", "deploy.yml"),
+                  encoding="utf-8") as f:
+            deploy = f.read()
+        self.assertIn("github.event.workflow_run.name == '政策更新监控'", deploy)
+        self.assertIn("github.event.workflow_run.conclusion == 'failure'", deploy)
+        # 数据校验失败仍不能部署
+        self.assertIn("github.event.workflow_run.conclusion == 'success'", deploy)
 
     def test_bundle_is_slim_and_complete(self):
         """bundle 只服务首页，不应携带长条款原文；但产品数必须与索引一致。"""

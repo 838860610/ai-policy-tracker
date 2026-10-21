@@ -24,7 +24,8 @@ BUNDLE_FILE = os.path.join(BASE_DIR, "site", "generated", "bundle.json")
 # 因此按白名单裁剪：key_clauses（长条款原文）等首页不渲染的字段不带进首屏，
 # 实测可从 ~200KB 降到约 31KB。
 # ⚠️ 首页若要新增展示字段，必须同步加到下面的白名单，否则会显示"—"。
-BUNDLE_TOP_FIELDS = ("id", "name", "company", "region", "icon", "toc_note", "tob_note")
+BUNDLE_TOP_FIELDS = ("id", "name", "company", "region", "icon", "toc_note", "tob_note",
+                     "last_verified")
 BUNDLE_VERSION_FIELDS = ("label", "used_for_training", "training_status", "opt_out",
                          "deidentified", "data_retention", "risk_level")
 TRAINING_STATUSES = {

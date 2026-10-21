@@ -8,7 +8,7 @@
   "product_url": "https://ima.qq.com/",
   "policy_url": "https://privacy.qq.com/document/preview/aca5ed13893d47cfa31697704c2dd366",
   "tob_note": "ima 以共享知识库支持团队协作（管理员管理成员，单个共享知识库成员上限 100 万，2025-03 更新），未见独立企业版协议；团队形态适用同一隐私指引与《知识库相关声明》",
-  "last_verified": "2026-08-29",
+  "last_verified": "2026-10-22",
   "versions": {
     "toc": {
       "label": "个人版（含共享知识库团队协作）",
@@ -28,7 +28,7 @@
         "我们无法长期为您存储（最长保存90天），如有需要请您及时本地备份或加入知识库。（AI 问答历史记录条款）"
       ],
       "policy_link": "https://privacy.qq.com/document/preview/aca5ed13893d47cfa31697704c2dd366",
-      "last_verified": "2026-08-29"
+      "last_verified": "2026-10-22"
     }
   },
   "timeline": [],

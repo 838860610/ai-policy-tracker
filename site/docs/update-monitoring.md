@@ -190,7 +190,7 @@ cd /path/to/ai-policy-tracker
 
 `--products` / `--only` 属于**局部重试**：只请求被选中的目标，其余产品/目标直接继承上次状态（`partial_run: true`），并自动跳过孤儿快照清理。这样修完一个站点的抓取配置后，验证成本从"全量 70+ 目标十几分钟"降到"单目标几十秒"。
 
-局部重试同样会重算 `update_status.json`、待核实队列和健康队列，因此适合"抓取修好了/改 URL 了"这类收尾动作。
+局部重试同样会重算 `update_status.json`、待核实队列和健康队列，因此适合"抓取修好了/改 URL 了"这类收尾动作。未被选中的产品/目标会标 `skipped_this_run`，健康队列的 `consecutive_runs` 不会因为重试其他目标而虚增。
 
 
 ### 输出示例
@@ -600,6 +600,8 @@ SPA 文档站常把正文**分批注入**。用固定等待（原来 `wait_for_t
 - **存在抓取降级**：横幅下方展开“抓取降级明细”，逐条列出产品、目标、健康类型、失败原因和上次成功抓取时间，并给出建议动作
 
 > 注意：`site/generated/update_status.json`、`site/generated/monitor_health.json` 与 `site/generated/snapshots/` 都由监控流程生成并**入库**——前两者供首页与 Pages 直接读取展示监控状态与健康队列，后者作为跨环境共享的持久历史供本地 agent 做 diff。`monitor.yml` 每次运行后自动提交这三者与 `pending_verification.json`。
+
+> **部署与监控失败解耦**：`deploy.yml` 只在数据校验失败时拒绝部署；"政策更新监控"即使因单个目标超时变红，也会部署本轮已提交的结果。否则一次网络抖动就会让线上数据冻结到下一周。
 
 
 ## 本地核实（policy-change-verify skill）

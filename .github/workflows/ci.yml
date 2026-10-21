@@ -45,6 +45,9 @@ jobs:
       - name: 文档页一致性检查
         run: python scripts/gen_docs.py --check
 
+      - name: 产品详情页与 sitemap 一致性检查
+        run: python scripts/gen_product_pages.py --check
+
   publish:
     name: 生成并提交产物
     needs: validate
@@ -68,22 +71,24 @@ jobs:
       - name: 安装依赖
         run: pip install -r requirements.txt
 
-      - name: 生成数据 bundle 与文档页
+      - name: 生成数据 bundle、文档页与产品详情页
         run: |
           python scripts/gen_data_bundle.py
           python scripts/gen_docs.py
+          python scripts/gen_product_pages.py
 
       - name: 生成后复验
         run: |
           python -m unittest discover -s tests -v
           python scripts/validate_data.py
           python scripts/gen_docs.py --check
+          python scripts/gen_product_pages.py --check
 
-      - name: 提交 bundle 与文档页（有变化时）
+      - name: 提交 bundle、文档页与产品详情页（有变化时）
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           # 运行期间可能有人 push了新提交，直接 push 会被拒（fetch first）
           git pull --rebase --autostash origin main
-          git add site/generated/bundle.json site/docs/*.html
-          git diff --cached --quiet || (git commit -m "chore: CI 重新生成 bundle.json 与文档页" && git push)
+          git add site/generated/bundle.json site/docs/*.html site/p site/sitemap.xml
+          git diff --cached --quiet || (git commit -m "chore: CI 重新生成 bundle.json、文档页与产品详情页" && git push)

@@ -2,6 +2,8 @@
   "use strict";
 
   var PT = window.PolicyTracker;
+  var currentId = "";
+  var isStaticPage = false;
 
   function getQueryParam(name) {
     return new URLSearchParams(window.location.search).get(name);
@@ -182,8 +184,12 @@
       if (tab) tab.style.display = versions[pair[1]] ? "" : "none";
     });
     // 默认面板必须切到"第一个可见的标签"：CSS 里 .tab-content 默认 display:none，
-    // 只隐藏按钮而把 active 留在 contentToc，会让纯 ToB 产品打开后主内容区空白
-    if (hasToc) activateTab("toc");
+    // 只隐藏按钮而把 active 留在 contentToc，会让纯 ToB 产品打开后主内容区空白。
+    // ?tab=toc|tob 可直接深链到指定版本（仅在该版本存在时生效）。
+    var wanted = getQueryParam("tab");
+    if (wanted === "tob" && hasTob) activateTab("tob");
+    else if (wanted === "toc" && hasToc) activateTab("toc");
+    else if (hasToc) activateTab("toc");
     else if (hasTob) activateTab("tob");
 
     if (!hasToc && !hasTob) {
@@ -200,24 +206,58 @@
     }
   }
 
-  /** 切换标签页：同步按钮 active 与面板 active（面板 id 形如 contentToc / contentTob）。 */
-  function activateTab(key) {
+  /** 切换标签页：同步按钮 active 与面板 active（面板 id 形如 contentToc / contentTob）。
+   *  updateUrl 为 true 时把当前版本写进地址栏，便于复制/分享到具体版本。 */
+  function activateTab(key, updateUrl) {
     var suffix = key.charAt(0).toUpperCase() + key.slice(1);
     document.querySelectorAll(".tab").forEach(function (t) {
-      t.classList.toggle("active", t.getAttribute("data-tab") === key);
+      var on = t.getAttribute("data-tab") === key;
+      t.classList.toggle("active", on);
+      t.setAttribute("aria-selected", on ? "true" : "false");
+      t.setAttribute("tabindex", on ? "0" : "-1");
     });
     document.querySelectorAll(".tab-content").forEach(function (c) {
       c.classList.remove("active");
+      c.setAttribute("aria-hidden", "true");
     });
     var panel = document.getElementById("content" + suffix);
-    if (panel) panel.classList.add("active");
+    if (panel) {
+      panel.classList.add("active");
+      panel.removeAttribute("aria-hidden");
+    }
+    if (updateUrl) {
+      // 静态页只需 ?tab=；旧版 detail.html?id= 必须保留 id，否则刷新后丢失产品
+      var url = isStaticPage
+        ? "?tab=" + key
+        : "?id=" + encodeURIComponent(currentId) + "&tab=" + key;
+      try {
+        history.replaceState(null, "", url);
+      } catch (e) {
+        /* 老浏览器不支持时忽略，不影响内容展示 */
+      }
+    }
   }
 
   function initTabs() {
-    var tabs = document.querySelectorAll(".tab");
+    var tabs = Array.prototype.slice.call(document.querySelectorAll(".tab"));
     tabs.forEach(function (tab) {
       tab.addEventListener("click", function () {
-        activateTab(this.getAttribute("data-tab"));
+        activateTab(this.getAttribute("data-tab"), true);
+      });
+      /* 键盘：左右方向键切换，Home/End 跳到首尾（WAI-ARIA tab 模式） */
+      tab.addEventListener("keydown", function (e) {
+        var visible = tabs.filter(function (t) { return t.style.display !== "none"; });
+        var i = visible.indexOf(this);
+        if (i === -1) return;
+        var next = null;
+        if (e.key === "ArrowRight") next = visible[(i + 1) % visible.length];
+        else if (e.key === "ArrowLeft") next = visible[(i - 1 + visible.length) % visible.length];
+        else if (e.key === "Home") next = visible[0];
+        else if (e.key === "End") next = visible[visible.length - 1];
+        if (!next) return;
+        e.preventDefault();
+        next.focus();
+        activateTab(next.getAttribute("data-tab"), true);
       });
     });
   }
@@ -226,7 +266,92 @@
     document.getElementById("loading").innerHTML = '<div class="error">' + html + "</div>";
   }
 
+  function detailHref(pid) {
+    return "p/" + encodeURIComponent(pid) + ".html";
+  }
+
+  /** 详情页 URL：静态页用 p/{id}.html，旧入口保留 detail.html?id= */
+  function canonicalUrl(pid) {
+    var base = "https://838860610.github.io/ai-policy-tracker/";
+    return isStaticPage
+      ? base + detailHref(pid)
+      : base + "detail.html?id=" + encodeURIComponent(pid);
+  }
+
+  /** 静态页的 OG 已在构建期写好；这里兜底动态刷新，兼容旧的 detail.html?id= 入口 */
+  function updateMeta(data) {
+    var url = canonicalUrl(data.id);
+    var ogTitle = data.name + " 隐私政策与训练数据设置——AI 用户政策追踪器";
+    var ogDesc = (data.analysis_summary || data.description || "").slice(0, 100);
+    [["og:title", ogTitle], ["og:description", ogDesc], ["og:url", url]].forEach(function (pair) {
+      var el = document.querySelector('meta[property="' + pair[0] + '"]');
+      if (el) el.setAttribute("content", pair[1]);
+    });
+    var canonical = document.querySelector('link[rel="canonical"]');
+    if (canonical) canonical.setAttribute("href", url);
+  }
+
+  /** 站内导航：同厂商其他产品 + 按列表顺序的上一个/下一个。
+   *  属于增强功能，bundle 缺失或网络失败时静默不渲染。 */
+  function renderNav(data) {
+    var nav = document.getElementById("detailNav");
+    if (!nav) return;
+    fetch("generated/bundle.json")
+      .then(function (res) {
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        return res.json();
+      })
+      .then(function (bundle) {
+        var products = (bundle && bundle.policies) || [];
+        var idx = -1;
+        products.forEach(function (p, i) {
+          if (p.id === data.id) idx = i;
+        });
+        if (idx === -1) return;
+
+        var vendor = PT.vendorOf(data.company);
+        var siblings = products.filter(function (p) {
+          return p.id !== data.id && PT.vendorOf(p.company) === vendor;
+        });
+        var prev = idx > 0 ? products[idx - 1] : null;
+        var next = idx < products.length - 1 ? products[idx + 1] : null;
+
+        var parts = [];
+        if (siblings.length) {
+          parts.push(
+            '<div class="nav-group"><div class="nav-label">同厂商其他产品</div>' +
+            '<div class="nav-links">' +
+            siblings.map(function (p) {
+              return '<a href="' + detailHref(p.id) + '">' +
+                PT.escapeHtml(p.name || p.id) + "</a>";
+            }).join("") + "</div></div>"
+          );
+        }
+
+        var pager = [];
+        if (prev) {
+          pager.push('<a class="nav-prev" href="' + detailHref(prev.id) + '">' +
+            "<span>&larr; 上一个</span><strong>" +
+            PT.escapeHtml(prev.name || prev.id) + "</strong></a>");
+        }
+        if (next) {
+          pager.push('<a class="nav-next" href="' + detailHref(next.id) + '">' +
+            "<span>下一个 &rarr;</span><strong>" +
+            PT.escapeHtml(next.name || next.id) + "</strong></a>");
+        }
+        if (pager.length) parts.push('<div class="nav-pager">' + pager.join("") + "</div>");
+
+        if (!parts.length) return;
+        nav.innerHTML = parts.join("");
+        nav.hidden = false;
+      })
+      .catch(function () {
+        /* 导航加载失败不影响正文 */
+      });
+  }
+
   function loadDetail(id) {
+    currentId = id;
     fetch("data/policies/" + id + ".json")
       .then(function (res) {
         if (!res.ok) throw new Error("HTTP " + res.status);
@@ -240,14 +365,7 @@
           "<span>地区：" + PT.escapeHtml(data.region) + "</span>";
         document.getElementById("productDesc").textContent = data.description || "";
 
-        /* 动态更新 OG 标签，使分享详情页链接时社交卡片显示产品名 */
-        var ogUrl = "https://838860610.github.io/ai-policy-tracker/detail.html?id=" + encodeURIComponent(data.id);
-        var ogTitle = data.name + "——AI 用户政策追踪器";
-        var ogDesc = (data.analysis_summary || data.description || "").slice(0, 100);
-        [["og:title", ogTitle], ["og:description", ogDesc], ["og:url", ogUrl]].forEach(function (pair) {
-          var el = document.querySelector('meta[property="' + pair[0] + '"]');
-          if (el) el.setAttribute("content", pair[1]);
-        });
+        updateMeta(data);
 
         syncTabs(data.versions || {}, data);
         if (data.versions && data.versions.toc) {
@@ -282,6 +400,7 @@
         document.getElementById("loading").style.display = "none";
         document.getElementById("detailContent").style.display = "block";
         initTabs();
+        renderNav(data);
       })
       .catch(function (err) {
         showError(
@@ -292,7 +411,10 @@
   }
 
   document.addEventListener("DOMContentLoaded", function () {
-    var id = getQueryParam("id");
+    // 静态页在 body 上写死产品 id；旧入口仍有 ?id=
+    var staticId = document.body.getAttribute("data-product-id");
+    isStaticPage = !!staticId;
+    var id = staticId || getQueryParam("id");
     // ID 只允许字母数字和连字符，阻断路径拼接异常并给出友好提示
     if (!id || !/^[a-z0-9-]+$/i.test(id)) {
       showError('产品 ID 无效，请从<a href="index.html">首页</a>选择产品进入。');
