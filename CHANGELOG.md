@@ -13,6 +13,7 @@
 
 - **产品独立静态详情页**：新增 `scripts/gen_product_pages.py`，以 `site/detail.html` 为模板生成 48 个 `site/p/{id}.html`，每个页面有独立 `title`、描述、`og:title/description/url`、`twitter` 卡片与 `canonical`，并写入静态 `<noscript>` 摘要；`site/sitemap.xml` 改由同一脚本生成。首页所有详情链接切到 `p/{id}.html`，旧 `detail.html?id=` 入口继续可用
 - **详情页站内导航与版本深链**：同厂商其他产品、按列表顺序的上一个/下一个；`?tab=toc|tob` 可直接打开指定版本，切换标签时同步地址栏
+- **明亮主题**：新增 `site/js/theme.js` 与顶栏/详情页/文档页的主题切换按钮，选择写入 `localStorage` 并在样式表加载前应用，避免亮色用户看到黑屏闪烁；亮色 token 重新校准了正文、风险信号色与边框的对比度。**默认使用明亮主题**，只有用户显式选择过暗色才保持暗色
 - **抓取健康队列**：新增 `site/generated/monitor_health.json`，与"政策变化待核实队列"分离。每轮由 `update_status.json` 完全重建，记录 `health`、失败原因、连续不健康轮次与建议动作；目标恢复后条目自动消失
 - **目标级抓取配置**：`versions.*` 与 `sources[]` 条目支持 `fetch_method`、`content_selector`、`wait_for_selector`、`min_body_chars`，不必为一个站点把整产品都切成浏览器抓取；`--no-browser` 现在只跳过 `browser` 目标
 - **局部重试**：`check_updates.py` 新增 `--products`、`--only <pid>:<key>`、`--no-prune`，只重跑选中目标、其余继承上次状态（`meta.partial_run`），修完抓取配置后无需重跑全量
@@ -21,6 +22,8 @@
 
 ### Changed
 
+- **首页对比表合并为三列**：原「个人版训练 / 企业版训练 / 个人版风险 / 企业版风险」四列改为「个人版 / 企业版」两列，训练徽章与风险等级在同一单元格内并排展示（`.version-cell`），减少只占几个字符的风险列浪费的宽度；展开行 `colspan` 同步改为 3
+- **风险等级完整文案**：表格风险由「🔴 高 / 🟡 中 / 🟢 低」改为「高风险 / 中风险 / 低风险」，并换成彩色圆点 + 轻量描边徽章的统一样式，避免 emoji 在不同平台宽度与基线不一致；筛选按钮同步使用完整文案
 - **光晕性能降级**：移除首页 3 个 420–520px 光晕的 `filter: blur(120px)`（大半径模糊在移动端/低端 GPU 上持续合成），改用 `radial-gradient` 的天然柔边；≤768px 少画一层光晕，`prefers-reduced-motion` 下关闭顶栏与返回按钮的 `backdrop-filter`
 - **首页展示优化**：压缩 Hero 与统计卡片、风险图例改为默认折叠的 `<details>`，1440×900 下表格从折叠线以下（920px）提前到 708px；窄屏把三组筛选改为单行横向滑动，表格改为卡片式（每个单元格带列名），375×812 下表格提前到 767px 且不再需要横向拖拽找风险列
 - **首页核实日期改取数据最大值**：不再读 `products.json` 的 `meta.last_updated`（会停留在旧日期），改为取所有产品 `last_verified` 的最大值，并显示完整 `YYYY-MM-DD`；`gen_data_bundle.py` 白名单补 `last_verified`，否则首页取不到该字段
@@ -41,6 +44,7 @@
 
 ### Fixed
 
+- **展开详情后表格列宽漂移**：产品行展开的 `colspan` 详情内容参与自动布局，会把「个人版」等列挤走。`#compareTable` 改为 `table-layout: fixed` 并显式分配列宽，窄屏单独分配，展开前后表头零位移
 - **CI 时区误判**：`validate_data.py` 与回归测试原用 runner 的 UTC 日期判断 `last_verified` 是否为未来日期，北京时间 00:00–08:00 会把当天数据判错；改为统一按 Asia/Shanghai 计算“今天”
 - **表格表头吸附失效**：`.table-wrapper` 的 `overflow-x: auto` 使它成为滚动容器，`thead th { position: sticky }` 在纵向不生效，48 行滚到后面完全看不到列名。桌面改为放开 overflow、表头吸附在 56px 顶栏下方；窄屏改为容器内滚动
 - **首页“人工核实”日期过期**：页面一直显示 `meta.last_updated`（2026-08-31），与实际 `last_verified`（2026-10-22）脱节，且 Hero 只显示 `MM-DD` 丢年份。改为数据驱动并显示完整日期

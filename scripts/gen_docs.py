@@ -25,7 +25,7 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DOCS_DIR = os.path.join(BASE_DIR, "site", "docs")
 
 # 站点资源版本号：必须与 site/*.html 里的 ?v= 保持一致（tests 会校验）
-ASSET_VERSION = "20261022-2"
+ASSET_VERSION = "20261022-6"
 
 # 文档页标题与副标题
 DOC_META = {
@@ -57,9 +57,19 @@ TEMPLATE = """<!DOCTYPE html>
   <meta name="description" content="{description}">
   <title>{title} - AI 用户政策追踪器</title>
   <link rel="icon" href="{favicon}">
+  <script src="../js/theme.js?v={version}"></script>
   <link rel="stylesheet" href="../css/style.css?v={version}">
 </head>
 <body>
+  <button class="theme-toggle theme-toggle-fixed" type="button" data-theme-toggle aria-label="切换到暗色主题" title="切换到暗色主题" aria-pressed="true">
+    <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="4"/>
+      <path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M19.1 4.9l-1.4 1.4M6.3 17.7l-1.4 1.4"/>
+    </svg>
+    <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M20 14.5A8.5 8.5 0 0 1 9.5 4 7 7 0 1 0 20 14.5z"/>
+    </svg>
+  </button>
   <div class="header">
     <h1>{title}</h1>
     <p class="subtitle">{subtitle}</p>

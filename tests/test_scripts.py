@@ -255,8 +255,9 @@ class TestLayout(unittest.TestCase):
             app = f.read()
         self.assertNotIn("trainCell(toc && toc.used_for_training)", app)
         self.assertNotIn("trainCell(tob && tob.used_for_training)", app)
-        self.assertIn("trainCell(toc)", app)
-        self.assertIn("trainCell(tob)", app)
+        self.assertIn("trainCell(v)", app)  # versionCell 内部按版本对象渲染
+        self.assertIn("versionCell(toc)", app)
+        self.assertIn("versionCell(tob)", app)
 
     def test_desktop_table_header_sticks_below_topbar(self):
         """回归：.table-wrapper 的 overflow-x 会让表头 sticky 失效。
@@ -276,8 +277,9 @@ class TestLayout(unittest.TestCase):
         """窄屏不再横向滚动找列：表格改为卡片，每个单元格带列名。"""
         with open(os.path.join(SITE_DIR, "js", "app.js"), encoding="utf-8") as f:
             app = f.read()
-        self.assertIn('data-label="个人版训练"', app)
-        self.assertIn('data-label="企业版风险"', app)
+        self.assertIn('data-label="个人版"', app)
+        self.assertIn('data-label="企业版"', app)
+        self.assertNotIn('data-label="个人版风险"', app, "风险不应再单独占一列")
         with open(os.path.join(SITE_DIR, "css", "style.css"), encoding="utf-8") as f:
             css = f.read()
         match = re.search(r"@media \(max-width: 640px\) \{(.*?)\n\}", css, re.S)
@@ -345,6 +347,100 @@ class TestLayout(unittest.TestCase):
         hi, lo = sorted([luminance(fg), luminance(bg)], reverse=True)
         ratio = (hi + 0.05) / (lo + 0.05)
         self.assertGreaterEqual(ratio, 4.5, f"--text-tertiary 对比度仅 {ratio:.2f}:1")
+
+    def test_light_theme_toggle_is_wired_on_main_pages(self):
+        """明亮主题：CSS 提供 token，页面提供切换按钮，theme.js 必须先于样式表执行。"""
+        with open(os.path.join(SITE_DIR, "css", "style.css"), encoding="utf-8") as f:
+            css = f.read()
+        self.assertIn('html[data-theme="light"]', css)
+        self.assertIn("color-scheme: light", css)
+
+        for page in ("index.html", "detail.html",
+                     os.path.join("docs", "methodology.html")):
+            with open(os.path.join(SITE_DIR, page), encoding="utf-8") as f:
+                html = f.read()
+            self.assertIn("data-theme-toggle", html, f"{page} 缺少主题切换按钮")
+            self.assertIn("theme.js", html, f"{page} 未加载 theme.js")
+            self.assertLess(html.index("theme.js"), html.index("css/style.css"),
+                            f"{page} 的 theme.js 必须在样式表之前，避免主题闪烁")
+
+        with open(os.path.join(SITE_DIR, "js", "theme.js"), encoding="utf-8") as f:
+            js = f.read()
+        for needle in ("localStorage.getItem", "localStorage.setItem", "data-theme"):
+            self.assertIn(needle, js, f"theme.js 缺少：{needle}")
+        # 未存过偏好时默认明亮：只有显式选过 dark 才保持暗色
+        self.assertIn('storedTheme() === "dark" ? "dark" : "light"', js,
+                      "theme.js 应在无偏好时默认使用明亮主题")
+
+        # 亮色 Hero 渐变必须用 background-image：background 简写会重置
+        # background-clip: text，整个标题会变成一块纯色块。
+        accent = re.search(
+            r'html\[data-theme="light"\] \.hero-title-accent\s*\{(.*?)\}', css, re.S)
+        self.assertIsNotNone(accent, "缺少亮色 Hero 渐变覆盖")
+        self.assertRegex(accent.group(1), r"background-image\s*:")
+        self.assertNotRegex(accent.group(1), r"background\s*:",
+                            "不要用 background 简写，会覆盖 background-clip: text")
+
+    def test_compare_table_merges_training_and_risk_into_two_columns(self):
+        """个人版/企业版各一列：训练结论与风险等级在同一单元格内展示。"""
+        with open(os.path.join(SITE_DIR, "js", "app.js"), encoding="utf-8") as f:
+            app = f.read()
+        self.assertIn("function versionCell(", app)
+        self.assertIn("trainCell(v) + riskMini(v)", app)
+        self.assertIn('<td colspan="3"', app)
+        self.assertNotIn('<td colspan="5"', app)
+        # 风险展示完整等级文案，不再用「🔴 高」这类缩写/emoji
+        self.assertIn("PT.RISK_LABELS[v.risk_level]", app)
+        for emoji in ("🟢", "🟡", "🔴"):
+            self.assertNotIn(emoji, app)
+
+        with open(os.path.join(SITE_DIR, "index.html"), encoding="utf-8") as f:
+            html = f.read()
+        self.assertIn("<th>个人版</th>", html)
+        self.assertIn("<th>企业版</th>", html)
+        self.assertNotIn("<th>个人版训练</th>", html)
+        for level in ("低风险", "中风险", "高风险"):
+            self.assertIn(f">{level}</button>", html)
+
+        with open(os.path.join(SITE_DIR, "css", "style.css"), encoding="utf-8") as f:
+            css = f.read()
+        self.assertIn(".version-cell", css)
+        self.assertIn(".risk-mini.green", css)
+        self.assertIn(".version-cell .risk-mini .risk-dot", css)
+
+    def test_light_theme_colors_meet_wcag_aa(self):
+        """亮色 token 的正文与信号色在白底/浅灰底上须保持 >= 4.5:1。"""
+        with open(os.path.join(SITE_DIR, "css", "style.css"), encoding="utf-8") as f:
+            css = f.read()
+        block = re.search(r'html\[data-theme="light"\]\s*\{(.*?)\n\}', css, re.S).group(1)
+
+        def token(name):
+            return re.search(rf"--{name}:\s*#([0-9a-fA-F]{{6}})", block).group(1)
+
+        def luminance(hex_color):
+            channels = [int(hex_color[i:i + 2], 16) / 255 for i in (0, 2, 4)]
+            linear = [c / 12.92 if c <= 0.04045 else ((c + 0.055) / 1.055) ** 2.4
+                      for c in channels]
+            return 0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2]
+
+        def contrast(fg, bg):
+            hi, lo = sorted([luminance(fg), luminance(bg)], reverse=True)
+            return (hi + 0.05) / (lo + 0.05)
+
+        backgrounds = [token("bg"), token("bg-card")]
+        for name in ("text-tertiary", "green", "yellow", "red"):
+            for bg in backgrounds:
+                ratio = contrast(token(name), bg)
+                self.assertGreaterEqual(
+                    ratio, 4.5, f"亮色 --{name} 在 #{bg} 上对比度仅 {ratio:.2f}:1")
+
+    def test_compare_table_layout_is_stable_when_detail_row_opens(self):
+        """展开行是 colspan=3 的内容；表格若用 auto 布局会反过来挤动列宽。"""
+        with open(os.path.join(SITE_DIR, "css", "style.css"), encoding="utf-8") as f:
+            css = f.read()
+        self.assertIn("table-layout: fixed", css)
+        for width in ("width: 34%", "width: 33%"):
+            self.assertIn(width, css)
 
     def test_detail_page_supports_static_entry_and_deep_links(self):
         """详情页既支持 p/{id}.html 静态入口，也保留旧 ?id= 入口；

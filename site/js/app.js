@@ -190,9 +190,15 @@
 
   function riskMini(v) {
     if (!v || !v.risk_level) return '<span class="cell-na">—</span>';
-    var labels = { green: "🟢 低", yellow: "🟡 中", red: "🔴 高" };
-    return '<span class="risk-mini ' + PT.escapeHtml(v.risk_level) + '">' +
-      (labels[v.risk_level] || "—") + "</span>";
+    var level = PT.escapeHtml(v.risk_level);
+    var label = PT.RISK_LABELS[v.risk_level] || "—";
+    return '<span class="risk-mini ' + level + '" title="风险等级：' + label + '">' +
+      '<span class="risk-dot ' + level + '"></span>' + label + "</span>";
+  }
+
+  /* 训练结论 + 风险等级合并到一列：风险只占几个字符，单独开列浪费宽度 */
+  function versionCell(v) {
+    return '<div class="version-cell">' + trainCell(v) + riskMini(v) + "</div>";
   }
 
   function versionPanel(title, v, emptyReason) {
@@ -272,7 +278,7 @@
     var filtered = allProducts.filter(matchesFilters);
     updateResultCount(filtered.length);
     if (filtered.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="5" class="no-data">' +
+      tbody.innerHTML = '<tr><td colspan="3" class="no-data">' +
         "<div>没有符合条件的产品</div>" +
         '<button type="button" class="link-btn" id="clearFilters">清除全部筛选</button>' +
         "</td></tr>";
@@ -298,7 +304,7 @@
       html += '<tr class="group-row" data-open="' + (isOpen ? "true" : "false") +
         '" data-vendor="' + PT.escapeHtml(v) +
         '" tabindex="0" role="button" aria-expanded="' + (isOpen ? "true" : "false") + '">' +
-        '<td colspan="5"><div class="row-pin"><span class="tri">▾</span> ' + PT.escapeHtml(v) +
+        '<td colspan="3"><div class="row-pin"><span class="tri">▾</span> ' + PT.escapeHtml(v) +
         '<span class="group-count">' + list.length + ' 款产品</span></div></td></tr>';
       list.forEach(function (p, idx) {
         var toc = (p.versions && p.versions.toc) || null;
@@ -311,14 +317,12 @@
         html += '<tr class="product-row' + lastCls + '" data-id="' + PT.escapeHtml(p.id) +
           '" tabindex="0" role="button" aria-expanded="false"' + rowHidden + '>' +
           '<td class="cell-name"><strong>' + PT.escapeHtml(p.name) + "</strong>" + flag + "</td>" +
-          '<td data-label="个人版训练">' + trainCell(toc) + "</td>" +
-          '<td data-label="企业版训练">' + trainCell(tob) + "</td>" +
-          '<td data-label="个人版风险">' + riskMini(toc) + "</td>" +
-          '<td data-label="企业版风险">' + riskMini(tob) + "</td></tr>" +
+          '<td data-label="个人版">' + versionCell(toc) + "</td>" +
+          '<td data-label="企业版">' + versionCell(tob) + "</td></tr>" +
           // 详情行按需渲染：50 个产品的展开面板不必在每次筛选时都重建，
           // 只在真正展开时生成（首次展开前保持空单元格）
           '<tr class="detail-row" hidden data-pid="' + PT.escapeHtml(p.id) +
-          '"><td colspan="5"></td></tr>';
+          '"><td colspan="3"></td></tr>';
       });
     });
     tbody.innerHTML = html;

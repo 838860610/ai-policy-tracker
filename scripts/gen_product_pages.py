@@ -102,7 +102,7 @@ def build_page(template, policy):
 
     noscript = (
         "<noscript>\n"
-        '    <div style="padding:24px;max-width:760px;margin:0 auto;color:#a1a1aa;line-height:1.8">\n'
+        '    <div style="padding:24px;max-width:760px;margin:0 auto;color:var(--text-secondary);line-height:1.8">\n'
         f"      <p><strong>{esc(name, quote=False)}</strong>"
         f"（{esc(company, quote=False)} · {esc(region, quote=False)}）</p>\n"
         f"      <p>{esc(desc, quote=False)}</p>\n"
