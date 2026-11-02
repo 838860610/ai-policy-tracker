@@ -1,4 +1,45 @@
 {
-  "updated_at": "2026-10-26T05:58:14.791243",
-  "items": {}
+  "updated_at": "2026-11-02T07:25:16.238127",
+  "items": {
+    "tencent-yuanbao:main": {
+      "pid": "tencent-yuanbao",
+      "name": "腾讯元宝",
+      "key": "main",
+      "label": "主监控页",
+      "url": "https://rule.tencent.com/rule/202403110001",
+      "status": "changed",
+      "first_seen": "2026-11-02T07:25:16.238127",
+      "last_seen": "2026-11-02T07:25:16.238127"
+    },
+    "tencent-yuanbao:toc": {
+      "pid": "tencent-yuanbao",
+      "name": "腾讯元宝",
+      "key": "toc",
+      "label": "个人版条款",
+      "url": "https://privacy.qq.com/document/preview/eb9be56572ab4886b6ca124e72abf413",
+      "status": "changed",
+      "first_seen": "2026-11-02T07:25:16.238127",
+      "last_seen": "2026-11-02T07:25:16.238127"
+    },
+    "gemini:toc": {
+      "pid": "gemini",
+      "name": "Gemini",
+      "key": "toc",
+      "label": "个人版条款",
+      "url": "https://support.google.com/gemini/answer/13594961?hl=zh-CN&gl=US",
+      "status": "changed",
+      "first_seen": "2026-11-02T07:25:16.238127",
+      "last_seen": "2026-11-02T07:25:16.238127"
+    },
+    "yuewen:main": {
+      "pid": "yuewen",
+      "name": "阶跃 AI（原跃问）",
+      "key": "main",
+      "label": "主监控页",
+      "url": "https://chat.stepfun.com/legal/terms",
+      "status": "changed",
+      "first_seen": "2026-11-02T07:25:16.238127",
+      "last_seen": "2026-11-02T07:25:16.238127"
+    }
+  }
 }
