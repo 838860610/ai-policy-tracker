@@ -1,4 +1,24 @@
 {
-  "updated_at": "2026-11-02T07:25:16.243330",
-  "items": {}
+  "updated_at": "2026-11-09T07:52:22.815325",
+  "items": {
+    "tiangong:main": {
+      "pid": "tiangong",
+      "name": "天工（昆仑万维）",
+      "key": "main",
+      "label": "主监控页",
+      "url": "https://static.tiangong.cn/fe/skywork-site-assets/html/agreement/web-20250814/privacy.html",
+      "health": "degraded",
+      "health_reason": "network",
+      "status": "failed",
+      "message": "检查失败：请求异常 - ConnectTimeout",
+      "monitor_scope": "ci",
+      "checked_this_run": true,
+      "last_checked": "2026-11-09T07:51:33.279103",
+      "last_good_at": "2026-11-02T07:24:24.693279",
+      "consecutive_runs": 1,
+      "first_seen": "2026-11-09T07:52:22.815325",
+      "last_seen": "2026-11-09T07:52:22.815325",
+      "next_action": "已保留上次有效快照；用 --only <pid>:<key> 单独重试并确认正文"
+    }
+  }
 }

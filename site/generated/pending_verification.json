@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-02T07:25:16.238127",
+  "updated_at": "2026-11-09T07:52:22.809918",
   "items": {
     "tencent-yuanbao:main": {
       "pid": "tencent-yuanbao",
@@ -9,7 +9,7 @@
       "url": "https://rule.tencent.com/rule/202403110001",
       "status": "changed",
       "first_seen": "2026-11-02T07:25:16.238127",
-      "last_seen": "2026-11-02T07:25:16.238127"
+      "last_seen": "2026-11-09T07:52:22.809918"
     },
     "tencent-yuanbao:toc": {
       "pid": "tencent-yuanbao",
@@ -40,6 +40,56 @@
       "status": "changed",
       "first_seen": "2026-11-02T07:25:16.238127",
       "last_seen": "2026-11-02T07:25:16.238127"
+    },
+    "claude:main": {
+      "pid": "claude",
+      "name": "Claude",
+      "key": "main",
+      "label": "主监控页",
+      "url": "https://www.anthropic.com/legal/consumer-terms",
+      "status": "changed",
+      "first_seen": "2026-11-09T07:52:22.809918",
+      "last_seen": "2026-11-09T07:52:22.809918"
+    },
+    "claude:tob": {
+      "pid": "claude",
+      "name": "Claude",
+      "key": "tob",
+      "label": "企业版条款",
+      "url": "https://www.anthropic.com/legal/commercial-terms",
+      "status": "changed",
+      "first_seen": "2026-11-09T07:52:22.809918",
+      "last_seen": "2026-11-09T07:52:22.809918"
+    },
+    "autoclaw:main": {
+      "pid": "autoclaw",
+      "name": "AutoClaw（智谱本地智能体，澳龙）",
+      "key": "main",
+      "label": "主监控页",
+      "url": "https://autoglm.aminer.cn/web/md2html/index.html?md=autoclaw_agreement&favicon=autoglm",
+      "status": "changed",
+      "first_seen": "2026-11-09T07:52:22.809918",
+      "last_seen": "2026-11-09T07:52:22.809918"
+    },
+    "minimax:tob": {
+      "pid": "minimax",
+      "name": "MiniMax（海螺 AI / 开放平台）",
+      "key": "tob",
+      "label": "企业版条款",
+      "url": "https://platform.minimaxi.com/protocol/user-agreement",
+      "status": "changed",
+      "first_seen": "2026-11-09T07:52:22.809918",
+      "last_seen": "2026-11-09T07:52:22.809918"
+    },
+    "minimax:source_platform_privacy": {
+      "pid": "minimax",
+      "name": "MiniMax（海螺 AI / 开放平台）",
+      "key": "source_platform_privacy",
+      "label": "source_platform_privacy",
+      "url": "https://platform.minimaxi.com/protocol/privacy-policy",
+      "status": "changed",
+      "first_seen": "2026-11-09T07:52:22.809918",
+      "last_seen": "2026-11-09T07:52:22.809918"
     }
   }
 }

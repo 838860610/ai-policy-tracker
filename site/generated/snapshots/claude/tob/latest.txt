@@ -1,6 +1,4 @@
-Section
 A
-:
 Services
 Legal center
 Commercial Terms of Service
@@ -11,6 +9,7 @@ Type
 Terms
 Audience
 Business
+Version history
 See version history
 Welcome to Anthropic! Before accessing our Services, please read these Commercial Terms of Service.
 These Commercial Terms of Service (“

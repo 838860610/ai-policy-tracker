@@ -1,6 +1,4 @@
-Section
 01
-:
 Who we are.
 Legal center
 Consumer Terms of Service
@@ -13,6 +11,7 @@ Audience
 Individual
 Language
 English
+Version history
 See version history
 Welcome to Anthropic! Before you access our services, please read these Terms of Service.
 These Terms of Service (“
