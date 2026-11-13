@@ -44,6 +44,7 @@
 
 ### Fixed
 
+- **内部流程图与文档描述校正**：`docs/architecture.html` 六处描述与代码不一致——回归测试实际 141 项（原写 121）；顶部“人工核实日期”优先取全部产品 `last_verified` 最大值、缺失才回退 `meta.last_updated`（原写直接取后者）；ci.yml concurrency 为 `cancel-in-progress: false`，同一分支多次推送串行执行、不取消旧运行（原描述“只保留最新一次”与设置矛盾）；监控 banner 实际文案为「检测到 N 个产品政策可能已更新」；OG 卡片由部署工作流现场生成、CI 不再重生成提交（`site/generated/og-card.png` 是历史遗留的入库旧副本）；bundle.json 约 33KB。同步修正 `docs/architecture.md`、`AGENTS.md`、对外文档 `site/docs/data-pipeline.md`（并澄清比对基于归一化文本全等、SHA256 仅作记录）并重生成 HTML；ci.yml 的 concurrency 注释同步改为与设置一致
 - **展开详情后表格列宽漂移**：产品行展开的 `colspan` 详情内容参与自动布局，会把「个人版」等列挤走。`#compareTable` 改为 `table-layout: fixed` 并显式分配列宽，窄屏单独分配，展开前后表头零位移
 - **CI 时区误判**：`validate_data.py` 与回归测试原用 runner 的 UTC 日期判断 `last_verified` 是否为未来日期，北京时间 00:00–08:00 会把当天数据判错；改为统一按 Asia/Shanghai 计算“今天”
 - **表格表头吸附失效**：`.table-wrapper` 的 `overflow-x: auto` 使它成为滚动容器，`thead th { position: sticky }` 在纵向不生效，48 行滚到后面完全看不到列名。桌面改为放开 overflow、表头吸附在 56px 顶栏下方；窄屏改为容器内滚动

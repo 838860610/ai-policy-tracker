@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI 政策追踪 · 端到端流程图（内部文档）</title>
+<style>
+  /* 自包含、零依赖；明暗跟随系统。内部文档，不发布到站点。 */
+  :root {
+    color-scheme: light dark;
+    --bg: #f7f7f8; --card: #ffffff; --border: #e4e5e9; --border-strong: #c9cbd2;
+    --fg: #1c1d21; --muted: #6f7480;
+    --blue: #2563eb; --purple: #7c3aed; --orange: #d97706; --green: #059669;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0e0e11; --card: #15151a; --border: rgba(255,255,255,0.09); --border-strong: rgba(255,255,255,0.22);
+      --fg: #ededf0; --muted: #9a9aa4;
+      --blue: #7ea6f7; --purple: #b39af9; --orange: #f0b45c; --green: #5fce9f;
+    }
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg); color: var(--fg);
+    font: 14px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    padding: 40px 20px 56px;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; }
+
+  /* ---------- 头部 ---------- */
+  .head h1 { font-size: 21px; font-weight: 700; letter-spacing: -.01em; }
+  .head .note { color: var(--muted); font-size: 12.5px; margin: 4px 0 26px; }
+  .head .note a { color: var(--muted); }
+  .legend { display: flex; flex-wrap: wrap; gap: 6px 18px; margin-bottom: 34px; }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); }
+  .cdot { width: 7px; height: 7px; border-radius: 50%; flex: none; display: inline-block; }
+
+  /* ---------- 分层区块 ---------- */
+  .stage-head { display: flex; align-items: baseline; gap: 13px; margin: 0 2px 13px; }
+  .stage-num { font-size: 34px; font-weight: 700; line-height: .9; letter-spacing: -.03em; }
+  .stage.tone-local  .stage-num { color: color-mix(in srgb, var(--purple) 55%, transparent); }
+  .stage.tone-ci     .stage-num { color: color-mix(in srgb, var(--blue) 55%, transparent); }
+  .stage.tone-pub    .stage-num { color: color-mix(in srgb, var(--green) 55%, transparent); }
+  .stage-title h2 { font-size: 15.5px; font-weight: 650; }
+  .stage-title p { font-size: 12px; color: var(--muted); margin-top: 1px; }
+  .stage-body { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+
+  /* ---------- 连接线（可点击） ---------- */
+  .connector { display: flex; align-items: center; justify-content: center; gap: 11px; padding: 13px 0 27px; }
+  .stem { position: relative; width: 18px; height: 30px; flex: none; }
+  .stem::before { content: ''; position: absolute; left: 50%; top: 0; bottom: 7px; width: 1.5px; transform: translateX(-50%); background: var(--border-strong); }
+  .stem::after { content: ''; position: absolute; left: 50%; bottom: 0; width: 8px; height: 8px; transform: translateX(-50%) rotate(45deg); border-right: 1.5px solid var(--border-strong); border-bottom: 1.5px solid var(--border-strong); }
+  .connector.loop .stem::before { background: none; border-left: 1.5px dashed var(--border-strong); }
+  .connector.loop .stem::after { transform: translateX(-50%) rotate(-135deg); }
+  .connector .lbl {
+    font: inherit; font-size: 12px; color: var(--muted); cursor: pointer;
+    background: var(--bg); border: 1px solid var(--border); border-radius: 99px; padding: 3px 12px;
+    transition: border-color .15s, color .15s;
+  }
+  .connector .lbl:hover { border-color: var(--border-strong); color: var(--fg); }
+  .connector .lbl[aria-expanded="true"] { border-color: var(--fg); color: var(--fg); }
+
+  /* ---------- 主节点 ---------- */
+  .card-node {
+    font: inherit; color: var(--fg); text-align: left; cursor: pointer;
+    background: var(--card); border: 1px solid var(--border); border-left-width: 3px;
+    border-radius: 12px; padding: 11px 16px 11px 14px;
+    display: flex; flex-direction: column; gap: 3px; min-width: 250px;
+    transition: border-color .15s, transform .15s, box-shadow .15s;
+  }
+  .card-node:hover { border-color: var(--border-strong); border-left-color: var(--border-strong); transform: translateY(-1px); box-shadow: 0 3px 14px rgba(0,0,0,.06); }
+  .card-node strong { font-size: 13.5px; font-weight: 600; }
+  .card-node .sub { font-size: 12px; color: var(--muted); }
+  .card-node .kicker { font-size: 11px; color: var(--muted); letter-spacing: .05em; }
+  .card-node[aria-expanded="true"] { border-color: var(--fg); box-shadow: inset 0 0 0 1px var(--fg); }
+  .card-node.tone-ci    { border-left-color: color-mix(in srgb, var(--blue) 62%, transparent); }
+  .card-node.tone-local { border-left-color: color-mix(in srgb, var(--purple) 62%, transparent); }
+  .card-node.tone-pub   { border-left-color: color-mix(in srgb, var(--green) 62%, transparent); }
+  .wide { flex: 1 1 100%; max-width: 660px; }
+
+  /* ---------- 双柱并行（②③） ---------- */
+  .duo { display: grid; grid-template-columns: 1fr 1px 1fr; gap: 0 22px; align-items: stretch; }
+  .duo-sep { background: linear-gradient(to bottom, transparent, var(--border) 10%, var(--border) 90%, transparent); }
+  @media (max-width: 730px) { .duo { grid-template-columns: 1fr; row-gap: 12px; } .duo-sep { display: none; } }
+
+  .pillar {
+    background: color-mix(in srgb, var(--card) 45%, transparent);
+    border: 1px solid var(--border); border-radius: 14px;
+    padding: 14px 15px 15px; display: flex; flex-direction: column; gap: 10px;
+  }
+  .pillar.tone-ci { border-top: 2px solid color-mix(in srgb, var(--blue) 55%, transparent); }
+  .pillar-head {
+    font: inherit; color: var(--fg); text-align: left; cursor: pointer;
+    display: flex; align-items: center; gap: 9px; background: none; border: none; padding: 0;
+  }
+  .pillar-head .cdot { width: 9px; height: 9px; }
+  .pillar-head .t { flex: 1; }
+  .pillar-head strong { font-size: 13.5px; font-weight: 650; display: block; }
+  .pillar-head span { font-size: 11.5px; color: var(--muted); display: block; }
+  .pillar-head:hover strong { text-decoration: underline; text-underline-offset: 3px; text-decoration-color: var(--border-strong); }
+  .pillar-head[aria-expanded="true"] strong { text-decoration: underline; text-underline-offset: 3px; }
+
+  .mini-list { display: flex; flex-direction: column; }
+  .mini {
+    font: inherit; color: var(--fg); text-align: left; cursor: pointer;
+    display: flex; gap: 10px; align-items: flex-start; width: 100%;
+    background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 8px 12px;
+    transition: border-color .15s;
+  }
+  .mini:hover { border-color: var(--border-strong); }
+  .mini[aria-expanded="true"] { border-color: var(--fg); box-shadow: inset 0 0 0 1px var(--fg); }
+  .mini i {
+    font-style: normal; flex: none; width: 19px; height: 19px; margin-top: 1px; border-radius: 50%;
+    display: grid; place-items: center; font-size: 10.5px; font-weight: 700;
+    background: color-mix(in srgb, var(--blue) 13%, transparent); color: var(--blue);
+  }
+  .pillar.mon .mini i { background: color-mix(in srgb, var(--purple) 13%, transparent); color: var(--purple); }
+  .mini .t { flex: 1; min-width: 0; }
+  .mini strong { font-size: 12.5px; font-weight: 600; display: block; }
+  .mini span { font-size: 11.5px; color: var(--muted); display: block; margin-top: 1px; }
+  .mini-link { flex: none; width: 1.5px; height: 9px; margin-left: 21px; background: var(--border-strong); }
+
+  .chip-row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+  .chip-row-label { font-size: 11px; color: var(--muted); letter-spacing: .04em; flex: none; }
+  .chip {
+    font: inherit; font-size: 12px; color: var(--fg); cursor: pointer;
+    display: inline-flex; align-items: center; gap: 6px;
+    background: var(--card); border: 1px solid var(--border); border-radius: 99px; padding: 3.5px 11px;
+    transition: border-color .15s;
+  }
+  .chip:hover { border-color: var(--border-strong); }
+  .chip[aria-expanded="true"] { border-color: var(--fg); box-shadow: inset 0 0 0 1px var(--fg); }
+
+  /* ---------- 详情弹层 ---------- */
+  .pop-backdrop { display: none; }
+  .pop { position: absolute; z-index: 50; width: min(460px, calc(100vw - 24px)); }
+  .pop[hidden] { display: none; }
+  .pop-card {
+    background: var(--card); border: 1px solid var(--border-strong); border-radius: 14px;
+    box-shadow: 0 14px 44px rgba(0,0,0,.16); padding: 16px 18px 15px; position: relative;
+  }
+  .pop-arrow {
+    position: absolute; top: -6px; width: 11px; height: 11px; background: var(--card);
+    border-left: 1px solid var(--border-strong); border-top: 1px solid var(--border-strong);
+    transform: rotate(45deg);
+  }
+  .pop.flip .pop-arrow { top: auto; bottom: -6px; transform: rotate(225deg); }
+  .pop-close {
+    position: absolute; top: 9px; right: 9px; width: 26px; height: 26px; border-radius: 8px;
+    border: 1px solid transparent; background: none; color: var(--muted); cursor: pointer;
+    font-size: 15px; line-height: 1; display: grid; place-items: center;
+  }
+  .pop-close:hover { border-color: var(--border); color: var(--fg); }
+  .pop-kicker { font-size: 11px; color: var(--muted); letter-spacing: .05em; display: block; margin-bottom: 3px; }
+  #pop-body h2 { font-size: 15px; font-weight: 650; margin-bottom: 5px; padding-right: 24px; }
+  #pop-body p { margin: 4px 0; }
+  #pop-body ul { margin: 7px 0 2px; padding-left: 19px; }
+  #pop-body li { margin: 3px 0; }
+  .files { display: flex; flex-wrap: wrap; gap: 5px 10px; margin: 8px 0 4px; }
+  code { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 12px; background: color-mix(in srgb, var(--muted) 13%, transparent); border-radius: 5px; padding: 1.5px 7px; }
+  #pop-body pre { margin: 8px 0; padding: 10px 13px; border-radius: 9px; background: color-mix(in srgb, var(--muted) 11%, transparent); overflow-x: auto; }
+  #pop-body pre code { background: none; padding: 0; }
+  .kv { width: 100%; border-collapse: collapse; margin: 8px 0 4px; font-size: 12px; }
+  .kv th, .kv td { text-align: left; padding: 4px 8px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  .kv th { color: var(--muted); font-weight: 600; }
+  .kv td:first-child { white-space: nowrap; }
+  .kv code { padding: 0 5px; }
+
+  @media (max-width: 640px) {
+    .pop { position: fixed; left: 10px; right: 10px; bottom: 10px; width: auto; }
+    .pop .pop-arrow { display: none; }
+    .pop-card { max-height: 64vh; overflow-y: auto; }
+    .pop-backdrop {
+      display: block; position: fixed; inset: 0; z-index: 40;
+      background: rgba(0,0,0,.42); border: 0; cursor: default;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="head">
+    <h1>AI 政策追踪 · 端到端流程图</h1>
+    <p class="note">内部文档（docs/architecture.html），不随站点发布 · 点击任意卡片、编号步骤、标签或<b>连线</b>，在旁边弹出该环节的详细说明 · Mermaid 版见 <a href="architecture.md">architecture.md</a></p>
+    <div class="legend" aria-label="颜色图例">
+      <span><i class="cdot" style="background:var(--blue)"></i>GitHub Actions 自动</span>
+      <span><i class="cdot" style="background:var(--purple)"></i>本地 / 人工</span>
+      <span><i class="cdot" style="background:var(--orange)"></i>变更 · 告警分流</span>
+      <span><i class="cdot" style="background:var(--green)"></i>产物 · 发布</span>
+    </div>
+  </div>
+
+  <!-- 01 数据真源 -->
+  <section class="stage tone-local">
+    <div class="stage-head">
+      <span class="stage-num">01</span>
+      <div class="stage-title"><h2>数据真源</h2><p>人工维护 · 一切展示与比对的唯一源头</p></div>
+    </div>
+    <div class="stage-body">
+      <button type="button" class="card-node tone-local" data-step="src-policies" aria-haspopup="dialog" aria-expanded="false">
+        <span class="kicker">人工唯一真源</span>
+        <strong>site/data/policies/{id}.json</strong>
+        <span class="sub">政策字段 · 版本政策 · 监控配置 · timeline</span>
+      </button>
+      <button type="button" class="card-node tone-local" data-step="src-products" aria-haspopup="dialog" aria-expanded="false">
+        <span class="kicker">展示顺序索引</span>
+        <strong>site/data/products.json</strong>
+        <span class="sub">产品 ID 列表，只定展示顺序，不存数据</span>
+      </button>
+    </div>
+  </section>
+
+  <div class="connector"><span class="stem" aria-hidden="true"></span><button type="button" class="lbl" data-step="conn-derive" aria-haspopup="dialog" aria-expanded="false">gen_*.py 派生产物（本地脚本，或 03 校验线 publish 自动重生成）</button></div>
+
+  <!-- 02+03 双线并行 -->
+  <section class="stage tone-ci">
+    <div class="stage-head">
+      <span class="stage-num">02·03</span>
+      <div class="stage-title"><h2>GitHub Actions · 两条相互独立的流水线</h2><p>监控线按周定时跑，校验线随提交跑，互不依赖</p></div>
+    </div>
+    <div class="duo">
+      <div class="pillar tone-ci">
+        <button type="button" class="pillar-head" data-step="ci-yml" aria-haspopup="dialog" aria-expanded="false">
+          <i class="cdot" style="background:var(--blue)"></i>
+          <span class="t"><strong>③ 校验线 · ci.yml</strong><span>push / PR 触发 · validate 只读，publish 才写回</span></span>
+        </button>
+        <div class="mini-list">
+          <button type="button" class="mini" data-step="ci-test" aria-haspopup="dialog" aria-expanded="false"><i>1</i><span class="t"><strong>回归测试</strong><span>141 项 · tests/test_scripts.py · 约 15 秒</span></span></button>
+          <div class="mini-link" aria-hidden="true"></div>
+          <button type="button" class="mini" data-step="ci-validate" aria-haspopup="dialog" aria-expanded="false"><i>2</i><span class="t"><strong>一致性检查</strong><span>validate_data · README 表 · 文档页 · 产品页 / sitemap</span></span></button>
+          <div class="mini-link" aria-hidden="true"></div>
+          <button type="button" class="mini" data-step="ci-publish" aria-haspopup="dialog" aria-expanded="false"><i>3</i><span class="t"><strong>publish：重生成产物并 bot 提交</strong><span>仅 main push 全绿时 · GITHUB_TOKEN 不再触发 push 事件</span></span></button>
+        </div>
+      </div>
+
+      <div class="duo-sep" aria-hidden="true"></div>
+
+      <div class="pillar tone-ci mon">
+        <button type="button" class="pillar-head" data-step="mon-cron" aria-haspopup="dialog" aria-expanded="false">
+          <i class="cdot" style="background:var(--purple)"></i>
+          <span class="t"><strong>② 监控线 · monitor.yml</strong><span>每周一 09:00 北京时间 / 手动 · --scope ci</span></span>
+        </button>
+        <div class="mini-list">
+          <button type="button" class="mini" data-step="mon-fetch" aria-haspopup="dialog" aria-expanded="false"><i>1</i><span class="t"><strong>抓取线上政策页</strong><span>requests + ETag/304，或无头浏览器 · main / toc / tob / sources[]</span></span></button>
+          <div class="mini-link" aria-hidden="true"></div>
+          <button type="button" class="mini" data-step="mon-extract" aria-haspopup="dialog" aria-expanded="false"><i>2</i><span class="t"><strong>提取正文并去噪</strong><span>剥 script/nav/footer · 滤时间戳 / 页脚锚点 / 头部导航</span></span></button>
+          <div class="mini-link" aria-hidden="true"></div>
+          <button type="button" class="mini" data-step="mon-compare" aria-haspopup="dialog" aria-expanded="false"><i>3</i><span class="t"><strong>归一化 → 比对基线快照</strong><span>空白折叠 · 与 latest.txt 全等比较 · sha256 仅作记录</span></span></button>
+        </div>
+        <div class="chip-row">
+          <span class="chip-row-label">双轴判定</span>
+          <button type="button" class="chip" data-step="axis-status" aria-haspopup="dialog" aria-expanded="false"><i class="cdot" style="background:var(--blue)"></i>status · 变没变</button>
+          <button type="button" class="chip" data-step="axis-health" aria-haspopup="dialog" aria-expanded="false"><i class="cdot" style="background:var(--blue)"></i>health · 能不能信</button>
+        </div>
+        <div class="chip-row">
+          <span class="chip-row-label">四路分流</span>
+          <button type="button" class="chip" data-step="br-pending" aria-haspopup="dialog" aria-expanded="false"><i class="cdot" style="background:var(--orange)"></i>changed → 待核实队列</button>
+          <button type="button" class="chip" data-step="br-health" aria-haspopup="dialog" aria-expanded="false"><i class="cdot" style="background:var(--orange)"></i>health 异常 → 健康队列</button>
+          <button type="button" class="chip" data-step="br-keep" aria-haspopup="dialog" aria-expanded="false"><i class="cdot" style="background:var(--blue)"></i>失败 → 不覆盖基线</button>
+          <button type="button" class="chip" data-step="local-mon" aria-haspopup="dialog" aria-expanded="false"><i class="cdot" style="background:var(--purple)"></i>local 目标 → 本地跑</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="connector"><span class="stem" aria-hidden="true"></span><button type="button" class="lbl" data-step="conn-workflowrun" aria-haspopup="dialog" aria-expanded="false">两条线完成后 workflow_run 触发（校验失败不部署 · 监控失败仍部署）</button></div>
+
+  <!-- 04 部署 -->
+  <section class="stage tone-pub">
+    <div class="stage-head">
+      <span class="stage-num">04</span>
+      <div class="stage-title"><h2>部署</h2><p>GitHub Pages · 只发布 site/ 目录</p></div>
+    </div>
+    <div class="stage-body">
+      <button type="button" class="card-node tone-pub wide" data-step="deploy" aria-haspopup="dialog" aria-expanded="false">
+        <span class="kicker">deploy.yml</span>
+        <strong>部署 GitHub Pages</strong>
+        <span class="sub">现场生成 OG 社交卡片（Noto CJK 字体）→ 上传 site/ → 对外 URL 不变</span>
+      </button>
+    </div>
+  </section>
+
+  <div class="connector"><span class="stem" aria-hidden="true"></span><button type="button" class="lbl" data-step="conn-render" aria-haspopup="dialog" aria-expanded="false">站点更新后，前端读取各产物渲染页面</button></div>
+
+  <!-- 05 展示 -->
+  <section class="stage tone-pub">
+    <div class="stage-head">
+      <span class="stage-num">05</span>
+      <div class="stage-title"><h2>展示</h2><p>index.html 与每产品详情页</p></div>
+    </div>
+    <div class="stage-body">
+      <button type="button" class="card-node tone-pub wide" data-step="site" aria-haspopup="dialog" aria-expanded="false">
+        <span class="kicker">对外站点</span>
+        <strong>首页 + 每产品详情页 /p/{id}</strong>
+        <span class="sub">读 bundle.json + update_status.json + monitor_health.json → 对比表 · 监控 banner · 抓取降级明细</span>
+      </button>
+    </div>
+  </section>
+
+  <div class="connector"><span class="stem" aria-hidden="true"></span><button type="button" class="lbl" data-step="conn-alert" aria-haspopup="dialog" aria-expanded="false">人看到「待核实」告警 · 检测 ≠ 核实，CI 不自动判定内容</button></div>
+
+  <!-- 06 核实闭环 -->
+  <section class="stage tone-local">
+    <div class="stage-head">
+      <span class="stage-num">06</span>
+      <div class="stage-title"><h2>核实闭环</h2><p>本地 agent + 人工 · 唯一会改写真源的环节</p></div>
+    </div>
+    <div class="stage-body">
+      <button type="button" class="card-node tone-local wide" data-step="verify" aria-haspopup="dialog" aria-expanded="false">
+        <span class="kicker">本地 · policy-change-verify skill</span>
+        <strong>diff → 判断 → 改数据 → --resolve</strong>
+        <span class="sub">policy_verify.py 看新旧快照 diff → 区分抓取噪声 / 真实变更 → 更新 policies/{id}.json → 清队列与告警</span>
+      </button>
+    </div>
+  </section>
+
+  <div class="connector loop"><span class="stem" aria-hidden="true"></span><button type="button" class="lbl" data-step="conn-loop" aria-haspopup="dialog" aria-expanded="false">核实后的数据修改 push 回 main → 重新触发 03 校验与 04 部署，闭环回到 01</button></div>
+
+</div>
+
+<!-- 详情弹层 -->
+<button type="button" class="pop-backdrop" id="pop-backdrop" tabindex="-1" aria-label="关闭详情"></button>
+<div class="pop" id="pop" role="dialog" aria-modal="false" aria-labelledby="pop-title" hidden>
+  <span class="pop-arrow" id="pop-arrow" aria-hidden="true"></span>
+  <div class="pop-card">
+    <button type="button" class="pop-close" id="pop-close" aria-label="关闭详情">✕</button>
+    <div id="pop-body"></div>
+  </div>
+</div>
+
+<script>
+(function () {
+  var pop = document.getElementById('pop');
+  var popCard = pop.querySelector('.pop-card');
+  var popBody = document.getElementById('pop-body');
+  var popArrow = document.getElementById('pop-arrow');
+  var popClose = document.getElementById('pop-close');
+  var backdrop = document.getElementById('pop-backdrop');
+  var currentAnchor = null;
+
+  var STEPS = {
+    /* ---------- 01 数据真源 ---------- */
+    'src-policies': {
+      stage: '01 · 数据真源',
+      title: 'site/data/policies/{id}.json —— 唯一人工真源',
+      desc: '每个产品的政策字段、版本政策（个人版 toc / 企业版 tob）、每个监控目标的抓取配置与变更 timeline 全部集中在这份 JSON。页面展示与自动监控都是它的派生物。',
+      files: ['site/data/policies/{id}.json', 'skills/policy-change-verify/references/policy_schema.md'],
+      cmds: [],
+      notes: ['红线：key_clauses 必须是政策原文摘录，评述写进可选的 verification_notes',
+              '改 policy_url 等 URL 后该目标会报 changed 进待核实队列——这是设计行为，需确认新来源后 --resolve']
+    },
+    'src-products': {
+      stage: '01 · 数据真源',
+      title: 'site/data/products.json —— 展示顺序索引',
+      desc: '只声明产品 ID 与首页展示顺序，不存任何业务数据；所有字段都在 policies/{id}.json。',
+      files: ['site/data/products.json'],
+      cmds: [],
+      notes: ['新增首页要展示的字段时，必须同步加入 gen_data_bundle.py 的 BUNDLE_TOP_FIELDS / BUNDLE_VERSION_FIELDS 白名单，否则首页显示"—"']
+    },
+
+    /* ---------- 连接线：派生 ---------- */
+    'conn-derive': {
+      stage: '01 → 02·03 · 派生',
+      title: 'gen_*.py：从真源生成全部展示物',
+      desc: 'README 汇总表、bundle.json、文档页、每产品详情页与 sitemap 均由生成脚本从真源派生，全部入库 git。产物文件禁止手工编辑——CI 会用 --check 校验一致性，不一致即红，main push 上还会由 bot 重新生成覆盖手改。',
+      files: ['scripts/gen_data_bundle.py → site/generated/bundle.json',
+              'scripts/gen_docs.py → site/docs/*.html',
+              'scripts/gen_product_pages.py → site/p/{id}.html + sitemap.xml',
+              'scripts/gen_readme_table.py → README 汇总表'],
+      cmds: ['.venv/bin/python scripts/gen_data_bundle.py\n.venv/bin/python scripts/gen_docs.py\n.venv/bin/python scripts/gen_product_pages.py'],
+      notes: ['新增首页要展示的字段 → 同步加 gen_data_bundle.py 的 BUNDLE_TOP_FIELDS / BUNDLE_VERSION_FIELDS 白名单',
+              '改过 site/js|css → 同步 ASSET_VERSION 与 site/*.html 里的 ?v=（测试校验一致性）',
+              'OG 社交卡片例外：由部署工作流现场生成，CI 不再重生成提交（仓库旧副本会逐渐过时），避免每次 CI 产生自动提交']
+    },
+
+    /* ---------- 02 监控线 ---------- */
+    'mon-cron': {
+      stage: '02 · 监控线',
+      title: 'monitor.yml 政策更新监控（每周一 09:00 北京时间）',
+      desc: 'cron "0 1 * * 1"（UTC 01:00 = 北京 09:00），也支持 Actions 页面手动触发。按 policies/{id}.json 展开全部监控目标（pid:key）：main 主监控页、toc 个人版条款、tob 企业版条款、sources[] 补充来源。配置优先级：目标级 > 产品级 > 全局默认。',
+      files: ['.github/workflows/monitor.yml', 'scripts/check_updates.py'],
+      cmds: ['gh workflow run "政策更新监控" --ref main   # 手动触发\npython scripts/check_updates.py --scope ci --delay 0.5 --timeout 20 --fail-on-error'],
+      notes: ['--scope ci 跳过 monitor_scope=local 的目标，沿用上次结果并加 skipped_this_run 标记',
+              'timeout-minutes: 45——70+ 目标、部分站点需无头浏览器渲染，留足余量',
+              '抓取失败只把 job 标红提醒，状态与快照已照常提交，Pages 也会照常发布']
+    },
+    'mon-fetch': {
+      stage: '02 · 监控线 · 步骤 1',
+      title: '抓取：条件请求为主，浏览器兜底',
+      desc: '默认 requests，带 ETag / Last-Modified 条件请求——服务端返回 304 直接判未变化，省流量也省一次比对；被 Cloudflare 拦截或需 JS 渲染的目标走 playwright 无头浏览器（可配 wait_for_selector，等节点出现视为渲染完成）。',
+      files: ['scripts/check_updates.py（fetch_with_retry / fetch_browser）'],
+      cmds: ['.venv/bin/python scripts/check_updates.py --only <pid>:<key> --timeout 60   # 单点重试'],
+      notes: ['每个目标是独立抓取/比对/重试单元，互不影响',
+              '可选增强：Secrets 里配 OPENAI_CF_CLEARANCE 可提升过 Cloudflare 概率，但绑 IP 且短时效',
+              '403/429 优先换 fetch_method: "browser" 而不是加延时']
+    },
+    'mon-extract': {
+      stage: '02 · 监控线 · 步骤 2',
+      title: '提取正文并多层去噪',
+      desc: 'BeautifulSoup 剥掉 script/style/nav/footer/aside 等，正文不在标准容器时用 content_selector 指定（命中多个取文本最长者，避免抓到页脚小容器）；再按序剔除 UI 噪音短语、动态时间戳、页脚锚点与正文前的站点导航。去噪是避免误报的关键——导航/语言列表的渲染波动曾让 ChatGPT 每轮假报 500 字差异。',
+      files: ['scripts/check_updates.py（extract_text）'],
+      cmds: [],
+      notes: ['content_selector 勿用带构建 hash 的 class（如 content-KzCsn4），站点重建即失效；用稳定 id 或 [class*=…]',
+              '正文短于 min_body_chars（默认 500）判 suspicious 空壳，不算变更、不覆盖基线',
+              'message 会附"实际拿到：标题《…》页面首段「…」"，据此区分 Cloudflare 挑战页 / 登录墙 / 404 / 空壳 / 空文档']
+    },
+    'mon-compare': {
+      stage: '02 · 监控线 · 步骤 3',
+      title: '归一化 → 与基线快照全等比较',
+      desc: '正文经 normalize_text 把所有连续空白折叠为单空格（换行、缩进、行内标签拆分均不敏感），再与入库基线 snapshots/{pid}/{key}/latest.txt 的归一化文本做全等比较（sha256 仅作记录，比对基于文本本身，哈希方案升级不会丢基线）。只有真实文字增删改才判 changed。',
+      files: ['site/generated/snapshots/{pid}/{key}/latest.txt（基线）', 'scripts/check_updates.py（normalize_text / compute_hash）'],
+      cmds: [],
+      notes: ['检测是确定性的：零漏报、可复现、零成本——"变没变"不需要也不应该交给模型判断',
+              '首次抓取无基线：记 initialized，下一轮开始比较']
+    },
+
+    /* ---------- 双轴判定 ---------- */
+    'axis-status': {
+      stage: '02 · 监控线 · 双轴判定',
+      title: 'status 轴：政策正文相对基线变没变',
+      desc: '监控结果里最容易搞混的地方——status 只回答"正文变没变"，与抓取是否成功无关。',
+      table: [['状态', '含义', '去向'],
+              ['ok', '文本与基线一致，或有效基线下服务端返回 304', '无'],
+              ['changed', '文本发生变化', '待核实队列 + 快照存档'],
+              ['failed', '请求失败 / 超时', '不误报为变更'],
+              ['suspicious', '正文过短（空壳）或本地基线缺失', '不当作正常结果'],
+              ['skipped', '本轮未检查（如 local 目标、monitor=false）', '沿用上次结果']],
+      files: ['scripts/check_updates.py（status 聚合：changed > failed > suspicious > ok）'],
+      cmds: [],
+      notes: ['status 与 health 正交：一次 Cloudflare 挑战只进健康队列，不会污染"政策是否变化"的判断']
+    },
+    'axis-health': {
+      stage: '02 · 监控线 · 双轴判定',
+      title: 'health 轴：这一轮抓到的正文能不能信',
+      desc: 'health 表达抓取质量，与正文是否变化无关。异常时进健康队列走"修抓取配置"的路线，与待核实队列互不污染。',
+      table: [['health', '含义', '进健康队列'],
+              ['ok', '正常可信', '否'],
+              ['initialized', '首次建立基线（不是异常）', '否'],
+              ['rebaselined', '基线缺失 / 哈希方案升级导致重建', '否'],
+              ['degraded', '本轮抓取异常，已保留上次有效快照', '是'],
+              ['no_baseline', '本轮抓取异常且无可信基线', '是'],
+              ['blocked', '被反爬 / 限流 / 拒绝访问（401/403/405/429/451）', '是']],
+      files: ['site/generated/monitor_health.json'],
+      cmds: [],
+      notes: ['两轴可同时发生：既抓坏了也真变了的情况，分别按各自路线处理']
+    },
+
+    /* ---------- 四路分流 ---------- */
+    'br-pending': {
+      stage: '02 · 监控线 · 四路分流',
+      title: 'changed → 待核实队列 + 快照存档',
+      desc: '判定为 changed 的目标：先把旧 latest.txt 备份为 prev.txt、写入当日日期快照（保留最近 12 份），再入 pending_verification.json——跨轮合并式交接物，只记 first_seen / last_seen，直到本地 --resolve 显式清除。检测到此为止，CI 不自动判定内容。',
+      files: ['site/generated/pending_verification.json', 'site/generated/snapshots/{pid}/{key}/prev.txt'],
+      cmds: ['.venv/bin/python skills/policy-change-verify/scripts/policy_verify.py --list   # 查看队列'],
+      notes: ['快照是检测→核实回路唯一的持久历史，删掉等于无法 diff',
+              '孤儿快照（不再监控的目标）会被 prune_orphan_snapshots 清理——所以 local 目标不能写成 skipped，否则快照被误删']
+    },
+    'br-health': {
+      stage: '02 · 监控线 · 四路分流',
+      title: 'health 异常 → 健康队列（修抓取，不当变更）',
+      desc: '网络超时、空壳页、被拦截等抓取层问题进 monitor_health.json，附 last_good_at / consecutive_runs 与 next_action 提示。修复顺序：看 diff 是不是噪声 → 加长超时单点重试 → 配 content_selector / fetch_method → 仍不通转 monitor_scope=local。',
+      files: ['site/generated/monitor_health.json', 'site/docs/update-monitoring.md'],
+      cmds: ['.venv/bin/python scripts/check_updates.py --only <pid>:<key> --timeout 60'],
+      notes: ['队列每轮由状态完全重建：目标恢复正常或下线监控后条目自动消失，无需手工清理',
+              '文件损坏时按空队列重建（它可从状态完全推导），不像 pending 队列那样失败关闭',
+              '示例：tiangong 在 CI 上 ConnectTimeout 但本机可达（HTTP 200）——典型的 CI 出口网络问题']
+    },
+    'br-keep': {
+      stage: '02 · 监控线 · 四路分流',
+      title: '抓取失败 → 绝不覆盖基线',
+      desc: '正文过短或请求失败时，脚本不写 latest.txt、不更新基线，只把 health 标为 degraded / no_baseline / blocked。这保住了页面展示的历史正文，也避免把"没抓到"当成"政策变了"。',
+      files: ['scripts/check_updates.py（base_target_result / health_for_failure）'],
+      cmds: [],
+      notes: ['text/html 与 PDF：PDF 内容不入基线（快照存 %PDF- 头即视为无正文）',
+              '收到 304 但本地无有效基线 → 拒绝接受条件响应，标 suspicious，防基线缺失时假"未变化"']
+    },
+    'local-mon': {
+      stage: '02 · 监控线 · 四路分流',
+      title: 'monitor_scope=local → 本地专属监控',
+      desc: 'GitHub runner 连不上的站点（trae：Cloudflare 拒绝数据中心 IP，describe_shell 显示"实际拿到：空文档"）标记 monitor_scope: "local"，由本地跑并以本地结果为准。脚本自动提交但不 push——push 与否由人决定，push 到 main 会触发 CI 与 Pages 真实发布。',
+      files: ['scripts/local_monitor.sh'],
+      cmds: ['./scripts/local_monitor.sh                    # 跑全部 local 目标，自动 commit 不 push\n./scripts/local_monitor.sh --only trae:main   # 只跑一个\ngit push origin main                          # 想让首页更新再手动推'],
+      notes: ['CI 侧沿用上次结果并加 skipped_this_run 标记——写成 skipped 会让覆盖率缩水，且快照会被当孤儿删掉，别改回去',
+              'local_monitor.sh 只 add 四个监控产物，不会捎带工作区其他未提交改动']
+    },
+
+    /* ---------- 03 校验线 ---------- */
+    'ci-yml': {
+      stage: '03 · 校验线',
+      title: 'ci.yml 数据校验（push main / PR 触发）',
+      desc: '仓库的守门员：validate 与 publish 是两个 job——validate 只读（persist-credentials: false），先跑全量回归测试再做一致性检查；PR 上只校验，main push 上才允许 publish 写回。校验不过 → 不生成、不发布，脏数据到不了线上。',
+      files: ['.github/workflows/ci.yml', 'tests/test_scripts.py'],
+      cmds: ['.venv/bin/python -m unittest discover -s tests -q   # 141 项，约 15 秒\n.venv/bin/python scripts/validate_data.py            # 0 错 0 警'],
+      notes: ['同一分支多次推送串行执行：同一时间只跑一个，后续排队依次全部执行（cancel-in-progress: false），不会取消旧运行']
+    },
+    'ci-test': {
+      stage: '03 · 校验线 · 步骤 1',
+      title: '回归测试：141 项（tests/test_scripts.py）',
+      desc: '单文件、类按关注点分组的全量回归：数据校验、监控行为（状态机/健康队列/去噪）、生成产物一致性、工作流不变量（如 monitor 的 checkout 必须保留凭据）等。是提交前的必跑项。',
+      files: ['tests/test_scripts.py'],
+      cmds: ['.venv/bin/python -m unittest discover -s tests -q'],
+      notes: ['新增抓取/生成行为时必须同步补回归测试（AGENTS.md 提交清单）',
+              'test_asset_version_is_consistent 锁定全站 ?v= 唯一；test_push_jobs_keep_checkout_credentials 锁定工作流不变量']
+    },
+    'ci-validate': {
+      stage: '03 · 校验线 · 步骤 2',
+      title: '一致性检查：数据结构与四个产物',
+      desc: 'validate_data.py 校验数据结构完整性（0 错 0 警才算过）；gen_readme_table / gen_docs / gen_product_pages 各带 --check，确保 README 表、文档页、产品详情页与 sitemap 和数据一致——手工改了产物会被当场查出。',
+      files: ['scripts/validate_data.py', 'scripts/gen_readme_table.py', 'scripts/gen_docs.py', 'scripts/gen_product_pages.py'],
+      cmds: ['.venv/bin/python scripts/validate_data.py\n.venv/bin/python scripts/gen_readme_table.py --check\n.venv/bin/python scripts/gen_docs.py --check\n.venv/bin/python scripts/gen_product_pages.py --check'],
+      notes: []
+    },
+    'ci-publish': {
+      stage: '03 · 校验线 · 步骤 3',
+      title: 'publish：重新生成产物并 bot 提交',
+      desc: '仅在 main push 且校验全绿时执行。重新生成 bundle / 文档页 / 产品页，生成后复验一遍，再 rebase 到最新 main 提交——保证运行期间的人工提交不被覆盖。',
+      files: ['.github/workflows/ci.yml'],
+      cmds: ['git pull --rebase --autostash origin main\ngit add site/generated/bundle.json site/docs/*.html site/p site/sitemap.xml\ngit diff --cached --quiet || (git commit -m "chore: CI 重新生成…" && git push)'],
+      notes: ['bot 用 GITHUB_TOKEN 提交，不会再触发 push 事件，因此不会死循环；部署靠 deploy.yml 的 workflow_run 兜底',
+              'PR（含 fork）无写权限，publish 只在 main push 跑']
+    },
+
+    /* ---------- 连接线：触发部署 ---------- */
+    'conn-workflowrun': {
+      stage: '02·03 → 04 · 触发',
+      title: 'workflow_run 触发：为什么不用 push 监听',
+      desc: 'deploy.yml 监听「数据校验」「政策更新监控」两个工作流的 completed 事件（限 main）。bot 用 GITHUB_TOKEN 提交不会触发 push 事件，若 deploy 监听 push 会漏掉 bot 提交的产物；workflow_run 无论提交者是人是 bot 都能覆盖。',
+      table: [['上游结果', '是否部署', '原因'],
+              ['数据校验成功', '部署', '正常路径'],
+              ['数据校验失败', '不部署', '数据可能不合法'],
+              ['监控成功', '部署', '正常路径'],
+              ['监控失败', '仍部署', '结果与快照已提交，跳过会让线上停更一周']],
+      files: ['.github/workflows/deploy.yml'],
+      cmds: [],
+      notes: ['concurrency group "pages" 同时只允许一个部署，避免相互覆盖',
+              '两线各自完成都会触发一次部署，短时间可能连发两次——属预期行为']
+    },
+
+    /* ---------- 04 部署 ---------- */
+    'deploy': {
+      stage: '04 · 部署',
+      title: 'deploy.yml → GitHub Pages',
+      desc: '打包上传 site/ 作为站点根发布（Pages 的 "Deploy from a branch" 不支持子目录，故用 Actions 部署）。部署时现场生成社交分享卡片：先装 Noto CJK 字体（缺字会让中文变豆腐块），跑 gen_og_image.py，再上传 site/。',
+      files: ['.github/workflows/deploy.yml', 'scripts/gen_og_image.py'],
+      cmds: [],
+      notes: ['对外 URL 不变：https://838860610.github.io/ai-policy-tracker/',
+              '一次性设置：仓库 Settings → Pages → Source 选 "GitHub Actions"',
+              '⚠️ 不要切到 "Deploy from a branch" 并选 /docs——会把内部文档公开',
+              'monitor.yml 的 job 要 git push 产物，checkout 不能加 persist-credentials: false（有测试锁定该不变量）']
+    },
+
+    /* ---------- 连接线：数据流 ---------- */
+    'conn-render': {
+      stage: '04 → 05 · 数据流',
+      title: '前端读什么：数据文件与回退链',
+      desc: '首页加载时按优先级读取：bundle.json（单请求全量，优先）→ 缺失时回退 products.json + policies/*.json 逐个请求。监控状态另读两个文件，详情页再读一份真源。',
+      table: [['文件', '用途'],
+              ['generated/bundle.json', '对比表格、筛选、顶部指标（白名单裁剪后约 33KB）'],
+              ['generated/update_status.json', '监控 banner「⚠️ 检测到 N 个产品政策可能已更新，待人工核实」与异常统计'],
+              ['generated/monitor_health.json', '可展开的"抓取降级明细"；缺失时从 update_status 的 health 兜底推导'],
+              ['data/policies/{id}.json', '详情页 detail.js 读单产品详情与长条款原文']],
+      files: ['site/js/app.js', 'site/js/detail.js'],
+      cmds: [],
+      notes: ['前端不读 pending_verification.json——该文件只服务于本地核实流程',
+              '顶部"人工核实日期"优先取全部产品 last_verified 的最大值，缺失时才回退 products.json 的 meta.last_updated，不把监控运行时间冒充数据更新时间']
+    },
+
+    /* ---------- 05 展示 ---------- */
+    'site': {
+      stage: '05 · 展示',
+      title: '对外站点：首页 + 每产品详情页',
+      desc: 'https://838860610.github.io/ai-policy-tracker/ ：首页展示各产品政策状态、健康度与待核实数；site/p/{id}.html 是每产品独立静态详情页（gen_product_pages.py 产物，含专属 OG / canonical / noscript 摘要，无 JS 也能读到内容）。',
+      files: ['site/index.html', 'site/p/{id}.html', 'site/js/app.js', 'site/js/detail.js'],
+      cmds: ['./start.sh   # 本地起服务预览（默认 8080）'],
+      notes: ['改过 site/js|css 必须同步 ASSET_VERSION 与各 html 的 ?v=（测试锁定全站版本号唯一）']
+    },
+
+    /* ---------- 连接线：告警链路 ---------- */
+    'conn-alert': {
+      stage: '05 → 06 · 告警链路',
+      title: '从 changed 状态到人看到提示',
+      desc: 'update_status.json 中产品级状态由目标聚合（优先级 changed > failed > suspicious > ok）。首页据此渲染监控 banner「⚠️ 政策监控于 X 检测到 N 个产品政策可能已更新，待人工核实」，健康队列渲染为可展开的"抓取降级明细"。维护者看到告警后，在本地对队列发起核实。',
+      files: ['site/js/app.js（banner 渲染）', 'site/generated/update_status.json'],
+      cmds: [],
+      notes: ['监控重跑会恢复仍未解决的告警：pending 队列还在，changed 状态就在——避免后续 304 把告警隐藏',
+              '告警消失只有两条路：--resolve（清状态）或人工回写数据后重新部署']
+    },
+
+    /* ---------- 06 核实闭环 ---------- */
+    'verify': {
+      stage: '06 · 核实闭环',
+      title: '人工核实回路：检测 ≠ 核实（本地闭环）',
+      desc: '对队列里的每个 changed 项：用 policy_verify.py 回溯 git 历史 diff 新旧快照（prev.txt → 日期存档 → git 历史，自动跳过内容相同的重基线提交）→ 判断是抓取噪声还是真实政策变更 → 噪声则 --resolve 承认新基线；真实变更则人工更新 policies/{id}.json（timeline、key_clauses 原文摘录、风险字段），过程记入 verification_notes，最后 --resolve 清队列与页面告警。',
+      files: ['skills/policy-change-verify/SKILL.md', 'skills/policy-change-verify/scripts/policy_verify.py'],
+      cmds: ['python3 policy_verify.py <pid> [key]          # 看新旧快照 diff（旧快照只有标题/菜单 = 抓取噪声）\npython3 policy_verify.py --resolve <pid>      # 核实收尾：清队列 + 清告警'],
+      notes: ['改完抓取配置的第一轮必然报 changed（旧基线是噪声），确认后 --resolve 即可',
+              'key_clauses 必须是原文摘录——LLM 可起草 diff 分级与修改建议，但落盘前必须人工确认']
+    },
+    'conn-loop': {
+      stage: '06 → 01 · 闭环回写',
+      title: '闭环：核实结果如何回到真源',
+      desc: '实质变更：人工确认后修改 policies/{id}.json——对应字段更新、last_verified 置为当天（按北京时间校验）、必要时向 timeline 追加条目；过程写入 verification_notes。push 回 main 后 ci.yml 重新校验并生成产物，deploy 发布，告警消失——回到 01 进入下一轮。',
+      files: ['site/data/policies/{id}.json', 'skills/policy-change-verify/scripts/policy_verify.py（--resolve）'],
+      cmds: ['git add site/data/policies/{id}.json && git commit -m "feat: ..." && git push origin main'],
+      notes: ['--resolve 同时清 pending 队列项与 update_status 的 changed 状态并重算健康计数——只清队列不清状态，页面告警不会消失',
+              '抓取噪声类不回写真源：修 extract_text 去噪规则 + 重建 latest.txt 基线即可']
+    }
+  };
+
+  function esc(s) { return s.replace(/&/g, '&amp;').replace(/</g, '&lt;'); }
+
+  function render(id) {
+    var s = STEPS[id];
+    if (!s) return false;
+    var html = '<span class="pop-kicker">' + s.stage + '</span><h2 id="pop-title">' + s.title + '</h2><p>' + s.desc + '</p>', i;
+    if (s.table) {
+      html += '<table class="kv">';
+      for (i = 0; i < s.table.length; i++) {
+        html += '<tr>';
+        for (var j = 0; j < s.table[i].length; j++) {
+          html += (i === 0 ? '<th>' : '<td>') + s.table[i][j] + (i === 0 ? '</th>' : '</td>');
+        }
+        html += '</tr>';
+      }
+      html += '</table>';
+    }
+    if (s.files && s.files.length) {
+      html += '<div class="files">';
+      for (i = 0; i < s.files.length; i++) html += '<code>' + esc(s.files[i]) + '</code>';
+      html += '</div>';
+    }
+    for (i = 0; i < (s.cmds || []).length; i++) html += '<pre><code>' + esc(s.cmds[i]) + '</code></pre>';
+    if (s.notes && s.notes.length) {
+      html += '<ul>';
+      for (i = 0; i < s.notes.length; i++) html += '<li>' + s.notes[i] + '</li>';
+      html += '</ul>';
+    }
+    popBody.innerHTML = html;
+    return true;
+  }
+
+  function isMobile() { return window.matchMedia('(max-width: 640px)').matches; }
+
+  function position(anchor) {
+    if (isMobile()) { return; } /* 移动端由 CSS 固定为底部弹层 */
+    var r = anchor.getBoundingClientRect();
+    var doc = document.documentElement;
+    var px = window.pageXOffset, py = window.pageYOffset;
+    var pw = popCard.offsetWidth, ph = popCard.offsetHeight;
+    var vw = doc.clientWidth;
+    var left = Math.min(Math.max(12 + px, r.left + px + r.width / 2 - pw / 2), px + vw - pw - 12);
+    var top = r.bottom + py + 12;
+    var fitsBelow = top + ph <= py + window.innerHeight - 12;
+    if (!fitsBelow && r.top - ph - 26 > py + 8) {
+      top = r.top + py - ph - 12;
+      pop.classList.add('flip');
+    } else {
+      pop.classList.remove('flip');
+    }
+    pop.style.left = left + 'px';
+    pop.style.top = top + 'px';
+    var anchorCx = r.left + r.width / 2;
+    var arrowX = Math.max(20, Math.min(pw - 20, anchorCx - left));
+    popArrow.style.left = arrowX + 'px';
+  }
+
+  function openPop(id, anchor) {
+    if (!render(id)) return;
+    currentAnchor = anchor;
+    pop.hidden = false;
+    backdrop.hidden = false;
+    position(anchor);
+    anchor.setAttribute('aria-expanded', 'true');
+    popClose.focus();
+  }
+
+  function closePop() {
+    if (pop.hidden) return;
+    pop.hidden = true;
+    backdrop.hidden = true;
+    if (currentAnchor) {
+      currentAnchor.setAttribute('aria-expanded', 'false');
+      currentAnchor.focus();
+      currentAnchor = null;
+    }
+  }
+
+  var buttons = document.querySelectorAll('[data-step]');
+  Array.prototype.forEach.call(buttons, function (btn) {
+    btn.addEventListener('click', function () {
+      var id = btn.getAttribute('data-step');
+      if (currentAnchor === btn && !pop.hidden) { closePop(); return; }
+      if (currentAnchor) currentAnchor.setAttribute('aria-expanded', 'false');
+      openPop(id, btn);
+    });
+  });
+
+  popClose.addEventListener('click', closePop);
+  backdrop.addEventListener('click', closePop);
+  document.addEventListener('mousedown', function (e) {
+    if (pop.hidden) return;
+    if (pop.contains(e.target) || (currentAnchor && currentAnchor.contains(e.target))) return;
+    if (e.target.closest && e.target.closest('[data-step]')) return; /* 交给按钮自身 handler 切换 */
+    closePop();
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && !pop.hidden) closePop();
+  });
+  window.addEventListener('resize', function () {
+    if (!pop.hidden && currentAnchor && !isMobile()) position(currentAnchor);
+  });
+})();
+</script>
+</body>
+</html>

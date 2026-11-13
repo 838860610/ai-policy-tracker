@@ -7,7 +7,7 @@ on:
   push:
     branches: [main]
 
-# 同一分支的多次推送只保留最新一次运行，避免并发任务重复提交
+# 同一分支的多次推送串行执行（不并发、不取消旧运行），避免并发任务重复提交
 concurrency:
   group: repo-write-${{ github.repository }}-${{ github.ref }}
   cancel-in-progress: false

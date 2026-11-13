@@ -22,7 +22,7 @@
 **提交前必须跑的全量校验**（任何改动都跑，约 15 秒）：
 
 ```bash
-.venv/bin/python -m unittest discover -s tests -q   # 121 项回归测试
+.venv/bin/python -m unittest discover -s tests -q   # 141 项回归测试
 .venv/bin/python scripts/validate_data.py            # 数据结构校验（0 错 0 警）
 .venv/bin/python scripts/gen_readme_table.py --check # README 汇总表与数据一致
 .venv/bin/python scripts/gen_docs.py --check         # 文档页是最新
@@ -56,6 +56,7 @@
 | `scripts/` | 监控与构建脚本（`check_updates.py` 是核心，见下） |
 | `skills/policy-change-verify/` | 本地核实 skill：抓新旧快照 diff、起草数据修改、`--resolve` 收尾 |
 | `tests/test_scripts.py` | 全部回归测试（单文件，类按关注点分组） |
+| `docs/` | **内部维护文档**（架构流程图 mermaid + 交互版 html），不发布、不经 sanitize；对外文档在 `site/docs/`。⚠️ Pages 不要切 "Deploy from branch /docs"，否则内部文档会被公开 |
 
 ---
 

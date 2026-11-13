@@ -20,5 +20,9 @@ site/generated/change_reports/
 # 注意：site/docs/ 下的 methodology / update-monitoring 是线上站点引用页面，必须入库，勿整体忽略
 site/docs/internal/
 
+# 流程图原型导出稿（定稿为 docs/architecture.*，已入库）
+.trae-html-share-packages/
+ai-policy-tracking-flow/
+
 # 本地日志
 logs/

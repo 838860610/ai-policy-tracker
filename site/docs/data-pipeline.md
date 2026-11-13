@@ -2,32 +2,49 @@
 
 ## 概述
 
-本项目的运转是一条**端到端闭环**：人工维护的政策数据 → CI 自动检测政策页变化 → 构建校验 → 部署到 GitHub Pages → 页面展示并提示"待核实" → 本地核实后回写数据 → 重新进入下一轮。
+本项目的运转是一条**端到端闭环**：人工维护的政策数据 → 两条相互独立的 GitHub Actions 流水线（每周监控检测变化、每次 push 校验构建）→ 部署到 GitHub Pages → 页面展示并提示"待核实" → 本地核实后回写数据 → 重新进入下一轮。
 
 ```
-   ①数据层(人工真源)        ②检测层(CI 每周一)        ③构建/校验(CI)
-  site/data/*.json     ──▶  check_updates.py    ──▶  gen_data_bundle.py
-   products.json            抓取+去噪+比对+落快照       gen_docs.py
-   policies/{id}.json       生成 update_status        生成 bundle.json
-        ▲                   生成 pending 队列               │
-        │                   生成健康队列(health)            │
-        │                         │                         ▼
-        │                         │                  ④部署(GitHub Pages)
-        │                         │                  deploy.yml 发布 site/
-        │                         ▼                         │
-        │                ⑤展示层(site/index.html)  ◀────────┘
-        │                  app.js 读 bundle + update_status + monitor_health
-        │                  渲染表格 / 监控 banner / 抓取降级明细
-        │                         │
-        │                         ▼ (人看到"待核实"告警)
-        │                ⑥核实层(本地 agent + 人工)
-        │                  policy_verify.py 出 diff
-        │                  判断实质变更 vs 噪声
-        │                         │
-        └───实质变更:改 policies/{id}.json(人工确认后)──┘
-             噪声:修 extract_text 去噪 + 重新基线
-             抓取降级:配 content_selector / browser + --only 重试
-             收尾:--resolve 清队列 + 清 banner
+ ① 数据层（人工唯一真源，一切展示与比对的源头）
+     site/data/policies/{id}.json · products.json
+       │
+       ├── gen_*.py 派生产物（本地脚本，或 ③ 校验线的 publish 自动重生成）──▶ ③
+       └── 提供监控配置与目标 URL ──▶ ②
+
+ ② 监控线 monitor.yml（每周一 09:00 北京时间 / 手动触发）
+     输入：各 AI 产品线上政策页（requests + ETag/304，或无头浏览器）
+     check_updates.py --scope ci：抓取 → 提取去噪 → 空白归一化
+       → 与基线快照 snapshots/{id}/{key}/latest.txt 全等比对
+       │  双轴判定：status 回答"正文变没变"，health 回答"抓到的能不能信"（正交）
+       ├─ changed ─────────▶ 待核实队列 pending_verification.json
+       │                     + 快照存档（旧 latest.txt 转 prev.txt + 日期档）→ ⑥
+       ├─ health 异常 ─────▶ 健康队列 monitor_health.json → 修抓取配置，不算政策变更
+       ├─ 抓取失败/空壳 ───▶ 绝不覆盖基线（保住历史正文，也不误报为变更）
+       └─ monitor_scope=local ▶ CI 跳过（沿用上次结果）→ 本地 local_monitor.sh 跑
+
+ ③ 校验线 ci.yml（push / PR 触发，与 ② 相互独立并行）
+     141 项回归测试 → validate_data → README 表 / 文档页 / 产品页 4 项 --check
+     全绿且为 main push → publish：重新生成 bundle / 文档页 / 产品页，bot 提交
+     （bot 的 GITHUB_TOKEN 提交不再触发 push 事件，不会死循环）
+
+ ②③ 完成后 ──▶ ④ 部署 deploy.yml（workflow_run 触发，限 main）
+     校验失败不部署（数据可能不合法）；
+     监控失败仍部署（结果与快照已提交，跳过会让线上停更一周）；
+     现场生成 OG 社交卡片 → 发布 site/ 到 GitHub Pages
+       │
+       ▼
+ ⑤ 展示层 site/index.html 与 /p/{id}.html
+     读 bundle.json + update_status.json + monitor_health.json
+     渲染对比表 / 监控 banner / 抓取降级明细
+       │
+       ▼ 人看到"待核实"告警
+ ⑥ 核实层 skills/policy-change-verify（本地 agent + 人工）
+     policy_verify.py 出新旧快照 diff → 判断实质变更 vs 抓取噪声
+       ├─ 实质变更：人工确认后修改 policies/{id}.json（字段 + timeline）
+       ├─ 抓取噪声：修 extract_text 去噪规则 + 重新基线
+       └─ 收尾：--resolve 清队列 + 清页面告警
+       │
+       ▼ 改动 push 回 main → 重新触发 ③ 校验与 ④ 部署，闭环回到 ①
 ```
 
 各阶段使用的脚本、产物与衔接关系如下。
@@ -45,7 +62,7 @@
 
 - **触发**：`.github/workflows/monitor.yml`，`cron: "0 1 * * 1"`，也支持 Actions 页面手动触发。
 - **范围**：每个产品的每个监控目标 `main`（主页面）/ `toc`（个人版条款）/ `tob`（企业版条款）/ `source_*`（补充来源）。
-- **流程**：抓取页面 → 按 HTML/PDF/文本类型提取正文 → 去噪 → 空白归一化 → 计算 SHA256 → 与基线快照 `snapshots/{id}/{key}/latest.txt` 比对。
+- **流程**：抓取页面 → 按 HTML/PDF/文本类型提取正文 → 去噪 → 空白归一化 → 与基线快照 `snapshots/{id}/{key}/latest.txt` 的归一化文本做全等比对（SHA256 仅作记录）。
 
 去噪是避免误报的关键，脚本按序剔除：UI 控件短语、导航和页脚 DOM、帮助中心文末 UI 尾巴、正文之前的站点导航，以及明确标记为 token/session/nonce 的动态节点；不再全局删除正文中的长数字。
 
@@ -93,7 +110,7 @@
 
 校验通过后，`publish` job 生成并提交产物：
 
-- `scripts/gen_data_bundle.py` → `site/generated/bundle.json`：把索引与全部政策合并为单个请求（首页优先加载，白名单裁剪后约 31KB）
+- `scripts/gen_data_bundle.py` → `site/generated/bundle.json`：把索引与全部政策合并为单个请求（首页优先加载，白名单裁剪后约 33KB）
 - `scripts/gen_docs.py` → `site/docs/*.md` 渲染为 `.html`（`.md` 为唯一源，避免两份手工副本漂移）
 
 ## ④ 部署：`.github/workflows/deploy.yml` → GitHub Pages
@@ -106,7 +123,7 @@
 | 读取文件 | 用途 |
 | --- | --- |
 | `generated/bundle.json`（优先，缺失时回退 `products.json` + `policies/*.json`） | 对比表格、筛选、顶部指标 |
-| `generated/update_status.json` | 监控 banner「⚠️ 政策监控于 X 检测到 N 个…待人工核实」，以及监控异常统计；顶部“人工核实日期”取 `products.json` 的 `meta.last_updated`，不把监控运行时间冒充数据更新时间 |
+| `generated/update_status.json` | 监控 banner「⚠️ 政策监控于 X 检测到 N 个产品政策可能已更新，待人工核实」，以及监控异常统计；顶部“人工核实日期”优先取全部产品 `last_verified` 的最大值，缺失时才回退 `products.json` 的 `meta.last_updated`，不把监控运行时间冒充数据更新时间 |
 | `generated/monitor_health.json`（缺失时从 `update_status.json` 的 `health` 兜底推导） | banner 下方可展开的"抓取降级明细"：逐条列出产品、目标、健康类型、失败原因、上次成功抓取时间 |
 | `data/policies/{id}.json`（详情页 `detail.js`） | 单产品详情与长条款原文 |
 
