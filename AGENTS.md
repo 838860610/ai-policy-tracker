@@ -180,6 +180,30 @@ Cloudflare 挑战页 / 登录墙 / 404 / 纯空壳 / 空文档（空文档 = 连
 
 ## 9. 提交前自查清单
 
+**🔒 提交身份铁律（隐私红线，优先级与第 6 节数据红线同级）**：
+
+- **身份固定**：所有提交的 author/committer 必须是化名
+  `Maverick Ping <13211079+838860610@users.noreply.github.com>`
+  （仓库 git config 已配置；换机器/换工具提交前先核对
+  `git config user.name && git config user.email`）。
+- **禁止出现**：真实姓名或本机用户名、个人邮箱（qq/gmail/163/outlook 等私人域名）、
+  `/Users/...` 本地绝对路径、API 密钥与令牌——无论在提交信息、diff 还是文件内容里。
+  注意：写自查命令示例时也不要把真实用户名当占位符写进本文件。
+- **AI 工具代提交**：部分 IDE/agent 会写入自己的 committer 身份（如
+  `trae-solo-agent <solo-agent@trae.ai>`）——committer 暴露工具指纹不算事故，
+  但 author 仍必须保持上述匿名身份。
+- **bot 身份**：`github-actions[bot]` / `dependabot[bot]` 是平台标准身份，无需处理。
+- **推送前自查**：
+
+  ```bash
+  git log origin/main..main --format="%an <%ae> | %cn <%ce>"   # 身份普查
+  git log origin/main..main -p | grep -iE "本机用户名|私人邮箱|/Users/"  # 内容抽查
+  # 定期全历史回扫（把占位符换成实际要排查的标识）：
+  git log --all --oneline -S"<标识字符串>" -i
+  ```
+
+自查清单：
+
 - [ ] 跑完第 1 节的校验命令，全绿
 - [ ] 改过数据 → `gen_readme_table.py --check` 通过
 - [ ] 改过 `site/docs/*.md` → `gen_docs.py` 已重新生成且 `--check` 通过
@@ -189,3 +213,4 @@ Cloudflare 挑战页 / 登录墙 / 404 / 纯空壳 / 空文档（空文档 = 连
 - [ ] 没有手工编辑 `site/generated/**`、`site/docs/*.html`、`site/p/*.html` 或 `site/sitemap.xml`
 - [ ] 提交信息用 `feat/fix/docs/chore` 前缀，说明"改了什么、为什么"（`CONTRIBUTING.md` 有格式）
 - [ ] `CHANGELOG.md` 的 `[Unreleased]` 已更新
+- [ ] 提交身份为化名 + noreply 邮箱，提交信息与内容不含任何个人隐私（见上方铁律）
