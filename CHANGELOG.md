@@ -96,6 +96,10 @@
 - 占位条目（政策 URL 只能指向产品首页）新增可选字段 `monitor: false`，监控脚本跳过，避免持续误报
 - 补齐 3 个产品"引文出处"的监控目标（`versions.toc.policy_link`，人工确认）：`zcode` → `zcode.z.ai/cn/privacy`；`xunfei-xinghuo` → 《讯飞星火APP用户协议》（`xinghuo.xfyun.cn/policy/`，原 `xfyun.cn/doc/spark/UserAgreement.html` 已 404）；`tencent-yuanbao` → 《腾讯元宝隐私政策》（`privacy.qq.com/document/preview/eb9be565...`）
 
+### Removed
+
+- **剔除 `zread` 占位条目**：Zread.ai（智谱 GitHub 项目解读工具）经三轮人工核实（2026-08-30 / 09-19 / 09-27）确认无独立公开政策页（/privacy、/terms 404，/legal/terms 为 110KB SPA 空壳），占位条目只产生横幅常驻"1 个产品未监控"与一行未评定数据、零政策内容。`monitor: false` 机制保留供未来同类场景使用；若智谱日后发布 zread 条款，可按 `add:` 流程重新收录（三轮核实记录在 git 历史与内部文档中）。产品数 48 → 47，`index.html` 硬编码计数同步更新，bundle/详情页/sitemap/README 表/OG 卡片已重新生成
+
 ### Added
 
 - `tests/test_scripts.py` 新增 `test_site_dir_is_the_publish_root`：断言站点根文件齐备，防止漏文件导致线上 404

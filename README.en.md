@@ -1,6 +1,6 @@
 # AI Policy Tracker
 
-> Do mainstream AI products train their models on your data? A pure front-end tracker comparing the training-data policies of 48 AI products.
+> Do mainstream AI products train their models on your data? A pure front-end tracker comparing the training-data policies of 47 AI products.
 
 [![CI](https://github.com/838860610/ai-policy-tracker/actions/workflows/ci.yml/badge.svg)](https://github.com/838860610/ai-policy-tracker/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
@@ -18,7 +18,7 @@ AI products increasingly reserve the right to use your chats, files, and generat
 
 The full comparison table (in Chinese) lives in [README.md](README.md); the interactive version with per-product detail pages is on the live site.
 
-- **Coverage**: 48 products (44 Chinese + 4 global: ChatGPT, Claude, Gemini, Z.ai), 63 policy entries across consumer (ToC) and enterprise (ToB) tiers
+- **Coverage**: 47 products (43 Chinese + 4 global: ChatGPT, Claude, Gemini, Z.ai), 63 policy entries across consumer (ToC) and enterprise (ToB) tiers
 - **Risk rating**: 🟢 low / 🟡 medium / 🔴 high, derived from four explicit criteria — default training opt-in, de-identification, retention period (≤30 days for green), and content copyright — with per-criterion evidence shown on each detail page
 - **Evidence-based**: every conclusion cites the exact clause, with the source document/section and verification date
 
