@@ -29,7 +29,7 @@
 
 1. **正文提取**：剥离 `<script>`、`<style>` 等非正文标签，提取可见文本（使用 BeautifulSoup，未安装时退化为正则去标签）；若目标配置了 `content_selector`，优先按该 CSS 选择器取正文
 2. **空白归一化**：压缩行内连续空白、丢弃空行，使哈希对纯排版变化不敏感
-3. **归一化哈希**：对归一化后的文本计算 SHA256
+3. **归一化比对**：与基线快照的归一化文本做**全等比较**，SHA256 仅作记录（比对基于文本本身，哈希方案升级不会丢基线）
 4. **条件请求**：携带上次记录的 `ETag` / `Last-Modified`，页面未变化时服务端直接返回 304，不下载正文、零误报
 5. **哈希方案版本化**：状态文件中记录 `hash_scheme`；提取算法升级时自动重建基线，而不是误报全部"已变更"
 6. **抓取健康判定**：正文过短（默认 < 500 字符）或抓取异常时不覆盖已有基线，只把 `health` 标成降级/无基线/被拦截
@@ -188,7 +188,7 @@ cd /path/to/ai-policy-tracker
 
 ### 局部重试：不重跑全量也能验证修复
 
-`--products` / `--only` 属于**局部重试**：只请求被选中的目标，其余产品/目标直接继承上次状态（`partial_run: true`），并自动跳过孤儿快照清理。这样修完一个站点的抓取配置后，验证成本从"全量 70+ 目标十几分钟"降到"单目标几十秒"。
+`--products` / `--only` 属于**局部重试**：只请求被选中的目标，其余产品/目标直接继承上次状态（`partial_run: true`），并自动跳过孤儿快照清理。这样修完一个站点的抓取配置后，验证成本从"全量 70 个目标十几分钟"降到"单目标几十秒"。
 
 局部重试同样会重算 `update_status.json`、待核实队列和健康队列，因此适合"抓取修好了/改 URL 了"这类收尾动作。未被选中的产品/目标会标 `skipped_this_run`，健康队列的 `consecutive_runs` 不会因为重试其他目标而虚增。
 
@@ -199,10 +199,10 @@ cd /path/to/ai-policy-tracker
 ============================================================
 AI 政策更新监控脚本
 运行时间：2026-09-21 06:00:00
-哈希方案：text-v4-bs4（正文文本归一化，按配置来源逐条监控）
+哈希方案：text-v5-bs4（正文文本归一化，按配置来源逐条监控）
 ============================================================
 
-共 48 个产品需要检查（本次检查 48 个）
+共 47 个产品需要检查（本次检查 47 个）
 
   [OK]   ChatGPT (chatgpt·主监控页): 内容未变化（304 Not Modified）
   [新增] Gemini (gemini·主监控页): 首次记录基线
@@ -211,7 +211,7 @@ AI 政策更新监控脚本
 
 ============================================================
 检查完成
-  产品: 48，监控目标: 70
+  产品: 47，监控目标: 70
   未变化: 30
   已变更: 0
   待核实队列: 0 项（详见 site/generated/pending_verification.json）
@@ -293,7 +293,7 @@ sudo systemctl enable --now ai-policy-check.timer
 | `[基线]` | 哈希算法升级或无有效基线，重新记录（`health=rebaselined`） |
 | `[失败]` | 请求失败（超时、404 等，重试后仍失败），`health` 为 `degraded`/`no_baseline`/`blocked` |
 | `[可疑]` | 正文过短、疑似空壳/反爬，或本地基线缺失 |
-| `[跳过]` | URL 为空、未启用监控或显式禁用浏览器抓取 |
+| `[跳过]` | URL 为空/待核实/不匹配 `--only`、未启用监控（`monitor: false`）、或 `--no-browser` 下全部目标都需浏览器抓取的产品 |
 
 ### 抓取健康状态（health）
 
@@ -312,8 +312,8 @@ sudo systemctl enable --now ai-policy-check.timer
 {
   "meta": {
     "last_run": "2026-09-21T06:00:00",
-    "hash_scheme": "text-v4-bs4",
-    "total_products": 48,
+    "hash_scheme": "text-v5-bs4",
+    "total_products": 47,
     "total_targets": 70,
     "changed": 0,
     "failed": 1,
@@ -335,7 +335,7 @@ sudo systemctl enable --now ai-policy-check.timer
       "targets": {
         "main": {
           "url": "https://openai.com/policies/terms-of-use",
-          "hash_scheme": "text-v4-bs4",
+          "hash_scheme": "text-v5-bs4",
           "current_hash": "a1b2c3d4e5f6...",
           "fetch_method": "browser",
           "content_etag": null,
@@ -359,7 +359,7 @@ sudo systemctl enable --now ai-policy-check.timer
       "targets": {
         "main": {
           "url": "https://www.n.cn/privacy",
-          "hash_scheme": "text-v4-bs4",
+          "hash_scheme": "text-v5-bs4",
           "current_hash": null,
           "last_checked": "2026-09-21T06:00:00",
           "last_good_at": null,

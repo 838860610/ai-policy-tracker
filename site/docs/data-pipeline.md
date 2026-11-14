@@ -23,7 +23,7 @@
        └─ monitor_scope=local ▶ CI 跳过（沿用上次结果）→ 本地 local_monitor.sh 跑
 
  ③ 校验线 ci.yml（push / PR 触发，与 ② 相互独立并行）
-     141 项回归测试 → validate_data → README 表 / 文档页 / 产品页 4 项 --check
+     141 项回归测试 → validate_data → README 表 / 文档页 / 产品页 3 项 --check
      全绿且为 main push → publish：重新生成 bundle / 文档页 / 产品页，bot 提交
      （bot 的 GITHUB_TOKEN 提交不再触发 push 事件，不会死循环）
 
@@ -110,7 +110,7 @@
 
 校验通过后，`publish` job 生成并提交产物：
 
-- `scripts/gen_data_bundle.py` → `site/generated/bundle.json`：把索引与全部政策合并为单个请求（首页优先加载，白名单裁剪后约 33KB）
+- `scripts/gen_data_bundle.py` → `site/generated/bundle.json`：把索引与全部政策合并为单个请求（首页优先加载，白名单裁剪后约 32KB）
 - `scripts/gen_docs.py` → `site/docs/*.md` 渲染为 `.html`（`.md` 为唯一源，避免两份手工副本漂移）
 
 ## ④ 部署：`.github/workflows/deploy.yml` → GitHub Pages
@@ -161,7 +161,7 @@ python3 skills/policy-change-verify/scripts/policy_verify.py --resolve <product_
 | `scripts/check_updates.py` | ② | 抓取、去噪、哈希比对，写状态/快照/队列 |
 | `scripts/validate_data.py` | ③ | 校验数据结构完整性 |
 | `scripts/gen_data_bundle.py` | ③ | 生成首页用的 `bundle.json` |
-| `scripts/gen_docs.py` | ③ | `docs/*.md` → `.html` |
+| `scripts/gen_docs.py` | ③ | `site/docs/*.md` → `.html` |
 | `scripts/gen_readme_table.py` | ③ | README 汇总表与数据同步 |
 | `scripts/gen_og_image.py` | ④ | 部署时生成社交分享卡片 |
 | `scripts/extract_clauses.py` | 人工辅助 | 从协议 HTML 按同义词组提取条款上下文（避免漏掉"优化模型"这类表述） |

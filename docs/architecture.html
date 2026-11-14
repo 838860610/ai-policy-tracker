@@ -372,7 +372,7 @@
       cmds: ['.venv/bin/python scripts/gen_data_bundle.py\n.venv/bin/python scripts/gen_docs.py\n.venv/bin/python scripts/gen_product_pages.py'],
       notes: ['新增首页要展示的字段 → 同步加 gen_data_bundle.py 的 BUNDLE_TOP_FIELDS / BUNDLE_VERSION_FIELDS 白名单',
               '改过 site/js|css → 同步 ASSET_VERSION 与 site/*.html 里的 ?v=（测试校验一致性）',
-              'OG 社交卡片例外：由部署工作流现场生成，CI 不再重生成提交（仓库旧副本会逐渐过时），避免每次 CI 产生自动提交']
+              'OG 社交卡片例外：部署工作流现场生成；数据变化时由本地跑 gen_og_image.py 重生成提交（CI 不重生成，避免每次 CI 产生自动提交）']
     },
 
     /* ---------- 02 监控线 ---------- */
@@ -383,7 +383,7 @@
       files: ['.github/workflows/monitor.yml', 'scripts/check_updates.py'],
       cmds: ['gh workflow run "政策更新监控" --ref main   # 手动触发\npython scripts/check_updates.py --scope ci --delay 0.5 --timeout 20 --fail-on-error'],
       notes: ['--scope ci 跳过 monitor_scope=local 的目标，沿用上次结果并加 skipped_this_run 标记',
-              'timeout-minutes: 45——70+ 目标、部分站点需无头浏览器渲染，留足余量',
+              'timeout-minutes: 45——70 个监控目标、部分站点需无头浏览器渲染，留足余量',
               '抓取失败只把 job 标红提醒，状态与快照已照常提交，Pages 也会照常发布']
     },
     'mon-fetch': {
@@ -426,7 +426,7 @@
               ['changed', '文本发生变化', '待核实队列 + 快照存档'],
               ['failed', '请求失败 / 超时', '不误报为变更'],
               ['suspicious', '正文过短（空壳）或本地基线缺失', '不当作正常结果'],
-              ['skipped', '本轮未检查（如 local 目标、monitor=false）', '沿用上次结果']],
+              ['skipped', '本轮未检查（monitor: false 占位条目、URL 为空/待核实、--no-browser 下全部目标需浏览器抓取的产品）', '不进任何队列（local 目标 CI 跳过时沿用上次结果，仅加 skipped_this_run 标记）']],
       files: ['scripts/check_updates.py（status 聚合：changed > failed > suspicious > ok）'],
       cmds: [],
       notes: ['status 与 health 正交：一次 Cloudflare 挑战只进健康队列，不会污染"政策是否变化"的判断']
@@ -557,7 +557,7 @@
       title: '前端读什么：数据文件与回退链',
       desc: '首页加载时按优先级读取：bundle.json（单请求全量，优先）→ 缺失时回退 products.json + policies/*.json 逐个请求。监控状态另读两个文件，详情页再读一份真源。',
       table: [['文件', '用途'],
-              ['generated/bundle.json', '对比表格、筛选、顶部指标（白名单裁剪后约 33KB）'],
+              ['generated/bundle.json', '对比表格、筛选、顶部指标（白名单裁剪后约 32KB）'],
               ['generated/update_status.json', '监控 banner「⚠️ 检测到 N 个产品政策可能已更新，待人工核实」与异常统计'],
               ['generated/monitor_health.json', '可展开的"抓取降级明细"；缺失时从 update_status 的 health 兜底推导'],
               ['data/policies/{id}.json', '详情页 detail.js 读单产品详情与长条款原文']],

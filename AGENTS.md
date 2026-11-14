@@ -22,10 +22,11 @@
 **提交前必须跑的全量校验**（任何改动都跑，约 15 秒）：
 
 ```bash
-.venv/bin/python -m unittest discover -s tests -q   # 141 项回归测试
-.venv/bin/python scripts/validate_data.py            # 数据结构校验（0 错 0 警）
-.venv/bin/python scripts/gen_readme_table.py --check # README 汇总表与数据一致
-.venv/bin/python scripts/gen_docs.py --check         # 文档页是最新
+.venv/bin/python -m unittest discover -s tests -q      # 141 项回归测试
+.venv/bin/python scripts/validate_data.py              # 数据结构校验（0 错 0 警）
+.venv/bin/python scripts/gen_readme_table.py --check   # README 汇总表与数据一致
+.venv/bin/python scripts/gen_docs.py --check           # 文档页是最新
+.venv/bin/python scripts/gen_product_pages.py --check  # 产品详情页与 sitemap 是最新
 ```
 
 改过文档 `.md` 或前端资源后还要重新生成并提交产物：
@@ -137,9 +138,9 @@ CI 跑 `--scope ci` 跳过它们，但**沿用上次结果**（含快照引用�
 
 | 工作流 | 触发 | 职责 |
 |--------|------|------|
-| `ci.yml`（数据校验） | push main / PR | 跑测试+校验 → 生成并提交 bundle/docs 产物 |
+| `ci.yml`（数据校验） | push main / PR | 跑测试+校验 → 生成并提交 bundle / 文档页 / 产品详情页产物 |
 | `monitor.yml`（政策更新监控） | 每周一 09:00 北京时间 / 手动 | `--scope ci` 跑监控 → bot 提交状态/快照/队列 |
-| `deploy.yml`（部署 Pages） | 上述两个 workflow_run 成功（限 main） | 发布 `site/` 到 GitHub Pages |
+| `deploy.yml`（部署 Pages） | 数据校验成功即部署；政策更新监控成功或失败均部署（校验失败不部署；限 main） | 发布 `site/` 到 GitHub Pages |
 
 常用触发方式：
 

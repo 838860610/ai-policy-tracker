@@ -46,7 +46,7 @@
        └─ monitor_scope=local ▶ CI 跳过（沿用上次结果）→ 本地 local_monitor.sh 跑
 
  ③ 校验线 ci.yml（push / PR 触发，与 ② 相互独立并行）
-     141 项回归测试 → validate_data → README 表 / 文档页 / 产品页 4 项 --check
+     141 项回归测试 → validate_data → README 表 / 文档页 / 产品页 3 项 --check
      全绿且为 main push → publish：重新生成 bundle / 文档页 / 产品页，bot 提交
      （bot 的 GITHUB_TOKEN 提交不再触发 push 事件，不会死循环）
 
@@ -214,7 +214,7 @@
 </ol>
 <p>校验通过后，<code>publish</code> job 生成并提交产物：</p>
 <ul>
-<li><code>scripts/gen_data_bundle.py</code> → <code>site/generated/bundle.json</code>：把索引与全部政策合并为单个请求（首页优先加载，白名单裁剪后约 33KB）</li>
+<li><code>scripts/gen_data_bundle.py</code> → <code>site/generated/bundle.json</code>：把索引与全部政策合并为单个请求（首页优先加载，白名单裁剪后约 32KB）</li>
 <li><code>scripts/gen_docs.py</code> → <code>site/docs/*.md</code> 渲染为 <code>.html</code>（<code>.md</code> 为唯一源，避免两份手工副本漂移）</li>
 </ul>
 <h2>④ 部署：<code>.github/workflows/deploy.yml</code> → GitHub Pages</h2>
@@ -298,7 +298,7 @@ python3 skills/policy-change-verify/scripts/policy_verify.py --resolve &lt;produ
 <tr>
 <td><code>scripts/gen_docs.py</code></td>
 <td>③</td>
-<td><code>docs/*.md</code> → <code>.html</code></td>
+<td><code>site/docs/*.md</code> → <code>.html</code></td>
 </tr>
 <tr>
 <td><code>scripts/gen_readme_table.py</code></td>

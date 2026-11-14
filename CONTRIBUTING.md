@@ -13,10 +13,11 @@ The rest of this guide is in Chinese. The essentials:
 3. **Before opening a PR**, run (after `./start.sh` or `python3 -m venv .venv && .venv/bin/pip install -r requirements.txt`):
 
    ```bash
-   .venv/bin/python scripts/validate_data.py          # must report 0 errors
+   .venv/bin/python scripts/validate_data.py              # must report 0 errors
    .venv/bin/python scripts/gen_readme_table.py --check
    .venv/bin/python scripts/gen_docs.py --check
-   .venv/bin/python -m unittest discover -s tests     # regression tests
+   .venv/bin/python scripts/gen_product_pages.py --check
+   .venv/bin/python -m unittest discover -s tests         # regression tests
    ```
 
 4. **Commit message**: `update: ...` / `add: ...` / `fix: ...` / `docs: ...` / `feat: ...`
@@ -180,9 +181,11 @@ git push origin update/xxx-policy
 
 | 等级 | 颜色 | 条件 |
 |------|------|------|
-| 低风险 | 🟢 green | 默认不训练 + 去标识化 + 留存明确且≤30天 + 内容版权归用户 |
-| 中风险 | 🟡 yellow | 训练但有退出机制，或留存期较长 |
-| 高风险 | 🔴 red | 训练且无退出机制，或长期留存 |
+| 低风险 | 🟢 green | 默认不训练（默认关闭）+ 去标识化 + 留存明确且≤30天 + 内容版权归用户（**四项全满足**） |
+| 中风险 | 🟡 yellow | 训练但提供明确的退出机制；或留存较长但可配置；或去标识化不明确（任一） |
+| 高风险 | 🔴 red | 训练且无退出机制/退出困难；或长期留存且无明确删除机制；或训练场景下未去标识化；或数据使用边界不清晰（任一） |
+
+> 完整判定口径与逐条示例见 `site/docs/methodology.md`（判定以条款实质为准，检索须用同义词组）。
 
 ## PR 提交说明
 
@@ -242,6 +245,9 @@ python3 -m venv .venv
 
 # 文档页是否由 Markdown 最新生成
 .venv/bin/python scripts/gen_docs.py --check
+
+# 产品详情页与 sitemap 是否由数据最新生成
+.venv/bin/python scripts/gen_product_pages.py --check
 
 # 回归测试（标准库 unittest，无需额外依赖）
 python3 -m unittest discover -s tests -v
