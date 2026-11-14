@@ -7,7 +7,7 @@
     "local_targets_skipped": 1,
     "total_products": 47,
     "total_targets": 70,
-    "changed": 6,
+    "changed": 0,
     "failed": 0,
     "suspicious": 0,
     "skipped": 0,
@@ -113,11 +113,11 @@
     },
     "workbuddy": {
       "name": "WorkBuddy（AI 办公智能体）",
-      "status": "changed",
+      "status": "ok",
       "health": "ok",
       "health_issues": 0,
       "url": "https://rule.tencent.com/rule/202603180001",
-      "message": "⚠️ 政策可能已更新，待核实（个人版条款）",
+      "message": "内容未变化（本次核实后已确认）",
       "last_checked": "2026-11-14T14:56:41.818455",
       "targets": {
         "main": {
@@ -139,17 +139,18 @@
           "url": "https://privacy.qq.com/document/preview/771d9a58551449e9a7e7445ebfe04966",
           "hash_scheme": "text-v5-bs4",
           "last_checked": "2026-11-14T14:56:41.818432",
-          "last_changed_date": "2026-11-14T14:56:41.743530",
+          "last_changed_date": null,
           "last_good_at": "2026-11-14T14:56:41.743530",
           "health": "ok",
           "monitor_scope": "ci",
           "current_hash": "1bac166315d434c1dea7ad2552b88478b5853477f7a30515149bcfb1022fb942",
-          "status": "changed",
-          "message": "⚠️ 政策可能已更新，待核实",
+          "status": "ok",
+          "message": "已人工核实（policy_verify --resolve）",
           "health_reason": null,
           "fetch_method": "browser",
           "content_etag": null,
-          "content_last_modified": null
+          "content_last_modified": null,
+          "resolved_at": "2026-11-15T01:23:05.979141"
         }
       }
     },
@@ -440,28 +441,29 @@
     },
     "qwenwork": {
       "name": "千问办公（QwenWork）",
-      "status": "changed",
+      "status": "ok",
       "health": "ok",
       "health_issues": 0,
       "url": "https://help.aliyun.com/zh/qwenwork/privacy-security",
-      "message": "⚠️ 政策可能已更新，待核实（主监控页）",
+      "message": "内容未变化（本次核实后已确认）",
       "last_checked": "2026-11-14T14:57:42.350060",
       "targets": {
         "main": {
           "url": "https://help.aliyun.com/zh/qwenwork/privacy-security",
           "hash_scheme": "text-v5-bs4",
           "last_checked": "2026-11-14T14:57:42.349814",
-          "last_changed_date": "2026-11-14T14:57:42.255435",
+          "last_changed_date": null,
           "last_good_at": "2026-11-14T14:57:42.255435",
           "health": "ok",
           "monitor_scope": "ci",
           "current_hash": "ca3d65ef4392c0504a7b50060e9bfc418f19a22172f42efedc1973a3145dcd57",
-          "status": "changed",
-          "message": "⚠️ 政策可能已更新，待核实",
+          "status": "ok",
+          "message": "已人工核实（policy_verify --resolve）",
           "health_reason": null,
           "fetch_method": "browser",
           "content_etag": null,
-          "content_last_modified": null
+          "content_last_modified": null,
+          "resolved_at": "2026-11-15T01:23:06.221434"
         }
       }
     },
@@ -646,11 +648,11 @@
     },
     "gemini": {
       "name": "Gemini",
-      "status": "changed",
+      "status": "ok",
       "health": "ok",
       "health_issues": 0,
       "url": "https://policies.google.com/terms?gl=US&hl=zh-CN",
-      "message": "⚠️ 政策可能已更新，待核实（企业版条款）",
+      "message": "内容未变化（本次核实后已确认）",
       "last_checked": "2026-11-14T15:01:03.510195",
       "targets": {
         "main": {
@@ -687,17 +689,18 @@
           "url": "https://knowledge.workspace.google.com/admin/generative-ai/generative-ai-in-google-workspace-privacy-hub",
           "hash_scheme": "text-v5-bs4",
           "last_checked": "2026-11-14T15:01:03.510169",
-          "last_changed_date": "2026-11-14T15:01:03.438143",
+          "last_changed_date": null,
           "last_good_at": "2026-11-14T15:01:03.438143",
           "health": "ok",
           "monitor_scope": "ci",
           "current_hash": "f330084593a8adef7d2ee924760857296aac624ae87dcb28165fe629994da1d8",
-          "status": "changed",
-          "message": "⚠️ 政策可能已更新，待核实",
+          "status": "ok",
+          "message": "已人工核实（policy_verify --resolve）",
           "health_reason": null,
           "fetch_method": "browser",
           "content_etag": null,
-          "content_last_modified": null
+          "content_last_modified": null,
+          "resolved_at": "2026-11-15T01:23:06.502882"
         }
       }
     },
@@ -833,71 +836,74 @@
     },
     "glm-coding-plan": {
       "name": "GLM Coding Plan（智谱）",
-      "status": "changed",
+      "status": "ok",
       "health": "ok",
       "health_issues": 0,
       "url": "https://docs.bigmodel.cn/cn/terms/subscription-agreement",
-      "message": "⚠️ 政策可能已更新，待核实（主监控页、企业版条款）",
+      "message": "内容未变化（本次核实后已确认）",
       "last_checked": "2026-11-14T15:02:08.241218",
       "targets": {
         "main": {
           "url": "https://docs.bigmodel.cn/cn/terms/subscription-agreement",
           "hash_scheme": "text-v5-bs4",
           "last_checked": "2026-11-14T15:02:07.401275",
-          "last_changed_date": "2026-11-14T15:02:06.975297",
+          "last_changed_date": null,
           "last_good_at": "2026-11-14T15:02:06.975297",
           "health": "ok",
           "monitor_scope": "ci",
           "current_hash": "76703928719b0ac7c0166c6fc3a185c85d19d54ddb43bd337b722f2defecba10",
-          "status": "changed",
-          "message": "⚠️ 政策可能已更新，待核实",
+          "status": "ok",
+          "message": "已人工核实（policy_verify --resolve）",
           "health_reason": null,
           "fetch_method": "requests",
           "content_etag": null,
-          "content_last_modified": "Sat, 14 Nov 2026 02:45:27 GMT"
+          "content_last_modified": "Sat, 14 Nov 2026 02:45:27 GMT",
+          "resolved_at": "2026-11-15T01:23:06.864490"
         },
         "tob": {
           "url": "https://docs.bigmodel.cn/cn/terms/subscription-agreement-team",
           "hash_scheme": "text-v5-bs4",
           "last_checked": "2026-11-14T15:02:08.240571",
-          "last_changed_date": "2026-11-14T15:02:07.902504",
+          "last_changed_date": null,
           "last_good_at": "2026-11-14T15:02:07.902504",
           "health": "ok",
           "monitor_scope": "ci",
           "current_hash": "3f73052d4378d4225e3b6d7de761998d7ea5346435db9837166b649078d80f9e",
-          "status": "changed",
-          "message": "⚠️ 政策可能已更新，待核实",
+          "status": "ok",
+          "message": "已人工核实（policy_verify --resolve）",
           "health_reason": null,
           "fetch_method": "requests",
           "content_etag": null,
-          "content_last_modified": "Sat, 14 Nov 2026 02:45:31 GMT"
+          "content_last_modified": "Sat, 14 Nov 2026 02:45:31 GMT",
+          "resolved_at": "2026-11-15T01:23:06.864490"
         }
       }
     },
     "bigmodel": {
       "name": "智谱开放平台（bigmodel.cn）",
-      "status": "changed",
+      "status": "ok",
       "health": "ok",
       "health_issues": 0,
       "url": "https://docs.bigmodel.cn/cn/terms/user-agreement",
-      "message": "⚠️ 政策可能已更新，待核实（主监控页）",
+      "message": "内容未变化（本次核实后已确认）",
       "last_checked": "2026-11-14T15:02:08.997069",
       "targets": {
         "main": {
           "url": "https://docs.bigmodel.cn/cn/terms/user-agreement",
           "hash_scheme": "text-v5-bs4",
           "last_checked": "2026-11-14T15:02:08.996443",
-          "last_changed_date": "2026-11-14T15:02:08.742058",
+          "last_changed_date": null,
           "last_good_at": "2026-11-14T15:02:08.742058",
           "health": "ok",
           "monitor_scope": "ci",
           "current_hash": "4d182ea65c8b2e8ddec2f17a3dc0d9ab98ca49a9cfdeb7109cad1e1d0981520d",
-          "status": "changed",
-          "message": "⚠️ 政策可能已更新，待核实",
+          "status": "ok",
+          "message": "已人工核实（policy_verify --resolve）",
           "health_reason": null,
           "fetch_method": "requests",
           "content_etag": null,
-          "content_last_modified": "Sat, 14 Nov 2026 02:45:55 GMT"
+          "content_last_modified": "Sat, 14 Nov 2026 02:45:55 GMT",
+          "resolved_at": "2026-11-15T01:23:07.153179"
         }
       }
     },
@@ -1037,44 +1043,46 @@
     },
     "kimi": {
       "name": "Kimi",
-      "status": "changed",
+      "status": "ok",
       "health": "ok",
       "health_issues": 0,
       "url": "https://platform.kimi.com/docs/agreement/userservice",
-      "message": "⚠️ 政策可能已更新，待核实（主监控页、企业版条款）",
+      "message": "内容未变化（本次核实后已确认）",
       "last_checked": "2026-11-14T15:02:40.038369",
       "targets": {
         "main": {
           "url": "https://platform.kimi.com/docs/agreement/userservice",
           "hash_scheme": "text-v5-bs4",
           "last_checked": "2026-11-14T15:02:34.865108",
-          "last_changed_date": "2026-11-14T15:02:31.237706",
+          "last_changed_date": null,
           "last_good_at": "2026-11-14T15:02:31.237706",
           "health": "ok",
           "monitor_scope": "ci",
           "current_hash": "a5b14c8a746c9dae547324faabc13a9eb57fd947a300c9a5aa306f43c7097867",
-          "status": "changed",
-          "message": "⚠️ 政策可能已更新，待核实",
+          "status": "ok",
+          "message": "已人工核实（policy_verify --resolve）",
           "health_reason": null,
           "fetch_method": "requests",
           "content_etag": null,
-          "content_last_modified": "Sat, 14 Nov 2026 05:22:35 GMT"
+          "content_last_modified": "Sat, 14 Nov 2026 05:22:35 GMT",
+          "resolved_at": "2026-11-15T01:23:07.504540"
         },
         "tob": {
           "url": "https://platform.kimi.com/docs/agreement/modeluse",
           "hash_scheme": "text-v5-bs4",
           "last_checked": "2026-11-14T15:02:40.037496",
-          "last_changed_date": "2026-11-14T15:02:35.366563",
+          "last_changed_date": null,
           "last_good_at": "2026-11-14T15:02:35.366563",
           "health": "ok",
           "monitor_scope": "ci",
           "current_hash": "25890ce6a0dd6f3ff8cfa940e05c76a498dac3b83cd523907086def102c0434c",
-          "status": "changed",
-          "message": "⚠️ 政策可能已更新，待核实",
+          "status": "ok",
+          "message": "已人工核实（policy_verify --resolve）",
           "health_reason": null,
           "fetch_method": "requests",
           "content_etag": null,
-          "content_last_modified": "Sat, 14 Nov 2026 03:20:41 GMT"
+          "content_last_modified": "Sat, 14 Nov 2026 03:20:41 GMT",
+          "resolved_at": "2026-11-15T01:23:07.504540"
         }
       }
     },
