@@ -7,7 +7,7 @@
     "local_targets_skipped": 1,
     "total_products": 48,
     "total_targets": 70,
-    "changed": 6,
+    "changed": 0,
     "failed": 1,
     "suspicious": 0,
     "skipped": 1,
@@ -20,43 +20,45 @@
   "products": {
     "tencent-yuanbao": {
       "name": "腾讯元宝",
-      "status": "changed",
+      "status": "ok",
       "health": "ok",
       "health_issues": 0,
       "url": "https://rule.tencent.com/rule/202403110001",
-      "message": "⚠️ 政策可能已更新，待人工核实",
+      "message": "内容未变化（本次核实后已确认）",
       "last_checked": "2026-11-09T07:41:10.430578",
       "targets": {
         "main": {
           "url": "https://rule.tencent.com/rule/202403110001",
           "hash_scheme": "text-v5-bs4",
           "last_checked": "2026-11-09T07:40:34.806955",
-          "last_changed_date": "2026-11-09T07:40:34.757952",
+          "last_changed_date": null,
           "last_good_at": "2026-11-09T07:40:34.757952",
           "health": "ok",
           "monitor_scope": "ci",
           "current_hash": "1046b7d843f7792d00a3b68123fcd9b90986c482a64d859f39d1162fc9751dcd",
-          "status": "changed",
-          "message": "⚠️ 政策可能已更新，待核实",
+          "status": "ok",
+          "message": "已人工核实（policy_verify --resolve）",
           "health_reason": null,
           "fetch_method": "browser",
           "content_etag": null,
-          "content_last_modified": null
+          "content_last_modified": null,
+          "resolved_at": "2026-11-14T12:29:57.868697"
         },
         "toc": {
           "url": "https://privacy.qq.com/document/preview/eb9be56572ab4886b6ca124e72abf413",
           "hash_scheme": "text-v5-bs4",
           "last_checked": "2026-11-09T07:41:10.430537",
-          "last_changed_date": "2026-11-02T07:16:32.201175",
+          "last_changed_date": null,
           "last_good_at": "2026-11-09T07:41:10.376780",
           "health": "ok",
           "monitor_scope": "ci",
           "current_hash": "a9aee9b5060dce193a9dead3f21d60e501a01ee9fce5e2d9ff8198f4c819d836",
-          "status": "changed",
-          "message": "此前检测到政策变化，仍待人工核实",
+          "status": "ok",
+          "message": "已人工核实（policy_verify --resolve）",
           "fetch_method": "browser",
           "content_etag": null,
-          "content_last_modified": null
+          "content_last_modified": null,
+          "resolved_at": "2026-11-14T12:29:57.868697"
         }
       }
     },
@@ -589,28 +591,29 @@
     },
     "claude": {
       "name": "Claude",
-      "status": "changed",
+      "status": "ok",
       "health": "ok",
       "health_issues": 0,
       "url": "https://www.anthropic.com/legal/consumer-terms",
-      "message": "⚠️ 政策可能已更新，待核实（主监控页、企业版条款）",
+      "message": "内容未变化（本次核实后已确认）",
       "last_checked": "2026-11-09T07:46:48.646281",
       "targets": {
         "main": {
           "url": "https://www.anthropic.com/legal/consumer-terms",
           "hash_scheme": "text-v5-bs4",
           "last_checked": "2026-11-09T07:46:46.843437",
-          "last_changed_date": "2026-11-09T07:46:46.644923",
+          "last_changed_date": null,
           "last_good_at": "2026-11-09T07:46:46.644923",
           "health": "ok",
           "monitor_scope": "ci",
           "current_hash": "972c40b24851edd304fcac156f9e1a8d13a185af14dd5ae82bc52d5e93b35f1d",
-          "status": "changed",
-          "message": "⚠️ 政策可能已更新，待核实",
+          "status": "ok",
+          "message": "已人工核实（policy_verify --resolve）",
           "health_reason": null,
           "fetch_method": "requests",
           "content_etag": null,
-          "content_last_modified": null
+          "content_last_modified": null,
+          "resolved_at": "2026-11-14T12:29:58.033314"
         },
         "toc": {
           "url": "https://privacy.claude.com/en/articles/12109829-how-do-i-change-my-model-improvement-privacy-settings",
@@ -631,27 +634,28 @@
           "url": "https://www.anthropic.com/legal/commercial-terms",
           "hash_scheme": "text-v5-bs4",
           "last_checked": "2026-11-09T07:46:48.645033",
-          "last_changed_date": "2026-11-09T07:46:48.426255",
+          "last_changed_date": null,
           "last_good_at": "2026-11-09T07:46:48.426255",
           "health": "ok",
           "monitor_scope": "ci",
           "current_hash": "b4338093a895ac46667836e894fa239aa4e6f5f49f21f799ead5c515e1e3bae9",
-          "status": "changed",
-          "message": "⚠️ 政策可能已更新，待核实",
+          "status": "ok",
+          "message": "已人工核实（policy_verify --resolve）",
           "health_reason": null,
           "fetch_method": "requests",
           "content_etag": null,
-          "content_last_modified": null
+          "content_last_modified": null,
+          "resolved_at": "2026-11-14T12:29:58.033314"
         }
       }
     },
     "gemini": {
       "name": "Gemini",
-      "status": "changed",
+      "status": "ok",
       "health": "ok",
       "health_issues": 0,
       "url": "https://policies.google.com/terms?gl=US&hl=zh-CN",
-      "message": "⚠️ 政策可能已更新，待人工核实",
+      "message": "内容未变化（本次核实后已确认）",
       "last_checked": "2026-11-09T07:47:09.276108",
       "targets": {
         "main": {
@@ -673,16 +677,17 @@
           "url": "https://support.google.com/gemini/answer/13594961?hl=zh-CN&gl=US",
           "hash_scheme": "text-v5-bs4",
           "last_checked": "2026-11-09T07:47:02.727511",
-          "last_changed_date": "2026-11-02T07:21:47.799756",
+          "last_changed_date": null,
           "last_good_at": "2026-11-09T07:47:02.648216",
           "health": "ok",
           "monitor_scope": "ci",
           "current_hash": "da5bd9237a93b02934b463d46dce05b26e9e804ade8076afe49c89c69642121c",
-          "status": "changed",
-          "message": "此前检测到政策变化，仍待人工核实",
+          "status": "ok",
+          "message": "已人工核实（policy_verify --resolve）",
           "fetch_method": "browser",
           "content_etag": null,
-          "content_last_modified": null
+          "content_last_modified": null,
+          "resolved_at": "2026-11-14T12:29:58.202363"
         },
         "tob": {
           "url": "https://knowledge.workspace.google.com/admin/generative-ai/generative-ai-in-google-workspace-privacy-hub",
@@ -900,28 +905,29 @@
     },
     "autoclaw": {
       "name": "AutoClaw（智谱本地智能体，澳龙）",
-      "status": "changed",
+      "status": "ok",
       "health": "ok",
       "health_issues": 0,
       "url": "https://autoglm.aminer.cn/web/md2html/index.html?md=autoclaw_agreement&favicon=autoglm",
-      "message": "⚠️ 政策可能已更新，待核实（主监控页）",
+      "message": "内容未变化（本次核实后已确认）",
       "last_checked": "2026-11-09T07:48:03.943645",
       "targets": {
         "main": {
           "url": "https://autoglm.aminer.cn/web/md2html/index.html?md=autoclaw_agreement&favicon=autoglm",
           "hash_scheme": "text-v5-bs4",
           "last_checked": "2026-11-09T07:48:03.943623",
-          "last_changed_date": "2026-11-09T07:48:03.921531",
+          "last_changed_date": null,
           "last_good_at": "2026-11-09T07:48:03.921531",
           "health": "ok",
           "monitor_scope": "ci",
           "current_hash": "ef2ec52cb0c60bed138ede03fd4e31eceaacfe087a94472dcbc773d34510e7d0",
-          "status": "changed",
-          "message": "⚠️ 政策可能已更新，待核实",
+          "status": "ok",
+          "message": "已人工核实（policy_verify --resolve）",
           "health_reason": null,
           "fetch_method": "browser",
           "content_etag": null,
-          "content_last_modified": null
+          "content_last_modified": null,
+          "resolved_at": "2026-11-14T12:29:58.943312"
         }
       }
     },
@@ -1229,11 +1235,11 @@
     },
     "minimax": {
       "name": "MiniMax（海螺 AI / 开放平台）",
-      "status": "changed",
+      "status": "ok",
       "health": "ok",
       "health_issues": 0,
       "url": "https://hailuoai.com/doc/zh/privacy-policy.html",
-      "message": "⚠️ 政策可能已更新，待核实（企业版条款、source_platform_privacy）",
+      "message": "内容未变化（本次核实后已确认）",
       "last_checked": "2026-11-09T07:49:11.343838",
       "targets": {
         "main": {
@@ -1255,59 +1261,62 @@
           "url": "https://platform.minimaxi.com/protocol/user-agreement",
           "hash_scheme": "text-v5-bs4",
           "last_checked": "2026-11-09T07:48:59.803543",
-          "last_changed_date": "2026-11-09T07:48:59.786696",
+          "last_changed_date": null,
           "last_good_at": "2026-11-09T07:48:59.786696",
           "health": "ok",
           "monitor_scope": "ci",
           "current_hash": "8a02ce0f2334991718810b0be83931b596d832c6791700c4f0baaba686febcac",
-          "status": "changed",
-          "message": "⚠️ 政策可能已更新，待核实",
+          "status": "ok",
+          "message": "已人工核实（policy_verify --resolve）",
           "health_reason": null,
           "fetch_method": "browser",
           "content_etag": null,
-          "content_last_modified": null
+          "content_last_modified": null,
+          "resolved_at": "2026-11-14T12:29:59.126864"
         },
         "source_platform_privacy": {
           "url": "https://platform.minimaxi.com/protocol/privacy-policy",
           "hash_scheme": "text-v5-bs4",
           "last_checked": "2026-11-09T07:49:11.343810",
-          "last_changed_date": "2026-11-09T07:49:11.327097",
+          "last_changed_date": null,
           "last_good_at": "2026-11-09T07:49:11.327097",
           "health": "ok",
           "monitor_scope": "ci",
           "current_hash": "91a237fec17048a58e009dbd1822cd2f84ee96692fd1a60fd411dd1bd050926b",
-          "status": "changed",
-          "message": "⚠️ 政策可能已更新，待核实",
+          "status": "ok",
+          "message": "已人工核实（policy_verify --resolve）",
           "health_reason": null,
           "fetch_method": "browser",
           "content_etag": null,
-          "content_last_modified": null
+          "content_last_modified": null,
+          "resolved_at": "2026-11-14T12:29:59.126864"
         }
       }
     },
     "yuewen": {
       "name": "阶跃 AI（原跃问）",
-      "status": "changed",
+      "status": "ok",
       "health": "ok",
       "health_issues": 0,
       "url": "https://chat.stepfun.com/legal/terms",
-      "message": "⚠️ 政策可能已更新，待人工核实",
+      "message": "内容未变化（本次核实后已确认）",
       "last_checked": "2026-11-09T07:49:13.493766",
       "targets": {
         "main": {
           "url": "https://chat.stepfun.com/legal/terms",
           "hash_scheme": "text-v5-bs4",
           "last_checked": "2026-11-09T07:49:13.492915",
-          "last_changed_date": "2026-11-02T07:24:16.837344",
+          "last_changed_date": null,
           "last_good_at": "2026-11-09T07:49:11.844751",
           "health": "ok",
           "monitor_scope": "ci",
           "current_hash": "9d494c26089aad792948d4597460eec92a65dd123351aafb902dab89a8703810",
-          "status": "changed",
-          "message": "此前检测到政策变化，仍待人工核实",
+          "status": "ok",
+          "message": "已人工核实（policy_verify --resolve）",
           "fetch_method": "requests",
           "content_etag": null,
-          "content_last_modified": null
+          "content_last_modified": null,
+          "resolved_at": "2026-11-14T12:29:59.298087"
         }
       }
     },
