@@ -27,6 +27,20 @@ TRAINING_SYNONYMS = [
 OTHER_KEYWORDS = ["保存期限", "存储期限", "保留", "撤回", "退出", "关闭",
                   "知识产权", "归属", "企业", "个人版", "隐私模式"]
 
+# 英文同义词组：海外产品（ChatGPT / Claude / Gemini 等）的原文条款是英文，
+# 中文词组在上面会全部零命中。项目对部分海外产品锁定 hl=zh-CN 抓中文版页面，
+# 两组都跑一遍最稳妥；对纯英文页面（如政策原文快照）英文组是唯一命中来源。
+TRAINING_SYNONYMS_EN = [
+    "training", "train", "model training", "train our models",
+    "improve our models", "machine learning", "model improvement",
+    "develop our models", "use your content",
+]
+OTHER_KEYWORDS_EN = [
+    "retention", "retain", "delete", "opt out", "withdraw", "disable",
+    "intellectual property", "ownership", "enterprise", "personal",
+    "privacy mode",
+]
+
 WINDOW_BEFORE = 160
 WINDOW_AFTER = 160
 
@@ -46,7 +60,8 @@ def main():
     raw = open(path, encoding="utf-8", errors="replace").read()
     text = strip_html(raw)
     print(f"[{os.path.basename(path)}] 纯文本长度: {len(text)}")
-    keywords = TRAINING_SYNONYMS + OTHER_KEYWORDS + extra
+    keywords = (TRAINING_SYNONYMS + TRAINING_SYNONYMS_EN
+                + OTHER_KEYWORDS + OTHER_KEYWORDS_EN + extra)
     seen_pairs = set()
     for kw in dict.fromkeys(keywords):
         hits = []

@@ -22,6 +22,9 @@
 
 ### Changed
 
+- **测试补盲区（141 → 150）**：`fetch_with_retry` 内部重试策略此前被整体 mock 零覆盖——新增 429 + Retry-After、429 无头退避序列、非 429 不重试、网络错误线性退避序列、重定向逐跳 SSRF 复检 5 项；另补 `prune_dated` 存档裁剪、prune 读取失败保护、时间戳带时区、失败原因结构化归纳 4 项
+- **条款提取工具支持英文政策页**：`extract_clauses.py` 原关键词全中文，对 ChatGPT/Claude/Gemini 英文原文快照全部零命中；补英文训练/退出/留存同义词组（项目对部分海外产品锁定 hl=zh-CN，两组都跑）
+- **移除 `app.js` 死代码**：文件内重复定义的 `vendorOf()` 引用了 common.js IIFE 内未导出的 `VENDOR_RULES`（若被调用即 ReferenceError），靠函数提升 + 13 行赋值覆盖才没生效；删除后统一走 `PT.vendorOf`。资源版本号 `?v=` 同步升到 `20261118-1`
 - **核实 2026-11-14 手动监控轮 8 项待核实并清零**：`glm-coding-plan` 2026-11-13 版订阅协议为实质性收紧——新增'单次购买套餐特别条款'专章（额度到期失效不退还、禁标准 API 调用、违规转售 5 倍违约金）、责任限额由'最近一个自然月消费总额'收窄至'引发责任的单产品实际消耗费用（不含赠送/优惠券/预付未消耗）'，训练维度未变（bigmodel 匿名化训练条款零变化，维持 red）；`qwenwork`（帮助页导航链接）、`gemini:tob`（翻译措辞统一）、`kimi` main/tob 与 `bigmodel` 与 `glm-coding-plan:tob`（零宽字符清理，全部条款零变化）、`workbuddy`（新增'电脑操控/跨设备数据迁移'功能权限披露，训练/留存条款零变化）确认为非条款变化。8 项目标全部 `--resolve`，`workbuddy` 推荐语同步最新指引版本日期
 - **核实并更新 6 个产品数据（2026-11-09 监控轮 9 项待核实清零）**：`tencent-yuanbao` 训练模式翻转为退出式——2026-10-29 版协议（2026-11-05 生效）默认授予许可用于'质量分析、模型训练和服务优化'，'体验优化计划'由加入开关变为关闭开关；风险按方法论校准后维持 yellow（默认训练但退出开关简单 + 明确去标识化，与 yuewen 同口径，未命中红色四条）；`autoclaw` 2026-10-27 版协议删除原'不可撤销、全球可分许可（含产品推广）'授权条款、新增团队服务数据用途限制，风险 red→yellow；`minimax` 开放平台主体更名'上海稀宇极智科技'（2026-11-13 生效，条款无实质变化）；`claude`（页面模板）、`gemini`（新功能披露）、`yuewen`（措辞微调）确认为非条款变化。9 项目标全部 `--resolve`
 - **首页对比表合并为三列**：原「个人版训练 / 企业版训练 / 个人版风险 / 企业版风险」四列改为「个人版 / 企业版」两列，训练徽章与风险等级在同一单元格内并排展示（`.version-cell`），减少只占几个字符的风险列浪费的宽度；展开行 `colspan` 同步改为 3
@@ -45,6 +48,11 @@
 - **`content_selector` 命中多个时取文本最长的**：文档站选择器常同时命中正文容器与页脚/侧栏小容器，`select_one` 只取第一个会因 DOM 顺序变化抓到页脚（实测 `trae` 的 `[class*=content]` 命中 3 个 1.2 万字符正文容器 + 3 个 0～217 字符小容器）
 
 ### Fixed
+
+- **`prune_orphan_snapshots` 数据丢失边界**：`load_policy` 读 JSON 失败返回空 dict，prune 此前把"配置里没有活跃目标"的空 dict 产品当成孤儿，把其全部快照目录 `rmtree` 删光，且 monitor.yml 会把删除 commit 进历史——一次数据文件损坏等于永久丢掉该产品的快照 diff 历史。现在读取失败（空 dict / 非 dict）的产品整目录保护，只有配置里明确不再监控的目标才清理；补回归测试
+- **监控状态时间戳混用两种时钟**：`check_updates.py` 14 处裸 `datetime.now()` 无时区标记，GitHub runner（UTC）与本地（UTC+8）写入混存，前端展示存在 8 小时歧义。统一改为北京时间（`PROJECT_TZ` + `now_iso()`，与 `validate_data.py` 的 `last_verified` 同口径）
+- **`fetch_with_retry` docstring 失实**：注释写"指数退避"，实现是线性（`RETRY_BACKOFF × 尝试序号`）；按实现修正措辞
+- **失败原因汇总误判**：此前对整条 message 做裸子串匹配（`"SSLError" in msg`、`"403" in msg`），URL 里恰好含 "403"/"429" 时会把拒绝访问误判成限流。改为按抓取层写入的结构化前缀解析（`检查失败：HTTP <code> 错误 - …` / `检查失败：请求异常 - <异常类名>`），并补充 401/451/重定向超限/响应超限等映射
 
 - **内部流程图与文档描述校正**：`docs/architecture.html` 六处描述与代码不一致——回归测试实际 141 项（原写 121）；顶部“人工核实日期”优先取全部产品 `last_verified` 最大值、缺失才回退 `meta.last_updated`（原写直接取后者）；ci.yml concurrency 为 `cancel-in-progress: false`，同一分支多次推送串行执行、不取消旧运行（原描述“只保留最新一次”与设置矛盾）；监控 banner 实际文案为「检测到 N 个产品政策可能已更新」；OG 卡片由部署工作流现场生成、CI 不再重生成提交（`site/generated/og-card.png` 是历史遗留的入库旧副本）；bundle.json 约 33KB。同步修正 `docs/architecture.md`、`AGENTS.md`、对外文档 `site/docs/data-pipeline.md`（并澄清比对基于归一化文本全等、SHA256 仅作记录）并重生成 HTML；ci.yml 的 concurrency 注释同步改为与设置一致
 - **展开详情后表格列宽漂移**：产品行展开的 `colspan` 详情内容参与自动布局，会把「个人版」等列挤走。`#compareTable` 改为 `table-layout: fixed` 并显式分配列宽，窄屏单独分配，展开前后表头零位移

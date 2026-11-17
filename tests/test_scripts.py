@@ -847,6 +847,100 @@ class TestResponseDecoding(unittest.TestCase):
         save.assert_called_once_with("demo", "main", mock.ANY, archived=False)
 
 
+class TestFetchWithRetry(unittest.TestCase):
+    """fetch_with_retry 的内部重试策略此前在测试里被整体 mock（测的是它
+    成功/抛错之后的行为），429/Retry-After 与退避序列零覆盖——这些是与
+    目标站点打交道的正确性关键，单独锁住。"""
+
+    def _http_error(self, status, headers=None):
+        resp = CHECK_UPDATES.requests.Response()
+        resp.status_code = status
+        resp.headers.update(headers or {})
+        return CHECK_UPDATES.requests.exceptions.HTTPError(
+            f"{status} Error", response=resp)
+
+    def test_429_honors_retry_after_header(self):
+        """429 且带 Retry-After 头：按头的秒数等待后重试，成功即返回。"""
+        attempts = {"n": 0}
+
+        def fake_fetch(url, etag, last_modified, timeout):
+            attempts["n"] += 1
+            if attempts["n"] == 1:
+                raise self._http_error(429, {"Retry-After": "7"})
+            return ("body", False)
+
+        sleeps = []
+        with mock.patch.object(CHECK_UPDATES, "fetch_url", side_effect=fake_fetch), \
+             mock.patch.object(CHECK_UPDATES.time, "sleep", sleeps.append):
+            result = CHECK_UPDATES.fetch_with_retry("https://example.com/policy",
+                                                    None, None, 10)
+        self.assertEqual(result, ("body", False))
+        self.assertEqual(attempts["n"], 2)
+        self.assertEqual(sleeps, [7])
+
+    def test_429_without_retry_after_uses_backoff(self):
+        def fake_fetch(url, etag, last_modified, timeout):
+            raise self._http_error(429)
+
+        sleeps = []
+        with mock.patch.object(CHECK_UPDATES, "fetch_url", side_effect=fake_fetch), \
+             mock.patch.object(CHECK_UPDATES.time, "sleep", sleeps.append):
+            with self.assertRaises(CHECK_UPDATES.requests.exceptions.HTTPError):
+                CHECK_UPDATES.fetch_with_retry("https://example.com/policy",
+                                               None, None, 10)
+        self.assertEqual(sleeps, [CHECK_UPDATES.RETRY_BACKOFF * 2,
+                                  CHECK_UPDATES.RETRY_BACKOFF * 3])
+
+    def test_non_429_http_error_not_retried(self):
+        """403/500 等非 429 HTTP 错误不重试直接抛出（对反爬站点重试只会加剧）。"""
+        attempts = {"n": 0}
+
+        def fake_fetch(url, etag, last_modified, timeout):
+            attempts["n"] += 1
+            raise self._http_error(403)
+
+        sleeps = []
+        with mock.patch.object(CHECK_UPDATES, "fetch_url", side_effect=fake_fetch), \
+             mock.patch.object(CHECK_UPDATES.time, "sleep", sleeps.append):
+            with self.assertRaises(CHECK_UPDATES.requests.exceptions.HTTPError):
+                CHECK_UPDATES.fetch_with_retry("https://example.com/policy",
+                                               None, None, 10)
+        self.assertEqual(attempts["n"], 1)
+        self.assertEqual(sleeps, [])
+
+    def test_network_errors_retry_linearly(self):
+        """网络类错误按线性退避重试：间隔 = RETRY_BACKOFF × 尝试序号。
+        此前 docstring 写的是"指数退避"，与实现不符，已按实现修正措辞。"""
+        attempts = {"n": 0}
+
+        def fake_fetch(url, etag, last_modified, timeout):
+            attempts["n"] += 1
+            if attempts["n"] <= 2:
+                raise CHECK_UPDATES.requests.exceptions.ConnectTimeout("timed out")
+            return ("body", False)
+
+        sleeps = []
+        with mock.patch.object(CHECK_UPDATES, "fetch_url", side_effect=fake_fetch), \
+             mock.patch.object(CHECK_UPDATES.time, "sleep", sleeps.append):
+            result = CHECK_UPDATES.fetch_with_retry("https://example.com/policy",
+                                                    None, None, 10)
+        self.assertEqual(result, ("body", False))
+        self.assertEqual(sleeps, [CHECK_UPDATES.RETRY_BACKOFF, CHECK_UPDATES.RETRY_BACKOFF * 2])
+
+    def test_redirect_hops_are_revalidated(self):
+        """fetch_url 必须对每一跳重定向重跑 SSRF 校验——只校验首个 URL 时，
+        公网站点 302 到内网地址就能绕过防护。"""
+        resp = CHECK_UPDATES.requests.Response()
+        resp.status_code = 301
+        resp.headers["Location"] = "https://127.0.0.1/evil"
+        resp.raw = io.BytesIO(b"")  # fetch_url 对重定向会 resp.close()，stub 需要可关闭的 raw
+        with mock.patch.object(CHECK_UPDATES.requests, "get", return_value=resp), \
+             mock.patch.object(CHECK_UPDATES, "safe_fetch_url", side_effect=[True, False]) as safety:
+            with self.assertRaises(CHECK_UPDATES.requests.exceptions.InvalidURL):
+                CHECK_UPDATES.fetch_url("https://example.com/policy", timeout=10)
+        self.assertEqual(safety.call_count, 2)
+
+
 class TestMonitorState(unittest.TestCase):
     def test_fetch_url_rejects_non_https_and_private_targets(self):
         self.assertFalse(CHECK_UPDATES.safe_fetch_url("http://example.com/policy"))
@@ -957,6 +1051,63 @@ class TestMonitorState(unittest.TestCase):
             self.assertEqual(removed, 1)
             self.assertTrue(os.path.isdir(browser_dir), "被跳过的浏览器目标快照被误删")
             self.assertFalse(os.path.exists(off_dir))
+
+    def test_prune_skips_products_with_unreadable_policy(self):
+        """回归：load_policy 读 JSON 失败返回空 dict，prune 此前把该产品
+        全部快照当孤儿删光，且 monitor.yml 会把删除 commit 进历史——一次
+        数据文件损坏等于永久丢掉快照 diff 历史。空 dict 表示无法判定活跃
+        目标，必须跳过。"""
+        with tempfile.TemporaryDirectory() as directory:
+            kept = os.path.join(directory, "demo", "main")
+            os.makedirs(kept)
+            with open(os.path.join(kept, "latest.txt"), "w", encoding="utf-8") as f:
+                f.write("x")
+            # {"demo": {}} 正是 load_policy 读到坏 JSON 时的返回值
+            policies = {"demo": {}}
+            with mock.patch.object(CHECK_UPDATES, "SNAPSHOTS_DIR", directory):
+                removed = CHECK_UPDATES.prune_orphan_snapshots(policies)
+            self.assertEqual(removed, 0)
+            self.assertTrue(os.path.isdir(kept), "读取失败产品的快照被误删")
+
+    def test_prune_dated_keeps_recent_archives(self):
+        with tempfile.TemporaryDirectory() as directory:
+            for day in range(1, 16):  # 2026-01-01 .. 2026-01-15，共 15 份日期存档
+                with open(os.path.join(directory, f"2026-01-{day:02d}.txt"),
+                          "w", encoding="utf-8") as f:
+                    f.write("x")
+            with open(os.path.join(directory, "latest.txt"), "w", encoding="utf-8") as f:
+                f.write("x")
+            CHECK_UPDATES.prune_dated(directory, keep=12)
+            remaining = set(os.listdir(directory))
+            self.assertEqual(len(remaining), 13)  # 12 份日期存档 + latest.txt
+            self.assertIn("latest.txt", remaining)
+            self.assertIn("2026-01-15.txt", remaining)     # 最新档保留
+            self.assertNotIn("2026-01-03.txt", remaining)  # 最旧 3 份被清
+
+    def test_timestamps_are_timezone_aware(self):
+        """状态字段的时间戳必须带时区：CI（UTC）与本地（UTC+8）混写会让
+        前端展示产生 8 小时歧义。"""
+        self.assertTrue(CHECK_UPDATES.now_iso().endswith("+08:00"))
+
+    def test_failure_reason_summary_uses_structured_prefix(self):
+        """失败原因按 message 的结构化前缀归纳；此前对整条 message 做
+        裸子串匹配，URL 恰好含 "403"/"429" 时会误判类别。"""
+        cases = [
+            ({"message": "检查失败：HTTP 403 错误 - 403 Client Error for url: https://x/403?q=429"},
+             "403 Forbidden（服务器拒绝访问，可能有反爬）"),
+            ({"message": "检查失败：HTTP 500 错误 - 500 Server Error"},
+             "HTTP 500 错误"),
+            ({"message": "检查失败：请求异常 - SSLError"},
+             "SSL 证书验证失败（可能是防火墙/代理拦截）"),
+            ({"message": "检查失败：请求异常 - ConnectTimeout"},
+             "连接超时（网站不可达）"),
+            ({"message": "检查失败：请求异常 - WeirdError"},
+             "请求异常（WeirdError）"),
+            ({"message": "浏览器渲染失败（自定义文案）"},
+             "浏览器渲染失败（自定义文案）"),
+        ]
+        for target, expected in cases:
+            self.assertEqual(CHECK_UPDATES.summarize_failure_reason(target), expected)
 
     def test_pending_queue_drops_targets_no_longer_monitored(self):
         with tempfile.TemporaryDirectory() as directory:

@@ -23,7 +23,7 @@
        └─ monitor_scope=local ▶ CI 跳过（沿用上次结果）→ 本地 local_monitor.sh 跑
 
  ③ 校验线 ci.yml（push / PR 触发，与 ② 相互独立并行）
-     141 项回归测试 → validate_data → README 表 / 文档页 / 产品页 3 项 --check
+     150 项回归测试 → validate_data → README 表 / 文档页 / 产品页 3 项 --check
      全绿且为 main push → publish：重新生成 bundle / 文档页 / 产品页，bot 提交
      （bot 的 GITHUB_TOKEN 提交不再触发 push 事件，不会死循环）
 

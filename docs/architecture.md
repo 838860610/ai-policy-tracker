@@ -13,7 +13,7 @@ flowchart TD
 
     subgraph ACTIONS["GitHub Actions · 两条相互独立的流水线"]
         MON["② 监控线 monitor.yml · 每周一 09:00 北京时间 / 手动<br/>check_updates.py --scope ci<br/>抓取 → 提取去噪 → 空白归一化 → 与基线快照全等比对"]
-        CI["③ 校验线 ci.yml · push / PR 触发<br/>141 项回归测试 + validate_data 与 3 项产物 --check<br/>全绿且为 main push → publish 重生成产物并 bot 提交"]
+        CI["③ 校验线 ci.yml · push / PR 触发<br/>150 项回归测试 + validate_data 与 3 项产物 --check<br/>全绿且为 main push → publish 重生成产物并 bot 提交"]
     end
 
     B1["changed → 待核实队列<br/>pending_verification.json<br/>+ 快照存档（prev.txt / 日期档）"]

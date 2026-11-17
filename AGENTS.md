@@ -22,7 +22,7 @@
 **提交前必须跑的全量校验**（任何改动都跑，约 15 秒）：
 
 ```bash
-.venv/bin/python -m unittest discover -s tests -q      # 141 项回归测试
+.venv/bin/python -m unittest discover -s tests -q      # 150 项回归测试
 .venv/bin/python scripts/validate_data.py              # 数据结构校验（0 错 0 警）
 .venv/bin/python scripts/gen_readme_table.py --check   # README 汇总表与数据一致
 .venv/bin/python scripts/gen_docs.py --check           # 文档页是最新

@@ -122,6 +122,15 @@ USER_AGENT = (
     "+https://github.com/838860610/ai-policy-tracker)"
 )
 
+# 时间戳统一按北京时间写入（与 validate_data.py 的 last_verified 同口径）：
+# GitHub runner 是 UTC、本地是 UTC+8，裸 datetime.now() 会把两种时钟混进
+# 同一批字段，前端展示存在 8 小时歧义。
+PROJECT_TZ = datetime.timezone(datetime.timedelta(hours=8))
+
+
+def now_iso():
+    return datetime.datetime.now(PROJECT_TZ).isoformat()
+
 
 def load_product_ids():
     with open(INDEX_FILE, encoding="utf-8") as f:
@@ -399,12 +408,26 @@ def prune_orphan_snapshots(policies):
     本轮被跳过的产品（例如 --no-browser 下的浏览器目标、monitor=false）
     在状态里可能没有 targets，若据此判定就会把仍在监控的快照当成孤儿删掉——
     快照是检测→核实回路唯一的持久历史，删掉等于让历史无法 diff。
+
+    同理，数据文件读取失败（load_policy 返回空 dict）时无法判定该产品是否
+    仍在监控、配置里有哪些目标，其快照目录必须**整体保留**：只把它排除出
+    active 集是不够的（不在 active 里正是删除条件），必须显式跳过删除。
+    否则一次坏 JSON 就会让本轮把该产品的全部快照删光，并被 CI commit
+    固化成永久删除。
     """
     if not os.path.isdir(SNAPSHOTS_DIR):
         return 0
     active = set()
+    unreadable = set()
     for pid, policy in policies.items():
-        if not isinstance(policy, dict) or policy.get("monitor") is False:
+        if not isinstance(policy, dict):
+            unreadable.add(pid)
+            continue
+        if not policy:
+            # 空 dict = load_policy 读取失败，无法判定活跃目标，整目录保护
+            unreadable.add(pid)
+            continue
+        if policy.get("monitor") is False:
             continue
         for spec in collect_target_specs(policy):
             active.add((pid, spec["key"]))
@@ -412,6 +435,8 @@ def prune_orphan_snapshots(policies):
     for pid in os.listdir(SNAPSHOTS_DIR):
         pid_dir = os.path.join(SNAPSHOTS_DIR, pid)
         if not os.path.isdir(pid_dir):
+            continue
+        if pid in unreadable:
             continue
         for key in os.listdir(pid_dir):
             key_dir = os.path.join(pid_dir, key)
@@ -580,7 +605,8 @@ def response_text(resp):
 
 
 def fetch_with_retry(url, etag, last_modified, timeout, budget=RETRY_BUDGET_SECONDS):
-    """网络类错误（超时/连接失败）按指数退避重试；HTTP 4xx/5xx 不重试直接抛出。
+    """网络类错误（超时/连接失败）按线性退避重试（间隔 = RETRY_BACKOFF × 尝试序号）；
+HTTP 4xx/5xx 不重试直接抛出。
 
     429 Too Many Requests：等待 Retry-After 或退避后重试。
 
@@ -907,7 +933,7 @@ def base_target_result(url, prev_target, **extra):
     result = {
         "url": url,
         "hash_scheme": HASH_SCHEME,
-        "last_checked": datetime.datetime.now().isoformat(),
+        "last_checked": now_iso(),
         "last_changed_date": prev_target.get("last_changed_date"),
         "last_good_at": prev_target.get("last_good_at"),
         "health": "ok",
@@ -991,7 +1017,7 @@ def check_target(pid, name, key, url, prev_target, timeout, method="requests", c
                                       health_reason="browser_error",
                                       message=f"浏览器抓取失败：{e}")
     try:
-        now = datetime.datetime.now().isoformat()
+        now = now_iso()
 
         if method != "browser":
             resp, was_304 = fetch_with_retry(url, etag, last_modified, timeout)
@@ -1282,19 +1308,19 @@ def check_product(pid, policy, prev_entry, timeout, delay, no_browser=False,
         print(f"  [跳过] {name} ({pid}): URL 为空、待核实或未匹配 --only 目标")
         return {"name": name, "status": "skipped", "health": "ok", "health_issues": 0,
                 "message": "URL 为空或待核实，跳过检查",
-                "last_checked": datetime.datetime.now().isoformat()}
+                "last_checked": now_iso()}
 
     for spec in specs:
         if spec["method"] not in SUPPORTED_FETCH_METHODS:
             return {"name": name, "status": "failed", "health": "blocked", "health_issues": 1,
                     "message": f"目标 {spec['key']} 配置了不支持的抓取方式：{spec['method']!r}",
-                    "last_checked": datetime.datetime.now().isoformat()}
+                    "last_checked": now_iso()}
 
     if policy.get("monitor") is False:
         # 占位条目（无公开政策页 / 政策 URL 指向产品首页）：不抓取，避免持续误报
         return {"name": name, "status": "skipped", "health": "ok", "health_issues": 0,
                 "message": "该产品已标记为不监控（无独立公开政策页）",
-                "last_checked": datetime.datetime.now().isoformat()}
+                "last_checked": now_iso()}
 
     if no_browser:
         # 未安装 playwright 的环境：只跳过需浏览器抓取的目标，其余目标照常检查
@@ -1320,7 +1346,7 @@ def check_product(pid, policy, prev_entry, timeout, delay, no_browser=False,
                                      if t.get("health") in HEALTH_QUEUED_STATES),
                 "url": specs[0]["url"],
                 "message": "全部目标需浏览器抓取，已被 --no-browser 跳过（沿用上次结果）",
-                "last_checked": datetime.datetime.now().isoformat(),
+                "last_checked": now_iso(),
                 "targets": preserved,
             }
         if len(kept) != len(specs):
@@ -1353,7 +1379,7 @@ def check_product(pid, policy, prev_entry, timeout, delay, no_browser=False,
         "health_issues": unhealthy,
         "url": specs[0]["url"],
         "message": summary,
-        "last_checked": datetime.datetime.now().isoformat(),
+        "last_checked": now_iso(),
         "targets": target_results,
     }
 
@@ -1399,7 +1425,7 @@ def reapply_pending_alerts(products, pending_items):
             continue
         target["status"] = "changed"
         target["message"] = "此前检测到政策变化，仍待人工核实"
-        target["last_changed_date"] = target.get("last_changed_date") or datetime.datetime.now().isoformat()
+        target["last_changed_date"] = target.get("last_changed_date") or now_iso()
         product["status"] = "changed"
         product["message"] = "⚠️ 政策可能已更新，待人工核实"
         restored += 1
@@ -1415,7 +1441,7 @@ def update_pending_verification(products):
     - 已从当前监控目标中移除的历史项自动清理；
     - 只收 changed，failed/suspicious 属监控异常，不入此队列（由 update_status 单独体现）。
     """
-    now = datetime.datetime.now().isoformat()
+    now = now_iso()
     existing = load_pending_items()
     active_keys = set()
     for pid, info in products.items():
@@ -1481,7 +1507,7 @@ def update_monitor_health(products):
 
     products 为本次状态里的产品映射（形如 {pid: info}）。
     """
-    now = datetime.datetime.now().isoformat()
+    now = now_iso()
     existing = load_health_items()
     items = {}
     for pid, info in products.items():
@@ -1527,6 +1553,46 @@ def update_monitor_health(products):
     return items
 
 
+NETWORK_ERROR_LABELS = {
+    "SSLError": "SSL 证书验证失败（可能是防火墙/代理拦截）",
+    "ConnectTimeout": "连接超时（网站不可达）",
+    "ReadTimeout": "读取超时（连接成功但响应过慢）",
+    "ConnectError": "连接失败",
+    "ConnectionError": "连接失败",
+    "ProxyError": "代理连接失败",
+    "InvalidURL": "URL 被安全策略拦截（仅允许公网 HTTPS）",
+    "TooManyRedirects": "重定向次数超过限制",
+    "ContentDecodingError": "响应正文超过大小限制",
+}
+
+HTTP_STATUS_LABELS = {
+    401: "401 Unauthorized（需要认证，可能被反爬）",
+    403: "403 Forbidden（服务器拒绝访问，可能有反爬）",
+    405: "405 Method Not Allowed（服务器不接受 GET 请求）",
+    429: "429 Too Many Requests（被限流）",
+    451: "451 Unavailable For Legal Reasons（法律原因不可用）",
+}
+
+
+def summarize_failure_reason(target):
+    """把失败目标的 message 归纳成一行人话。
+
+    message 由抓取层以固定前缀写入（"检查失败：HTTP 403 错误 - …" /
+    "检查失败：请求异常 - <异常类名>"），按结构化前缀解析而不是对整条
+    message 做裸子串匹配——URL 里恰好含 "403"/"429" 时会把拒绝访问误判成
+    限流（反之亦然）。解析不出时回退原文。
+    """
+    msg = str(target.get("message") or "")
+    m = re.match(r"检查失败：HTTP (\d{3}) 错误", msg)
+    if m:
+        code = int(m.group(1))
+        return HTTP_STATUS_LABELS.get(code, f"HTTP {code} 错误")
+    m = re.match(r"检查失败：请求异常 - (\w+)$", msg)
+    if m:
+        return NETWORK_ERROR_LABELS.get(m.group(1), f"请求异常（{m.group(1)}）")
+    return msg
+
+
 def main():
     parser = argparse.ArgumentParser(description="AI 政策更新监控")
     parser.add_argument("--delay", type=float, default=1.5,
@@ -1552,7 +1618,7 @@ def main():
 
     print("=" * 60)
     print("AI 政策更新监控脚本")
-    print("运行时间：" + datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+    print("运行时间：" + datetime.datetime.now(PROJECT_TZ).strftime("%Y-%m-%d %H:%M:%S"))
     print(f"哈希方案：{HASH_SCHEME}（正文文本归一化，按配置来源逐条监控）")
     print("=" * 60)
 
@@ -1604,7 +1670,7 @@ def main():
             new_status.setdefault(pid, {"name": pid, "status": "skipped",
                                         "health": "ok", "health_issues": 0,
                                         "message": "本轮未检查（--products/--only）",
-                                        "last_checked": datetime.datetime.now().isoformat()})
+                                        "last_checked": now_iso()})
         target_count = sum(len(v) for v in only_map.values()) or "全部"
         print(f"局部重试：{len(selected_pids)} 个产品 / {target_count} 个目标，"
               f"其余沿用上次状态")
@@ -1623,7 +1689,7 @@ def main():
         if not policy:
             new_status[pid] = {"name": pid, "status": "failed", "health": "no_baseline",
                                "health_issues": 1, "message": "数据文件缺失或不是合法 JSON",
-                               "last_checked": datetime.datetime.now().isoformat()}
+                               "last_checked": now_iso()}
             continue
         result = check_product(pid, policy, prev, args.timeout, args.delay,
                                no_browser=args.no_browser, only_keys=only_keys,
@@ -1674,7 +1740,7 @@ def main():
 
     status_data = {
         "meta": {
-            "last_run": datetime.datetime.now().isoformat(),
+            "last_run": now_iso(),
             "hash_scheme": HASH_SCHEME,
             "scope": args.scope,
             "local_only_targets": local_only_count,
@@ -1734,22 +1800,7 @@ def main():
             if info["status"] == "failed":
                 for key, t in (info.get("targets") or {}).items():
                     if t.get("status") == "failed":
-                        msg = t.get("message", "")
-                        # 简化消息：提取关键错误类型
-                        if "SSLError" in msg:
-                            reason = "SSL 证书验证失败（可能是防火墙/代理拦截）"
-                        elif "ConnectTimeout" in msg or "Timeout" in msg:
-                            reason = "连接超时（网站不可达）"
-                        elif "403" in msg:
-                            reason = "403 Forbidden（服务器拒绝访问，可能有反爬）"
-                        elif "429" in msg:
-                            reason = "429 Too Many Requests（被限流）"
-                        elif "405" in msg:
-                            reason = "405 Method Not Allowed（服务器不接受 GET 请求）"
-                        elif "ConnectionError" in msg:
-                            reason = "连接失败"
-                        else:
-                            reason = msg
+                        reason = summarize_failure_reason(t)
                         print(f"  - {pid}（{TARGET_LABELS.get(key, key)}）: {reason}")
                         print(f"    URL: {t['url']}")
                         if t.get("last_good_at"):

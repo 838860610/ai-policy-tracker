@@ -227,7 +227,7 @@
           <span class="t"><strong>③ 校验线 · ci.yml</strong><span>push / PR 触发 · validate 只读，publish 才写回</span></span>
         </button>
         <div class="mini-list">
-          <button type="button" class="mini" data-step="ci-test" aria-haspopup="dialog" aria-expanded="false"><i>1</i><span class="t"><strong>回归测试</strong><span>141 项 · tests/test_scripts.py · 约 15 秒</span></span></button>
+          <button type="button" class="mini" data-step="ci-test" aria-haspopup="dialog" aria-expanded="false"><i>1</i><span class="t"><strong>回归测试</strong><span>150 项 · tests/test_scripts.py · 约 15 秒</span></span></button>
           <div class="mini-link" aria-hidden="true"></div>
           <button type="button" class="mini" data-step="ci-validate" aria-haspopup="dialog" aria-expanded="false"><i>2</i><span class="t"><strong>一致性检查</strong><span>validate_data · README 表 · 文档页 · 产品页 / sitemap</span></span></button>
           <div class="mini-link" aria-hidden="true"></div>
@@ -492,12 +492,12 @@
       title: 'ci.yml 数据校验（push main / PR 触发）',
       desc: '仓库的守门员：validate 与 publish 是两个 job——validate 只读（persist-credentials: false），先跑全量回归测试再做一致性检查；PR 上只校验，main push 上才允许 publish 写回。校验不过 → 不生成、不发布，脏数据到不了线上。',
       files: ['.github/workflows/ci.yml', 'tests/test_scripts.py'],
-      cmds: ['.venv/bin/python -m unittest discover -s tests -q   # 141 项，约 15 秒\n.venv/bin/python scripts/validate_data.py            # 0 错 0 警'],
+      cmds: ['.venv/bin/python -m unittest discover -s tests -q   # 150 项，约 15 秒\n.venv/bin/python scripts/validate_data.py            # 0 错 0 警'],
       notes: ['同一分支多次推送串行执行：同一时间只跑一个，后续排队依次全部执行（cancel-in-progress: false），不会取消旧运行']
     },
     'ci-test': {
       stage: '03 · 校验线 · 步骤 1',
-      title: '回归测试：141 项（tests/test_scripts.py）',
+      title: '回归测试：150 项（tests/test_scripts.py）',
       desc: '单文件、类按关注点分组的全量回归：数据校验、监控行为（状态机/健康队列/去噪）、生成产物一致性、工作流不变量（如 monitor 的 checkout 必须保留凭据）等。是提交前的必跑项。',
       files: ['tests/test_scripts.py'],
       cmds: ['.venv/bin/python -m unittest discover -s tests -q'],

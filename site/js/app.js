@@ -19,12 +19,6 @@
     "月之暗面（Moonshot AI）": "yue", "智谱AI": "zhipu", "字节跳动": "zijiedong",
     "Anthropic": "anthropic", "Google": "google", "OpenAI": "openai", "360": "360"
   };
-  function vendorOf(company) {
-    for (var i = 0; i < VENDOR_RULES.length; i++) {
-      if (company.indexOf(VENDOR_RULES[i][0]) === 0) return VENDOR_RULES[i][1];
-    }
-    return company;
-  }
 
   function fetchJson(url) {
     return fetch(url).then(function (res) {

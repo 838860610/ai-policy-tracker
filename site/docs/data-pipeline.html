@@ -6,8 +6,8 @@
   <meta name="description" content="AI 用户政策追踪器数据流水线：数据层、检测、构建校验、部署、展示到本地核实的完整闭环与各脚本职责。">
   <title>数据流水线 - AI 用户政策追踪器</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%9B%A1%EF%B8%8F%3C/text%3E%3C/svg%3E">
-  <script src="../js/theme.js?v=20261022-6"></script>
-  <link rel="stylesheet" href="../css/style.css?v=20261022-6">
+  <script src="../js/theme.js?v=20261118-1"></script>
+  <link rel="stylesheet" href="../css/style.css?v=20261118-1">
 </head>
 <body>
   <button class="theme-toggle theme-toggle-fixed" type="button" data-theme-toggle aria-label="切换到暗色主题" title="切换到暗色主题" aria-pressed="true">
@@ -46,7 +46,7 @@
        └─ monitor_scope=local ▶ CI 跳过（沿用上次结果）→ 本地 local_monitor.sh 跑
 
  ③ 校验线 ci.yml（push / PR 触发，与 ② 相互独立并行）
-     141 项回归测试 → validate_data → README 表 / 文档页 / 产品页 3 项 --check
+     150 项回归测试 → validate_data → README 表 / 文档页 / 产品页 3 项 --check
      全绿且为 main push → publish：重新生成 bundle / 文档页 / 产品页，bot 提交
      （bot 的 GITHUB_TOKEN 提交不再触发 push 事件，不会死循环）
 
