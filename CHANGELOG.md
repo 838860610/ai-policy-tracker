@@ -11,6 +11,8 @@
 
 ### Added
 
+- **"核实即入 timeline"制度化**：`policy-change-verify` SKILL.md 与 `policy_schema.md` 把 timeline 从"里程碑变化可选追加"改为**实质性变更强制条目**（`--resolve` 收尾前自查已补）——timeline 是详情页时间线与订阅 feed 的变更叙事主线，实质变更只记在 CHANGELOG 里等于"追踪器没有追踪"。event 写条款实质（哪条从什么改成什么），核实过程仍归 `verification_notes`
+- **Kimi timeline 补录**：2026-08-31 生效协议的关键变化此前只散落在 description/key_findings——现行协议授予免费使用权将输入输出用于'模型服务优化'（默认开启，退出需联系 support@moonshot.cn）、2025 年旧版'全球、永久、可转让、品牌推广'授权表述已移除（2026-08-30 复核确认）。扫描确认其余无 timeline 产品的记录均为当前状态描述而非未收录的变更，无需补录
 - **变更订阅与通知闭环（RSS + webhook + diff 公开展示）**：此前检测到变更只有 Actions 日志一行，"最后一公里"全靠人主动打开站点。新增三件套：
   - `scripts/gen_feed.py` 生成 Atom 订阅源 `site/feed.xml`（timeline 人工核实记录 + 待核实队列按时间倒序合并，最多 60 条；待核实条目带快照 diff 片段，entry id 绑定首次检测时间避免每轮重复推送）。首页 head 与页脚加发现链接，ci.yml / monitor.yml 接入生成与 `--check`
   - 监控检测到 changed 时 `update_pending_verification` 用快照 prev→latest 生成截断的统一 diff 写入待核实队列（`diff_preview` 字段，difflib 纯标准库）；详情页新增"⚠️ 检测到待核实的政策变更"卡片渲染该 diff（队列无该产品时隐藏），资源版本号升至 `20261118-2`

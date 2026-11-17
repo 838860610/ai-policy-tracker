@@ -70,7 +70,12 @@ python3 skills/policy-change-verify/scripts/policy_verify.py <product_id> --all-
   `opt_out_method`、`deidentified`、`data_retention`、`copyright`、
   `other_uses`、`risk_level`、`key_clauses`。
 - 将涉及版本的 `last_verified` 更新为当天日期（`YYYY-MM-DD`）。
-- 若发生里程碑式变化，向 `timeline` 追加 `{ "date": "<当天>", "event": "..." }`。
+- **必须补 timeline**：实质性变更核实完成后，向 `timeline` 追加
+  `{ "date": "<变更生效日期，未知则用核实日>", "event": "..." }`。
+  timeline 是详情页"政策变更时间线"与订阅 feed 的变更叙事主线，
+  实质变更只记在 CHANGELOG 里等于"追踪器没有追踪"。event 写条款实质
+  （哪条改了、从什么改成什么），不写核实过程与核对记录（那是
+  `verification_notes` 的职责）。
 - 可选：在版本对象里加 / 更新 `verification_notes`（数组，记 `YYYY-MM-DD 逐字复核...`）。
 - 顶层 `description` / `analysis_summary` / `key_findings` 若明显过时也可同步。
 
@@ -90,6 +95,8 @@ python3 skills/policy-change-verify/scripts/policy_verify.py <product_id> --all-
 - 某项已核实并更新数据后，运行
    `python3 skills/policy-change-verify/scripts/policy_verify.py --resolve <product_id> [target]`
    同时清除待核实队列和页面告警（这是检测→核实跨轮持久交接的收尾）。
+   **收尾前自查**：若本次为实质性变更，`timeline` 必须已有对应条目（见步骤 4），
+   否则 `--resolve` 之后队列清空、diff 只留在 CHANGELOG，变更叙事就断了。
 
 ## 资源
 - `scripts/policy_verify.py`：提取新旧快照 diff 与当前政策 JSON 的确定性脚本。
