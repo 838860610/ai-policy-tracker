@@ -17,8 +17,8 @@
   <link rel="canonical" href="https://838860610.github.io/ai-policy-tracker/p/bigmodel.html">
   <title>智谱开放平台（bigmodel.cn） 的隐私政策与训练数据设置 - AI 用户政策追踪器</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%9B%A1%EF%B8%8F%3C/text%3E%3C/svg%3E">
-  <script src="js/theme.js?v=20261118-1"></script>
-  <link rel="stylesheet" href="css/style.css?v=20261118-1">
+  <script src="js/theme.js?v=20261118-2"></script>
+  <link rel="stylesheet" href="css/style.css?v=20261118-2">
 </head>
 <body data-product-id="bigmodel">
   <noscript>
@@ -51,6 +51,14 @@
       <div class="detail-card" id="descCard">
         <h2>产品简介</h2>
         <p id="productDesc" style="color:var(--text-secondary);line-height:1.8"></p>
+      </div>
+
+      <!-- 待核实变更卡片：由 detail.js 按 generated/pending_verification.json 动态点亮，
+           队列无该产品时保持隐藏（构建期不可知，属增强信息） -->
+      <div class="detail-card" id="pendingChangeCard" style="display:none">
+        <h2>⚠️ 检测到待核实的政策变更</h2>
+        <p class="pending-note">以下变化由自动监控检测到、尚未人工核实，diff 为快照对比片段，请以官方页面为准。</p>
+        <div id="pendingChangeList"></div>
       </div>
 
       <div class="detail-card">
@@ -105,7 +113,7 @@
     <p>免责声明：本数据仅供参考，不构成法律建议。请以官方最新政策为准。</p>
   </div>
 
-  <script src="js/common.js?v=20261118-1"></script>
-  <script src="js/detail.js?v=20261118-1"></script>
+  <script src="js/common.js?v=20261118-2"></script>
+  <script src="js/detail.js?v=20261118-2"></script>
 </body>
 </html>

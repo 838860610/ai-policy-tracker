@@ -48,6 +48,7 @@ Cron 配置示例（每周一早上 9 点运行）：
 
 import argparse
 import datetime
+import difflib
 import hashlib
 import html as html_lib
 import io
@@ -1432,6 +1433,44 @@ def reapply_pending_alerts(products, pending_items):
     return restored
 
 
+DIFF_PREVIEW_MAX_LINES = 60
+DIFF_PREVIEW_MAX_CHARS = 4000
+
+
+def build_diff_preview(pid, key):
+    """检测到 changed 时，用快照 prev.txt → latest.txt 生成截断的统一 diff。
+
+    待核实队列此前只记录"哪个目标变了"，要看改了哪句必须本地跑
+    policy_verify.py；把 diff 片段写进队列条目，详情页与通知都能直接展示。
+    快照缺失（首轮基线、历史遗留、PDF 目标）时返回 None，不阻塞入队。
+    """
+    target_dir = os.path.join(SNAPSHOTS_DIR, pid, key)
+    prev_path = os.path.join(target_dir, "prev.txt")
+    latest_path = os.path.join(target_dir, "latest.txt")
+    if not (os.path.exists(prev_path) and os.path.exists(latest_path)):
+        return None
+    try:
+        with open(prev_path, encoding="utf-8") as f:
+            prev_lines = f.read().splitlines()
+        with open(latest_path, encoding="utf-8") as f:
+            latest_lines = f.read().splitlines()
+    except OSError:
+        return None
+    diff_lines = list(difflib.unified_diff(
+        prev_lines, latest_lines,
+        fromfile=f"上一版快照（{pid}:{key}）",
+        tofile="当前快照", lineterm=""))
+    if not diff_lines:
+        return None
+    truncated = diff_lines[:DIFF_PREVIEW_MAX_LINES]
+    if len(diff_lines) > DIFF_PREVIEW_MAX_LINES:
+        truncated.append(f"…（共 {len(diff_lines)} 行 diff，已截断；完整对比本地运行 policy_verify.py）")
+    text = "\n".join(truncated)
+    if len(text) > DIFF_PREVIEW_MAX_CHARS:
+        text = text[:DIFF_PREVIEW_MAX_CHARS] + "\n…（diff 过长已截断）"
+    return text
+
+
 def update_pending_verification(products):
     """合并式维护"待核实队列"（检测→核实的持久交接物，取代已移除的自动 Issue）。
 
@@ -1469,7 +1508,7 @@ def update_pending_verification(products):
                 continue
             pk = f"{pid}:{key}"
             old = items.get(pk) or {}
-            items[pk] = {
+            item = {
                 "pid": pid,
                 "name": name,
                 "key": key,
@@ -1479,6 +1518,14 @@ def update_pending_verification(products):
                 "first_seen": old.get("first_seen", now),
                 "last_seen": now,
             }
+            # diff 片段按当前快照重新生成（内容没再变时结果稳定不变）；
+            # 快照已清理时保留旧条目的片段兜底
+            diff = build_diff_preview(pid, key)
+            if diff:
+                item["diff_preview"] = diff
+            elif old.get("diff_preview"):
+                item["diff_preview"] = old["diff_preview"]
+            items[pk] = item
     atomic_write_json(PENDING_FILE, {"updated_at": now, "items": items})
     return items
 

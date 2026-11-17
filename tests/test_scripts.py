@@ -941,6 +941,172 @@ class TestFetchWithRetry(unittest.TestCase):
         self.assertEqual(safety.call_count, 2)
 
 
+class TestFeedGeneration(unittest.TestCase):
+    """gen_feed.py：Atom 订阅源 = timeline（人工核实）+ 待核实队列（自动检测），
+    按时间倒序合并；输出必须确定性，CI 用 --check 锁定入库版本最新。"""
+
+    def setUp(self):
+        self.feed = load_script("gen_feed")
+
+    def test_feed_matches_current_data(self):
+        old_argv = sys.argv
+        try:
+            sys.argv = ["gen_feed.py", "--check"]
+            self.assertEqual(self.feed.main(), 0)
+        finally:
+            sys.argv = old_argv
+
+    def test_merges_timeline_and_pending_sorted_desc(self):
+        with tempfile.TemporaryDirectory() as directory:
+            policies_dir = os.path.join(directory, "policies")
+            os.makedirs(policies_dir)
+            with open(os.path.join(policies_dir, "demo.json"), "w", encoding="utf-8") as f:
+                json.dump({"name": "Demo 产品", "timeline": [
+                    {"date": "2026-01-02", "event": "训练模式从加入式翻转为退出式。详情略"},
+                ]}, f, ensure_ascii=False)
+            pending_path = os.path.join(directory, "pending.json")
+            with open(pending_path, "w", encoding="utf-8") as f:
+                json.dump({"updated_at": "2026-01-04T09:00:00+08:00", "items": {
+                    "demo:main": {
+                        "pid": "demo", "key": "main", "name": "Demo 产品", "label": "主监控页",
+                        "url": "https://example.com/p", "status": "changed",
+                        "first_seen": "2026-01-03T09:00:00+08:00",
+                        "last_seen": "2026-01-04T09:00:00+08:00",
+                        "diff_preview": "-旧条款\n+新条款",
+                    },
+                }}, f, ensure_ascii=False)
+            with mock.patch.object(self.feed, "POLICIES_DIR", policies_dir), \
+                 mock.patch.object(self.feed, "PENDING_FILE", pending_path):
+                xml = self.feed.build_feed_xml()
+        self.assertIn("<feed xmlns=", xml)
+        self.assertIn("训练模式从加入式翻转为退出式", xml)
+        self.assertIn("待核实：Demo 产品（主监控页）", xml)
+        self.assertIn("-旧条款", xml)
+        # 时间统一为 RFC3339：纯日期按北京时间补 00:00，naive 不出现
+        self.assertIn("2026-01-02T00:00:00+08:00", xml)
+        self.assertNotIn("<updated>2026-01-02</updated>", xml)
+        # 倒序：更新的待核实条目在 timeline 之前；feed updated = 最新条目时间
+        self.assertLess(xml.index("待核实：Demo 产品"), xml.index("训练模式从加入式"))
+        self.assertIn("<updated>2026-01-04T09:00:00+08:00</updated>",
+                      xml.split("<entry>", 1)[0])
+
+    def test_pending_entry_id_binds_first_seen(self):
+        """last_seen 每轮监控都会刷新，entry id 若绑定它会导致同一未核实变更
+        每周重复推送；id 必须绑定首次检测时间，核实出队后自然消失。"""
+        base_item = {
+            "pid": "demo", "key": "main", "name": "Demo", "label": "主监控页",
+            "url": "https://example.com/p", "status": "changed",
+            "first_seen": "2026-01-03T09:00:00+08:00",
+            "diff_preview": "-x\n+y",
+        }
+        with tempfile.TemporaryDirectory() as directory:
+            pending_path = os.path.join(directory, "pending.json")
+            ids = {}
+            with mock.patch.object(self.feed, "PENDING_FILE", pending_path):
+                for last_seen in ("2026-01-04T09:00:00+08:00", "2026-01-11T09:00:00+08:00"):
+                    item = dict(base_item, last_seen=last_seen)
+                    with open(pending_path, "w", encoding="utf-8") as f:
+                        json.dump({"updated_at": last_seen, "items": {"demo:main": item}}, f)
+                    ids[last_seen] = re.search(r"<id>([^']+?)</id>",
+                                               self.feed.build_feed_xml()).group(1)
+        self.assertEqual(ids["2026-01-04T09:00:00+08:00"],
+                         ids["2026-01-11T09:00:00+08:00"])
+
+    def test_xml_escaping(self):
+        with tempfile.TemporaryDirectory() as directory:
+            policies_dir = os.path.join(directory, "policies")
+            os.makedirs(policies_dir)
+            with open(os.path.join(policies_dir, "demo.json"), "w", encoding="utf-8") as f:
+                json.dump({"name": "A<B>产品", "timeline": [
+                    {"date": "2026-01-02", "event": "条款含 <tag> & \"引号\""},
+                ]}, f, ensure_ascii=False)
+            pending_path = os.path.join(directory, "pending.json")
+            with open(pending_path, "w", encoding="utf-8") as f:
+                json.dump({"updated_at": "", "items": {}}, f, ensure_ascii=False)
+            with mock.patch.object(self.feed, "POLICIES_DIR", policies_dir), \
+                 mock.patch.object(self.feed, "PENDING_FILE", pending_path):
+                xml = self.feed.build_feed_xml()
+        self.assertNotIn("<tag>", xml)
+        self.assertIn("&lt;tag&gt;", xml)
+        self.assertIn("&amp;", xml)
+
+
+class TestNotifyWebhook(unittest.TestCase):
+    """notify_webhook.py：平台 payload 适配与消息组装（纯函数不联网），
+    由 monitor.yml 在监控轮后调用，配置 Secrets 后自动生效。"""
+
+    def setUp(self):
+        self.mod = load_script("notify_webhook")
+
+    def test_collect_changed(self):
+        status = {"products": {
+            "demo": {"name": "Demo", "status": "changed", "targets": {
+                "main": {"status": "changed", "url": "https://x/main"},
+                "toc": {"status": "ok"},
+            }},
+            "other": {"status": "ok", "targets": {"main": {"status": "ok"}}},
+        }}
+        changed = self.mod.collect_changed(status)
+        self.assertEqual([(c["pid"], c["key"]) for c in changed], [("demo", "main")])
+
+    def test_build_text_lists_targets_and_truncates_diff(self):
+        changed = [{"pid": "demo", "key": "main", "name": "Demo",
+                    "label": "主监控页", "url": "https://x"}]
+        previews = {"demo:main": "\n".join(f"line{i}" for i in range(20))}
+        text = self.mod.build_text(changed, previews, 3)
+        self.assertIn("Demo（主监控页）", text)
+        self.assertIn("https://x", text)
+        self.assertIn("line5", text)
+        self.assertNotIn("line6", text)
+        self.assertIn("待核实队列 3 项", text)
+
+    def test_build_payload_platform_formats(self):
+        mod = self.mod
+        self.assertEqual(mod.build_payload("hi", "feishu"),
+                         {"msg_type": "text", "content": {"text": "hi"}})
+        self.assertEqual(mod.build_payload("hi", "dingtalk"),
+                         {"msgtype": "text", "text": {"content": "hi"}})
+        self.assertEqual(mod.build_payload("hi", "telegram", "42"),
+                         {"chat_id": "42", "text": "hi"})
+        self.assertEqual(mod.build_payload("hi", "generic"), {"text": "hi"})
+
+    def test_platform_ok(self):
+        self.assertFalse(self.mod.platform_ok({"errcode": 310000}))   # 钉钉业务失败
+        self.assertFalse(self.mod.platform_ok({"code": 19021}))       # 飞书业务失败
+        self.assertFalse(self.mod.platform_ok({"ok": False}))         # telegram 失败
+        self.assertTrue(self.mod.platform_ok({"errcode": 0}))
+        self.assertTrue(self.mod.platform_ok({"ok": True, "result": {}}))
+        self.assertTrue(self.mod.platform_ok(None))  # 非 JSON 响应交给 HTTP 状态码
+
+    def test_main_without_webhook_url_is_silent_success(self):
+        """未配置通知端点不是错误：CI 未配 Secrets 时该 step 不应报错。"""
+        with mock.patch.dict(os.environ, {}, clear=True):
+            self.assertEqual(self.mod.main(), 0)
+
+    def test_main_posts_platform_payload(self):
+        with tempfile.TemporaryDirectory() as directory:
+            status_path = os.path.join(directory, "status.json")
+            with open(status_path, "w", encoding="utf-8") as f:
+                json.dump({"products": {"demo": {"name": "Demo", "status": "changed", "targets": {
+                    "main": {"status": "changed", "url": "https://x/main"},
+                }}}}, f, ensure_ascii=False)
+            pending_path = os.path.join(directory, "pending.json")
+            with open(pending_path, "w", encoding="utf-8") as f:
+                json.dump({"updated_at": "t", "items": {
+                    "demo:main": {"pid": "demo", "key": "main", "diff_preview": "-旧\n+新"},
+                }}, f, ensure_ascii=False)
+            resp = mock.Mock(status_code=200)
+            resp.json.return_value = {"errcode": 0}
+            with mock.patch.dict(os.environ, {"WEBHOOK_URL": "https://hook.example/x",
+                                              "WEBHOOK_TYPE": "dingtalk"}), \
+                 mock.patch.object(self.mod, "STATUS_FILE", status_path), \
+                 mock.patch.object(self.mod, "PENDING_FILE", pending_path), \
+                 mock.patch.object(self.mod.requests, "post", return_value=resp) as post:
+                self.assertEqual(self.mod.main(), 0)
+            self.assertEqual(post.call_args.kwargs.get("json"),
+                             {"msgtype": "text", "text": {"content": mock.ANY}})
+
+
 class TestMonitorState(unittest.TestCase):
     def test_fetch_url_rejects_non_https_and_private_targets(self):
         self.assertFalse(CHECK_UPDATES.safe_fetch_url("http://example.com/policy"))
@@ -1108,6 +1274,44 @@ class TestMonitorState(unittest.TestCase):
         ]
         for target, expected in cases:
             self.assertEqual(CHECK_UPDATES.summarize_failure_reason(target), expected)
+
+    def test_build_diff_preview_from_snapshots(self):
+        with tempfile.TemporaryDirectory() as directory:
+            target_dir = os.path.join(directory, "demo", "main")
+            os.makedirs(target_dir)
+            with open(os.path.join(target_dir, "prev.txt"), "w", encoding="utf-8") as f:
+                f.write("旧条款A\n旧条款B\n")
+            with open(os.path.join(target_dir, "latest.txt"), "w", encoding="utf-8") as f:
+                f.write("旧条款A\n新条款B2\n")
+            with mock.patch.object(CHECK_UPDATES, "SNAPSHOTS_DIR", directory):
+                preview = CHECK_UPDATES.build_diff_preview("demo", "main")
+        self.assertIn("-旧条款B", preview)
+        self.assertIn("+新条款B2", preview)
+        self.assertTrue(preview.startswith("---"))
+
+    def test_build_diff_preview_missing_snapshots_returns_none(self):
+        with tempfile.TemporaryDirectory() as directory:
+            with mock.patch.object(CHECK_UPDATES, "SNAPSHOTS_DIR", directory):
+                self.assertIsNone(CHECK_UPDATES.build_diff_preview("ghost", "main"))
+
+    def test_pending_items_gain_diff_preview(self):
+        """集成：检测到 changed 入队时，diff 片段随条目一起写入待核实队列。"""
+        with tempfile.TemporaryDirectory() as directory:
+            snap_dir = os.path.join(directory, "snapshots")
+            os.makedirs(os.path.join(snap_dir, "demo", "main"))
+            with open(os.path.join(snap_dir, "demo", "main", "prev.txt"), "w", encoding="utf-8") as f:
+                f.write("旧条款A\n旧条款B\n")
+            with open(os.path.join(snap_dir, "demo", "main", "latest.txt"), "w", encoding="utf-8") as f:
+                f.write("旧条款A\n新条款B2\n")
+            pending_path = os.path.join(directory, "pending.json")
+            with mock.patch.object(CHECK_UPDATES, "SNAPSHOTS_DIR", snap_dir), \
+                 mock.patch.object(CHECK_UPDATES, "PENDING_FILE", pending_path):
+                products = {"demo": {"name": "Demo", "status": "changed", "targets": {
+                    "main": {"status": "changed", "url": "https://example.com/p"},
+                }}}
+                items = CHECK_UPDATES.update_pending_verification(products)
+        self.assertIn("-旧条款B", items["demo:main"]["diff_preview"])
+        self.assertIn("+新条款B2", items["demo:main"]["diff_preview"])
 
     def test_pending_queue_drops_targets_no_longer_monitored(self):
         with tempfile.TemporaryDirectory() as directory:

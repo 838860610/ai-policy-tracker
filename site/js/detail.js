@@ -266,6 +266,48 @@
     document.getElementById("loading").innerHTML = '<div class="error">' + html + "</div>";
   }
 
+  /** 待核实变更卡片：展示自动监控检测到、尚未人工核实的变更与 diff 片段。
+   *  generated/pending_verification.json 由监控轮维护，本地/首次部署可能不存在——失败静默。 */
+  function renderPendingDiff(pid) {
+    var card = document.getElementById("pendingChangeCard");
+    var list = document.getElementById("pendingChangeList");
+    if (!card || !list) return;
+    fetch("generated/pending_verification.json")
+      .then(function (res) {
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        return res.json();
+      })
+      .then(function (data) {
+        var items = [];
+        var all = (data && data.items) || {};
+        Object.keys(all).forEach(function (pk) {
+          var it = all[pk];
+          if (it && it.pid === pid) items.push(it);
+        });
+        if (!items.length) return;
+        var html = items.map(function (it) {
+          var detected = String(it.first_seen || "").slice(0, 10);
+          return (
+            '<div class="pending-change-item">' +
+            '<div class="pending-change-head"><strong>' + PT.escapeHtml(it.label || it.key || "") +
+            '</strong><span class="pending-change-time">' + PT.escapeHtml(detected) +
+            " 检测</span></div>" +
+            (it.url ? '<a class="policy-link" href="' + PT.safeUrl(it.url) +
+              '" target="_blank" rel="noopener noreferrer">查看官方页面 &rarr;</a>' : "") +
+            (it.diff_preview
+              ? '<pre class="diff-preview">' + PT.escapeHtml(it.diff_preview) + "</pre>"
+              : '<p class="pending-note">暂无快照对比（首轮基线建立前检测到，核实后此卡消失）</p>') +
+            "</div>"
+          );
+        }).join("");
+        list.innerHTML = html;
+        card.style.display = "block";
+      })
+      .catch(function () {
+        /* 队列缺失/网络失败时静默：待核实卡片是增强信息，不影响正文 */
+      });
+  }
+
   function detailHref(pid) {
     return "p/" + encodeURIComponent(pid) + ".html";
   }
@@ -421,5 +463,6 @@
       return;
     }
     loadDetail(id);
+    renderPendingDiff(id);
   });
 })();

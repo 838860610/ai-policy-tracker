@@ -278,6 +278,13 @@ python3 -m unittest discover -s tests -v
 
 # 文档页生成：site/docs/*.md 是唯一源，*.html 由脚本渲染（不要手工改 html）
 .venv/bin/python scripts/gen_docs.py            # 重新生成
+
+# 订阅 feed：site/feed.xml 由脚本生成（timeline + 待核实队列），CI 会 --check
+.venv/bin/python scripts/gen_feed.py
+
+# 变更通知：检测到政策变更时推送 webhook（飞书/钉钉/Telegram/通用）。
+# 仅 monitor.yml 里调用；本地调试可设 WEBHOOK_URL/WEBHOOK_TYPE 后运行
+.venv/bin/python scripts/notify_webhook.py
 .venv/bin/python scripts/gen_docs.py --check    # CI 用：校验是否已最新
 ```
 

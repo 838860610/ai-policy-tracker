@@ -62,6 +62,19 @@ jobs:
         # scripts/local_monitor.sh，以本地结果为准。
         run: python scripts/check_updates.py --scope ci --delay 0.5 --timeout 20 --fail-on-error
 
+      - name: 生成订阅 feed（依赖本轮最新的待核实队列与快照 diff）
+        run: python scripts/gen_feed.py
+
+      - name: 推送变更通知（配置 Secrets 后生效，未配置时脚本静默跳过）
+        # 通知只做一次性 POST：失败不应掩盖监控结果本身，continue-on-error
+        if: always()
+        continue-on-error: true
+        env:
+          WEBHOOK_URL: ${{ secrets.MONITOR_WEBHOOK_URL }}
+          WEBHOOK_TYPE: ${{ vars.MONITOR_WEBHOOK_TYPE }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: python scripts/notify_webhook.py
+
       - name: 提交监控状态、快照与待核实队列
         run: |
           git config user.name "github-actions[bot]"
@@ -71,10 +84,11 @@ jobs:
           git pull --rebase --autostash origin main
           # update_status.json / snapshots/ 已入库（首页展示监控状态 + 核实回路的持久历史）；
           # pending_verification.json 是检测→核实的跨轮交接物；
-          # monitor_health.json 是抓取健康队列（政策没变但抓取已坏的独立信号）。四者一并提交。
+          # monitor_health.json 是抓取健康队列（政策没变但抓取已坏的独立信号）；
+          # feed.xml 是对外订阅源（随队列与 timeline 更新）。一并提交。
           git add site/generated/update_status.json site/generated/pending_verification.json
           git add site/generated/monitor_health.json
-          git add site/generated/snapshots
+          git add site/generated/snapshots site/feed.xml
           git diff --cached --quiet || (git commit -m "monitor: 政策更新检查 $(date -u +%F)" && git push)
 
       - name: 监控健康检查

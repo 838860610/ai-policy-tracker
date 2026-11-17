@@ -11,6 +11,10 @@
 
 ### Added
 
+- **变更订阅与通知闭环（RSS + webhook + diff 公开展示）**：此前检测到变更只有 Actions 日志一行，"最后一公里"全靠人主动打开站点。新增三件套：
+  - `scripts/gen_feed.py` 生成 Atom 订阅源 `site/feed.xml`（timeline 人工核实记录 + 待核实队列按时间倒序合并，最多 60 条；待核实条目带快照 diff 片段，entry id 绑定首次检测时间避免每轮重复推送）。首页 head 与页脚加发现链接，ci.yml / monitor.yml 接入生成与 `--check`
+  - 监控检测到 changed 时 `update_pending_verification` 用快照 prev→latest 生成截断的统一 diff 写入待核实队列（`diff_preview` 字段，difflib 纯标准库）；详情页新增"⚠️ 检测到待核实的政策变更"卡片渲染该 diff（队列无该产品时隐藏），资源版本号升至 `20261118-2`
+  - `scripts/notify_webhook.py` 支持飞书 / 钉钉 / Telegram / 通用 JSON 四种 payload，monitor.yml 在监控轮后调用（Secrets `MONITOR_WEBHOOK_URL` + Variables `MONITOR_WEBHOOK_TYPE` 配置后生效，未配置静默跳过；continue-on-error 保证通知故障不掩盖监控结果）。对外文档 `site/docs/update-monitoring.md` 新增"订阅变更动态"章节
 - **产品独立静态详情页**：新增 `scripts/gen_product_pages.py`，以 `site/detail.html` 为模板生成 48 个 `site/p/{id}.html`，每个页面有独立 `title`、描述、`og:title/description/url`、`twitter` 卡片与 `canonical`，并写入静态 `<noscript>` 摘要；`site/sitemap.xml` 改由同一脚本生成。首页所有详情链接切到 `p/{id}.html`，旧 `detail.html?id=` 入口继续可用
 - **详情页站内导航与版本深链**：同厂商其他产品、按列表顺序的上一个/下一个；`?tab=toc|tob` 可直接打开指定版本，切换标签时同步地址栏
 - **明亮主题**：新增 `site/js/theme.js` 与顶栏/详情页/文档页的主题切换按钮，选择写入 `localStorage` 并在样式表加载前应用，避免亮色用户看到黑屏闪烁；亮色 token 重新校准了正文、风险信号色与边框的对比度。**默认使用明亮主题**，只有用户显式选择过暗色才保持暗色

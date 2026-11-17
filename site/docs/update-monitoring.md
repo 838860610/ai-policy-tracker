@@ -604,6 +604,26 @@ SPA 文档站常把正文**分批注入**。用固定等待（原来 `wait_for_t
 > **部署与监控失败解耦**：`deploy.yml` 只在数据校验失败时拒绝部署；"政策更新监控"即使因单个目标超时变红，也会部署本轮已提交的结果。否则一次网络抖动就会让线上数据冻结到下一周。
 
 
+## 订阅变更动态
+
+不必每周翻仓库也可以跟进变更，两个入口都是自动维护的脚本产物：
+
+**Atom 订阅源 `feed.xml`**：合并两类事件，按时间倒序、最多 60 条——
+
+- **人工核实过的实质变更**：来自各产品的 `timeline`（描述 + 日期 + 详情页链接）；
+- **检测到但尚未核实的变更**：来自待核实队列，条目正文带新旧快照的 diff 片段（与详情页"待核实的政策变更"卡片同源）。同一未核实变更只推送一次（entry id 绑定首次检测时间），核实出队后自然消失。
+
+在 RSS 阅读器（NetNewsWire / Inoreader 等）里订阅 `https://838860610.github.io/ai-policy-tracker/feed.xml` 即可；站点首页 `<head>` 与页脚都有发现链接。`feed.xml` 由 `scripts/gen_feed.py` 生成（不要手工编辑），CI 会校验入库版本是否最新，监控轮结束时会随队列一起更新并提交。
+
+**Webhook 通知（飞书 / 钉钉 / Telegram / 通用 JSON）**：监控轮检测到 `changed` 时，`scripts/notify_webhook.py` 会向配置的端点一次性 POST 消息摘要（目标列表 + diff 片段首几行 + 队列入口）。仓库管理员配置以下 Secrets / Variables 即自动生效，未配置时该步骤静默跳过、通知失败也不影响监控结果提交：
+
+| 配置 | 位置 | 说明 |
+|------|------|------|
+| `MONITOR_WEBHOOK_URL` | Secrets | 端点 URL；Telegram 填完整 `sendMessage` API（含 bot token） |
+| `MONITOR_WEBHOOK_TYPE` | Variables | `feishu`（默认）/ `dingtalk` / `telegram` / `generic` |
+| `TELEGRAM_CHAT_ID` | Secrets | 仅 `telegram` 类型需要 |
+
+
 ## 本地核实（policy-change-verify skill）
 
 监控只负责"发现变化 + 留档"，**不在 CI 内做 AI 分析，也不自动建 Issue**。核实与改数据全部在本地由 `policy-change-verify` skill 完成。

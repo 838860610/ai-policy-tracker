@@ -35,6 +35,7 @@
 .venv/bin/python scripts/gen_docs.py         # site/docs/*.md → *.html（.md 是唯一源）
 .venv/bin/python scripts/gen_data_bundle.py  # 生成 site/generated/bundle.json
 .venv/bin/python scripts/gen_product_pages.py  # site/detail.html → site/p/{id}.html + sitemap
+.venv/bin/python scripts/gen_feed.py         # 生成 site/feed.xml（timeline + 待核实队列，CI --check）
 .venv/bin/python scripts/gen_og_image.py     # 社交卡片（需 pillow，维护用依赖）
 ```
 
@@ -139,7 +140,7 @@ CI 跑 `--scope ci` 跳过它们，但**沿用上次结果**（含快照引用�
 | 工作流 | 触发 | 职责 |
 |--------|------|------|
 | `ci.yml`（数据校验） | push main / PR | 跑测试+校验 → 生成并提交 bundle / 文档页 / 产品详情页产物 |
-| `monitor.yml`（政策更新监控） | 每周一 09:00 北京时间 / 手动 | `--scope ci` 跑监控 → bot 提交状态/快照/队列 |
+| `monitor.yml`（政策更新监控） | 每周一 09:00 北京时间 / 手动 | `--scope ci` 跑监控 → 生成 feed.xml → webhook 通知（配 Secrets 后生效，continue-on-error）→ bot 提交状态/快照/队列 |
 | `deploy.yml`（部署 Pages） | 数据校验成功即部署；政策更新监控成功或失败均部署（校验失败不部署；限 main） | 发布 `site/` 到 GitHub Pages |
 
 常用触发方式：

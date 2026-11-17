@@ -6,8 +6,8 @@
   <meta name="description" content="AI 用户政策追踪器政策更新监控说明：变化检测、快照留档与本地 skill 核实。">
   <title>政策更新监控 - AI 用户政策追踪器</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%9B%A1%EF%B8%8F%3C/text%3E%3C/svg%3E">
-  <script src="../js/theme.js?v=20261118-1"></script>
-  <link rel="stylesheet" href="../css/style.css?v=20261118-1">
+  <script src="../js/theme.js?v=20261118-2"></script>
+  <link rel="stylesheet" href="../css/style.css?v=20261118-2">
 </head>
 <body>
   <button class="theme-toggle theme-toggle-fixed" type="button" data-theme-toggle aria-label="切换到暗色主题" title="切换到暗色主题" aria-pressed="true">
@@ -818,6 +818,41 @@ WantedBy=timers.target
 <p>注意：<code>site/generated/update_status.json</code>、<code>site/generated/monitor_health.json</code> 与 <code>site/generated/snapshots/</code> 都由监控流程生成并<strong>入库</strong>——前两者供首页与 Pages 直接读取展示监控状态与健康队列，后者作为跨环境共享的持久历史供本地 agent 做 diff。<code>monitor.yml</code> 每次运行后自动提交这三者与 <code>pending_verification.json</code>。</p>
 <p><strong>部署与监控失败解耦</strong>：<code>deploy.yml</code> 只在数据校验失败时拒绝部署；"政策更新监控"即使因单个目标超时变红，也会部署本轮已提交的结果。否则一次网络抖动就会让线上数据冻结到下一周。</p>
 </blockquote>
+<h2>订阅变更动态</h2>
+<p>不必每周翻仓库也可以跟进变更，两个入口都是自动维护的脚本产物：</p>
+<p><strong>Atom 订阅源 <code>feed.xml</code></strong>：合并两类事件，按时间倒序、最多 60 条——</p>
+<ul>
+<li><strong>人工核实过的实质变更</strong>：来自各产品的 <code>timeline</code>（描述 + 日期 + 详情页链接）；</li>
+<li><strong>检测到但尚未核实的变更</strong>：来自待核实队列，条目正文带新旧快照的 diff 片段（与详情页"待核实的政策变更"卡片同源）。同一未核实变更只推送一次（entry id 绑定首次检测时间），核实出队后自然消失。</li>
+</ul>
+<p>在 RSS 阅读器（NetNewsWire / Inoreader 等）里订阅 <code>https://838860610.github.io/ai-policy-tracker/feed.xml</code> 即可；站点首页 <code>&lt;head&gt;</code> 与页脚都有发现链接。<code>feed.xml</code> 由 <code>scripts/gen_feed.py</code> 生成（不要手工编辑），CI 会校验入库版本是否最新，监控轮结束时会随队列一起更新并提交。</p>
+<p><strong>Webhook 通知（飞书 / 钉钉 / Telegram / 通用 JSON）</strong>：监控轮检测到 <code>changed</code> 时，<code>scripts/notify_webhook.py</code> 会向配置的端点一次性 POST 消息摘要（目标列表 + diff 片段首几行 + 队列入口）。仓库管理员配置以下 Secrets / Variables 即自动生效，未配置时该步骤静默跳过、通知失败也不影响监控结果提交：</p>
+<table>
+<thead>
+<tr>
+<th>配置</th>
+<th>位置</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>MONITOR_WEBHOOK_URL</code></td>
+<td>Secrets</td>
+<td>端点 URL；Telegram 填完整 <code>sendMessage</code> API（含 bot token）</td>
+</tr>
+<tr>
+<td><code>MONITOR_WEBHOOK_TYPE</code></td>
+<td>Variables</td>
+<td><code>feishu</code>（默认）/ <code>dingtalk</code> / <code>telegram</code> / <code>generic</code></td>
+</tr>
+<tr>
+<td><code>TELEGRAM_CHAT_ID</code></td>
+<td>Secrets</td>
+<td>仅 <code>telegram</code> 类型需要</td>
+</tr>
+</tbody>
+</table>
 <h2>本地核实（policy-change-verify skill）</h2>
 <p>监控只负责"发现变化 + 留档"，<strong>不在 CI 内做 AI 分析，也不自动建 Issue</strong>。核实与改数据全部在本地由 <code>policy-change-verify</code> skill 完成。</p>
 <p>当 <code>update_status.json</code> 出现 <code>changed</code>，或 <code>pending_verification.json</code> 有待核实项时：</p>

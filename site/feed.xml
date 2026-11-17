@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <id>https://838860610.github.io/ai-policy-tracker/</id>
+  <title>AI 用户政策追踪器 · 政策变更动态</title>
+  <subtitle>47 款 AI 产品隐私政策 / 训练条款的变更与核实记录</subtitle>
+  <updated>2026-11-13T00:00:00+08:00</updated>
+  <link rel="self" href="https://838860610.github.io/ai-policy-tracker/feed.xml"/>
+  <link rel="alternate" href="https://838860610.github.io/ai-policy-tracker/"/>
+  <generator>ai-policy-tracker gen_feed.py</generator>
+  <entry>
+    <id>https://838860610.github.io/ai-policy-tracker/timeline/minimax/2026-11-13/0</id>
+    <title>MiniMax（海螺 AI / 开放平台）：开放平台主体由'上海稀宇科技有限公司'更名为'上海稀宇极智科技有限公司'（用户协议2026-11-13生效、隐私政策同批…</title>
+    <updated>2026-11-13T00:00:00+08:00</updated>
+    <link rel="alternate" href="https://838860610.github.io/ai-policy-tracker/p/minimax.html"/>
+    <content type="html">&lt;p&gt;&lt;strong&gt;MiniMax（海螺 AI / 开放平台）&lt;/strong&gt; · 2026-11-13&lt;/p&gt;&lt;p&gt;开放平台主体由'上海稀宇科技有限公司'更名为'上海稀宇极智科技有限公司'（用户协议2026-11-13生效、隐私政策同批）；条款无实质变化，训练相关表述保持沉默&lt;/p&gt;&lt;p&gt;&lt;a href=&quot;https://838860610.github.io/ai-policy-tracker/p/minimax.html&quot;&gt;MiniMax（海螺 AI / 开放平台） 详情页&lt;/a&gt; · 来源：人工核实（timeline）&lt;/p&gt;</content>
+  </entry>
+  <entry>
+    <id>https://838860610.github.io/ai-policy-tracker/timeline/glm-coding-plan/2026-11-13/0</id>
+    <title>GLM Coding Plan（智谱）：订阅及自动续费协议新版生效：新增'单次购买套餐特别条款'专章（额度到期自动失效不退还、禁标准 API 调用、违规转售 5…</title>
+    <updated>2026-11-13T00:00:00+08:00</updated>
+    <link rel="alternate" href="https://838860610.github.io/ai-policy-tracker/p/glm-coding-plan.html"/>
+    <content type="html">&lt;p&gt;&lt;strong&gt;GLM Coding Plan（智谱）&lt;/strong&gt; · 2026-11-13&lt;/p&gt;&lt;p&gt;订阅及自动续费协议新版生效：新增'单次购买套餐特别条款'专章（额度到期自动失效不退还、禁标准 API 调用、违规转售 5 倍违约金）；责任限额由'最近一个自然月消费总额'收窄为'引发责任的单产品实际消耗费用（不含赠送/优惠券/预付未消耗）'&lt;/p&gt;&lt;p&gt;&lt;a href=&quot;https://838860610.github.io/ai-policy-tracker/p/glm-coding-plan.html&quot;&gt;GLM Coding Plan（智谱） 详情页&lt;/a&gt; · 来源：人工核实（timeline）&lt;/p&gt;</content>
+  </entry>
+  <entry>
+    <id>https://838860610.github.io/ai-policy-tracker/timeline/tencent-yuanbao/2026-11-05/5</id>
+    <title>腾讯元宝：2026-10-29版用户服务协议生效（隐私政策同日改版）：训练模式从加入式翻转为退出式——默认授予许可用于'质量分析、…</title>
+    <updated>2026-11-05T00:00:00+08:00</updated>
+    <link rel="alternate" href="https://838860610.github.io/ai-policy-tracker/p/tencent-yuanbao.html"/>
+    <content type="html">&lt;p&gt;&lt;strong&gt;腾讯元宝&lt;/strong&gt; · 2026-11-05&lt;/p&gt;&lt;p&gt;2026-10-29版用户服务协议生效（隐私政策同日改版）：训练模式从加入式翻转为退出式——默认授予许可用于'质量分析、模型训练和服务优化'，'体验优化计划'由加入开关变为关闭开关&lt;/p&gt;&lt;p&gt;&lt;a href=&quot;https://838860610.github.io/ai-policy-tracker/p/tencent-yuanbao.html&quot;&gt;腾讯元宝 详情页&lt;/a&gt; · 来源：人工核实（timeline）&lt;/p&gt;</content>
+  </entry>
+  <entry>
+    <id>https://838860610.github.io/ai-policy-tracker/timeline/autoclaw/2026-10-27/0</id>
+    <title>AutoClaw（智谱本地智能体，澳龙）：新版用户协议生效：删除'不可撤销、免费、全球范围、可分许可使用权（模型服务优化与产品推广宣传）'条款</title>
+    <updated>2026-10-27T00:00:00+08:00</updated>
+    <link rel="alternate" href="https://838860610.github.io/ai-policy-tracker/p/autoclaw.html"/>
+    <content type="html">&lt;p&gt;&lt;strong&gt;AutoClaw（智谱本地智能体，澳龙）&lt;/strong&gt; · 2026-10-27&lt;/p&gt;&lt;p&gt;新版用户协议生效：删除'不可撤销、免费、全球范围、可分许可使用权（模型服务优化与产品推广宣传）'条款；新增'团队服务特别约定'专章（团队数据未经单独同意原则上不用于模型训练或产品优化）；明确非个人信息不因上传、发布发生知识产权等权利转移&lt;/p&gt;&lt;p&gt;&lt;a href=&quot;https://838860610.github.io/ai-policy-tracker/p/autoclaw.html&quot;&gt;AutoClaw（智谱本地智能体，澳龙） 详情页&lt;/a&gt; · 来源：人工核实（timeline）&lt;/p&gt;</content>
+  </entry>
+  <entry>
+    <id>https://838860610.github.io/ai-policy-tracker/timeline/tencent-yuanbao/2025-12-13/4</id>
+    <title>腾讯元宝：新版用户服务协议生效：5.4确认默认不用于模型优化（'体验优化计划'为加入式），旧版'不可撤销、永久、可转让'授权表述已…</title>
+    <updated>2025-12-13T00:00:00+08:00</updated>
+    <link rel="alternate" href="https://838860610.github.io/ai-policy-tracker/p/tencent-yuanbao.html"/>
+    <content type="html">&lt;p&gt;&lt;strong&gt;腾讯元宝&lt;/strong&gt; · 2025-12-13&lt;/p&gt;&lt;p&gt;新版用户服务协议生效：5.4确认默认不用于模型优化（'体验优化计划'为加入式），旧版'不可撤销、永久、可转让'授权表述已移除&lt;/p&gt;&lt;p&gt;&lt;a href=&quot;https://838860610.github.io/ai-policy-tracker/p/tencent-yuanbao.html&quot;&gt;腾讯元宝 详情页&lt;/a&gt; · 来源：人工核实（timeline）&lt;/p&gt;</content>
+  </entry>
+  <entry>
+    <id>https://838860610.github.io/ai-policy-tracker/timeline/claude/2025-09-28/0</id>
+    <title>Claude：消费者条款与隐私政策更新：Free/Pro/Max对话默认用于模型训练（退出式），参与训练数据保留最长5年</title>
+    <updated>2025-09-28T00:00:00+08:00</updated>
+    <link rel="alternate" href="https://838860610.github.io/ai-policy-tracker/p/claude.html"/>
+    <content type="html">&lt;p&gt;&lt;strong&gt;Claude&lt;/strong&gt; · 2025-09-28&lt;/p&gt;&lt;p&gt;消费者条款与隐私政策更新：Free/Pro/Max对话默认用于模型训练（退出式），参与训练数据保留最长5年；商业版不受影响&lt;/p&gt;&lt;p&gt;&lt;a href=&quot;https://838860610.github.io/ai-policy-tracker/p/claude.html&quot;&gt;Claude 详情页&lt;/a&gt; · 来源：人工核实（timeline）&lt;/p&gt;</content>
+  </entry>
+  <entry>
+    <id>https://838860610.github.io/ai-policy-tracker/timeline/tencent-yuanbao/2025-03-05/3</id>
+    <title>腾讯元宝：第三次修改：新增'体验优化计划'开关，默认关闭，用户内容不会用于大模型优化</title>
+    <updated>2025-03-05T00:00:00+08:00</updated>
+    <link rel="alternate" href="https://838860610.github.io/ai-policy-tracker/p/tencent-yuanbao.html"/>
+    <content type="html">&lt;p&gt;&lt;strong&gt;腾讯元宝&lt;/strong&gt; · 2025-03-05&lt;/p&gt;&lt;p&gt;第三次修改：新增'体验优化计划'开关，默认关闭，用户内容不会用于大模型优化&lt;/p&gt;&lt;p&gt;&lt;a href=&quot;https://838860610.github.io/ai-policy-tracker/p/tencent-yuanbao.html&quot;&gt;腾讯元宝 详情页&lt;/a&gt; · 来源：人工核实（timeline）&lt;/p&gt;</content>
+  </entry>
+  <entry>
+    <id>https://838860610.github.io/ai-policy-tracker/timeline/tencent-yuanbao/2025-03-03/2</id>
+    <title>腾讯元宝：第二次修改：进一步调整</title>
+    <updated>2025-03-03T00:00:00+08:00</updated>
+    <link rel="alternate" href="https://838860610.github.io/ai-policy-tracker/p/tencent-yuanbao.html"/>
+    <content type="html">&lt;p&gt;&lt;strong&gt;腾讯元宝&lt;/strong&gt; · 2025-03-03&lt;/p&gt;&lt;p&gt;第二次修改：进一步调整&lt;/p&gt;&lt;p&gt;&lt;a href=&quot;https://838860610.github.io/ai-policy-tracker/p/tencent-yuanbao.html&quot;&gt;腾讯元宝 详情页&lt;/a&gt; · 来源：人工核实（timeline）&lt;/p&gt;</content>
+  </entry>
+  <entry>
+    <id>https://838860610.github.io/ai-policy-tracker/timeline/tencent-yuanbao/2025-03-01/1</id>
+    <title>腾讯元宝：第一次修改：调整使用权范围</title>
+    <updated>2025-03-01T00:00:00+08:00</updated>
+    <link rel="alternate" href="https://838860610.github.io/ai-policy-tracker/p/tencent-yuanbao.html"/>
+    <content type="html">&lt;p&gt;&lt;strong&gt;腾讯元宝&lt;/strong&gt; · 2025-03-01&lt;/p&gt;&lt;p&gt;第一次修改：调整使用权范围&lt;/p&gt;&lt;p&gt;&lt;a href=&quot;https://838860610.github.io/ai-policy-tracker/p/tencent-yuanbao.html&quot;&gt;腾讯元宝 详情页&lt;/a&gt; · 来源：人工核实（timeline）&lt;/p&gt;</content>
+  </entry>
+  <entry>
+    <id>https://838860610.github.io/ai-policy-tracker/timeline/tencent-yuanbao/2025-02/0</id>
+    <title>腾讯元宝：初始协议被发现包含宽泛的使用权条款，引发争议</title>
+    <updated>2025-02-01T00:00:00+08:00</updated>
+    <link rel="alternate" href="https://838860610.github.io/ai-policy-tracker/p/tencent-yuanbao.html"/>
+    <content type="html">&lt;p&gt;&lt;strong&gt;腾讯元宝&lt;/strong&gt; · 2025-02&lt;/p&gt;&lt;p&gt;初始协议被发现包含宽泛的使用权条款，引发争议&lt;/p&gt;&lt;p&gt;&lt;a href=&quot;https://838860610.github.io/ai-policy-tracker/p/tencent-yuanbao.html&quot;&gt;腾讯元宝 详情页&lt;/a&gt; · 来源：人工核实（timeline）&lt;/p&gt;</content>
+  </entry>
+</feed>
