@@ -20,6 +20,11 @@ import re
 import sys
 from urllib.parse import urlparse
 
+# scripts 不是包：把本目录加进 sys.path 后 import 共享推导逻辑
+# （绿色标准/红色条件/training_status 的唯一权威实现，与前端 riskDeriveCard 注释互引）
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import policy_logic  # noqa: E402
+
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_DIR = os.path.join(BASE_DIR, "site", "data")
 INDEX_FILE = os.path.join(DATA_DIR, "products.json")
@@ -68,11 +73,10 @@ VERSION_REQUIRED = [
 ]
 VERSION_OPTIONAL = [
     "training_note", "other_uses", "policy_link", "last_verified", "label",
+    # 2026-11-18 起随迁移强制鼓励显式化：training_status 由 infer 推导写回，
+    # criteria 是绿色③④的显式判定值（文本启发式的固化，见 policy_logic）
+    "training_status", "criteria",
 ]
-TRAINING_STATUSES = {
-    "explicit_no", "default_off_opt_in", "default_on_opt_out",
-    "explicit_yes", "unknown", "inferred",
-}
 TOP_REQUIRED = [
     "id", "name", "company", "region", "description", "policy_url",
     "last_verified", "versions", "analysis_summary", "key_findings", "recommendations",
@@ -148,7 +152,7 @@ def check_version(where, v):
                 err(f"{where}: last_verified={version_date!r} 不是有效日期")
     if "used_for_training" in v and not isinstance(v["used_for_training"], bool):
         err(f"{where}: used_for_training 必须是布尔值，当前为 {v['used_for_training']!r}")
-    if "training_status" in v and v["training_status"] not in TRAINING_STATUSES:
+    if "training_status" in v and v["training_status"] not in policy_logic.TRAINING_STATUSES:
         err(f"{where}: training_status 必须是 {sorted(TRAINING_STATUSES)} 之一，"
             f"当前为 {v['training_status']!r}")
     if "training_status" in v and "used_for_training" in v:
@@ -180,32 +184,34 @@ def check_version(where, v):
                     warn(f"{where}: key_clauses[{i}] 缺少来源标注（建议以（来源条款号/文档名）结尾）")
     if v.get("data_retention") == "待核实":
         warn(f"{where}: data_retention 仍是占位文字")
-    # 风险等级推导（A1-d）：标为绿的版本必须满足方法论四项绿色标准
-    def retention_clear_30(ret):
-        if not ret:
-            return False
-        if re.search(r"未明确|待核实|待核|未载明|未说明", ret):
-            return False
-        return bool(re.search(r"30\s*天|≤\s*30|30日", ret))
-
-    if v.get("risk_level") == "green":
-        reasons = []
-        training_status = v.get("training_status")
-        no_training = (
-            v.get("used_for_training") is False
-            and training_status not in ("unknown", "inferred")
-        )
-        if not no_training:
-            reasons.append("训练判定非'默认不训练'")
-        if v.get("deidentified") is not True:
-            reasons.append("未载明去标识化")
-        if not retention_clear_30(v.get("data_retention", "")):
-            reasons.append("留存期限不明确或超30天")
-        cp = v.get("copyright", "")
-        if "用户" not in cp or "待核实" in cp:
-            reasons.append("版权归属未明确归用户")
-        if reasons:
-            warn(f"{where}: 标为绿但未满足全部绿色标准：{'；'.join(reasons)}（方法论：绿需四项全部满足；如判定有据可忽略本提示）")
+    # criteria 结构化判定字段（绿色③④的显式化，值来源见 policy_logic）
+    criteria = v.get("criteria")
+    if criteria is not None:
+        if not isinstance(criteria, dict):
+            err(f"{where}: criteria 必须是对象，当前为 {criteria!r}")
+        else:
+            for key in ("retention_clear_30", "copyright_user"):
+                if key in criteria and not isinstance(criteria[key], (bool, type(None))):
+                    err(f"{where}: criteria.{key} 必须是布尔或 null，当前为 {criteria[key]!r}")
+            unknown = set(criteria) - {"retention_clear_30", "copyright_user"}
+            if unknown:
+                err(f"{where}: criteria 含未定义键 {sorted(unknown)}"
+                    f"（仅支持 retention_clear_30 / copyright_user）")
+    override = v.get("risk_override_reason")
+    if override is not None and (not isinstance(override, str) or len(override.strip()) < 10):
+        err(f"{where}: risk_override_reason 必须是 ≥10 字的非空说明，当前为 {override!r}")
+    # 风险等级推导交叉校验（A1-d，口径统一在 policy_logic，与前端 riskDeriveCard 同源）：
+    # ① 标绿必须四项全满足；② 命中可客观识别的红色条件却未标红时提示校准——
+    # 判定有据（如红色②④等主观边界、联系式退出的黄/红分歧先例）可写
+    # risk_override_reason 说明分歧原因，校验放行。
+    unmet = policy_logic.green_unmet(v)
+    if v.get("risk_level") == "green" and unmet:
+        warn(f"{where}: 标为绿但未满足全部绿色标准：{'；'.join(unmet)}"
+             f"（方法论：绿需四项全部满足；如判定有据可忽略本提示）")
+    flags = policy_logic.red_flags(v)
+    if flags and v.get("risk_level") != "red" and not override:
+        warn(f"{where}: 命中可客观识别的红色标准（{'；'.join(flags)}）但标为 "
+             f"{v.get('risk_level')}；如判定有据，请补 risk_override_reason 说明")
 
     tn = (v.get("training_note") or "")
     silent_note = any(m in tn for m in ("沉默", "零命中", "未明示"))

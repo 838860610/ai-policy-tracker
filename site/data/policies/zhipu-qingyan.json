@@ -9,6 +9,7 @@
   "versions": {
     "toc": {
       "used_for_training": true,
+      "training_status": "default_on_opt_out",
       "training_note": "用户数据可能用于模型训练",
       "default_state": "默认开启",
       "opt_out": "设置开关",
@@ -18,6 +19,10 @@
       "copyright": "用户所有",
       "other_uses": "模型训练",
       "risk_level": "yellow",
+      "criteria": {
+        "retention_clear_30": false,
+        "copyright_user": true
+      },
       "key_clauses": [
         "若我们对个人信息采取技术措施和其他必要措施进行处理，使得数据接收方无法重新识别特定个人且不能复原，则我们会对如上处理的数据进行匿名化的研究、统计分析、预测或用于改进我们的产品及服务（如调整产品内容布局、模型优化迭代）。（隐私政策）",
         "如果您不希望您的数据用于上述用途，可以通过：'（1）APP：点击底部第三个Tab—设置—数据管理—数据使用开关（2）PC：右上角个人头像—数据管理—数据使用开关'来关闭此设置。（隐私政策）"

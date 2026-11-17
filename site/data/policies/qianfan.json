@@ -13,6 +13,7 @@
   "versions": {
     "tob": {
       "used_for_training": false,
+      "training_status": "explicit_no",
       "training_note": "企业版不用于模型训练",
       "default_state": "默认关闭",
       "opt_out": "合同约定",
@@ -22,6 +23,10 @@
       "copyright": "用户所有",
       "other_uses": "无",
       "risk_level": "yellow",
+      "criteria": {
+        "retention_clear_30": false,
+        "copyright_user": true
+      },
       "key_clauses": [
         "我们不会使用您的输入和模型输出数据、上传的知识文档、数据集进行训练，也不会将您的数据集与任何第三方共享。（千帆用户协议5.1(6)）"
       ],

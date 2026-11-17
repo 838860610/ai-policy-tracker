@@ -9,6 +9,7 @@
   "versions": {
     "toc": {
       "used_for_training": true,
+      "training_status": "default_on_opt_out",
       "training_note": "Keep Activity 开启时：Google 使用活动记录提供、开发和改进服务（including training generative AI models），并有人工审核；18 岁及以上默认开启。关闭后未来对话不用于训练模型（除非主动提交反馈），但仍保留 72 小时且可能经人工审核用于安全目的。语音与 Gemini Live 音视频默认不用于改进服务。设置不控制匿名化数据的处理。",
       "default_state": "默认开启",
       "opt_out": "设置开关",
@@ -18,6 +19,10 @@
       "copyright": "用户所有",
       "other_uses": "模型训练、服务改进",
       "risk_level": "yellow",
+      "criteria": {
+        "retention_clear_30": false,
+        "copyright_user": true
+      },
       "key_clauses": [
         "Your future chats won't appear in your Activity, and won't be used to train our AI models, unless you choose to send Google feedback. Future chats are still saved for 72 hours so Gemini can respond to you, process your feedback, and protect Google, its users, and the public.（Gemini Apps Privacy Hub·Keep Activity off，最后更新 2026-08-10）",
         "You can change your auto-delete setting in Gemini Apps Activity from the default of 18 months to 3 months, 36 months, or indefinite. You can also manually delete your Gemini Apps chats anytime.（Gemini Apps Privacy Hub·How long we retain your data，最后更新 2026-08-10）",
@@ -34,6 +39,7 @@
     },
     "tob": {
       "used_for_training": false,
+      "training_status": "explicit_no",
       "training_note": "Workspace版不使用客户数据训练生成式AI模型（未经许可）；会话保留由管理员配置（3/18/36个月自动删除，默认18个月）。policy_link 由 workspace.google.com/terms（本地网络不可达）改为引文实际出处的 Workspace 生成式AI隐私中心（2026-08-30 经服务端抓取逐字核实）",
       "default_state": "默认关闭",
       "opt_out": "无需退出",
@@ -43,6 +49,10 @@
       "copyright": "用户所有",
       "other_uses": "无",
       "risk_level": "yellow",
+      "criteria": {
+        "retention_clear_30": false,
+        "copyright_user": true
+      },
       "key_clauses": [
         "Your chats and uploaded files in Gemini app won't be reviewed by human reviewers or otherwise used to train generative AI models without your permission.（Generative AI in Google Workspace Privacy Hub，最后更新 2026-08-14）",
         "Admins can choose to automatically delete conversations after 3, 18, or 36 months. The default is 18 months.（Generative AI in Google Workspace Privacy Hub，最后更新 2026-08-14）"

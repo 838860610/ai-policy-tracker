@@ -22,6 +22,10 @@
       "copyright": "未核实",
       "other_uses": "可连接 GLM 模型与 GLM Coding Plan（bigmodel 订阅体系）",
       "risk_level": "yellow",
+      "criteria": {
+        "retention_clear_30": false,
+        "copyright_user": false
+      },
       "key_clauses": [
         "您可以自主选择是否加入我们的优化计划。优化计划默认关闭；在您主动选择加入前，我们不会将您的输入信息、生成内容或产品使用数据用于产品及模型训练与优化。（ZCode隐私政策(七)服务的改进与优化，2026-06-15）",
         "如您选择加入，我们将在采取去标识化技术处理、避免识别特定个人身份后，将您的部分输入信息、生成内容和产品使用数据用于产品及模型训练与优化，以提升您的使用体验并支持本服务的优化迭代。（ZCode隐私政策(七)）",

@@ -12,6 +12,7 @@
     "toc": {
       "label": "个人版（标准/旗舰）",
       "used_for_training": false,
+      "training_status": "explicit_no",
       "training_note": "隐私协议：在没有另行获得明确授权的情况下，不会对代码做任何存储、分析、加工、训练等后续动作；收集问答记录、评价与采纳率等统计用于改进输出质量",
       "default_state": "代码默认不训练（未获授权不做任何后续动作）",
       "opt_out": "撤回同意 / 企业管理关闭",
@@ -21,6 +22,10 @@
       "copyright": "未核实（用户服务协议含知识产权条款，待补充摘录）",
       "other_uses": "智能问答记录收集；新服务运营活动另行获得同意（敏感信息单独同意）",
       "risk_level": "yellow",
+      "criteria": {
+        "retention_clear_30": false,
+        "copyright_user": true
+      },
       "key_clauses": [
         "在没有另行获得您的明确授权的情况下，不会将您的代码用于任何您没有授权的场景，我们不会对您的代码做任何存储、分析、加工、训练等后续动作。（Baidu Comate 隐私协议 1.2.3，更新 2024-06-25）",
         "个人版用户和企业版用户的功能变更……企业用户可在控制台查看数据看板。（用户服务协议）",
@@ -32,6 +37,7 @@
     "tob": {
       "label": "企业版（企业控制台）",
       "used_for_training": false,
+      "training_status": "explicit_no",
       "training_note": "同个人版：代码未获明确授权不做任何存储/分析/加工/训练；企业用户可在控制台查看数据看板",
       "default_state": "代码默认不训练",
       "opt_out": "企业管理关闭",
@@ -41,6 +47,10 @@
       "copyright": "未核实",
       "other_uses": "企业控制台数据看板",
       "risk_level": "yellow",
+      "criteria": {
+        "retention_clear_30": false,
+        "copyright_user": false
+      },
       "key_clauses": [
         "在没有另行获得您的明确授权的情况下，不会将您的代码用于任何您没有授权的场景，我们不会对您的代码做任何存储、分析、加工、训练等后续动作。（Baidu Comate 隐私协议 1.2.3）",
         "1 在您购买使用时长后……包括但不限于在IDE内使用BaiduComate插件、企业用户可在控制台查看数据看板等。（用户服务协议）"

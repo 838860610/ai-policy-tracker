@@ -9,6 +9,7 @@
   "versions": {
     "toc": {
       "used_for_training": true,
+      "training_status": "default_on_opt_out",
       "training_note": "2025-09-28起消费版（Free/Pro/Max）改为退出式：对话默认用于模型训练，可在Settings-Privacy关闭'Help improve Claude'；参与训练的数据保留最长5年（欧洲经济区/英国/瑞士等地区默认不同）",
       "default_state": "默认开启（可关闭）",
       "opt_out": "设置开关",
@@ -18,6 +19,10 @@
       "copyright": "用户所有",
       "other_uses": "无",
       "risk_level": "red",
+      "criteria": {
+        "retention_clear_30": false,
+        "copyright_user": true
+      },
       "key_clauses": [
         "Help improve Claude. Allow the use of your chats and coding sessions to train and improve Anthropic AI models.（模型改进隐私设置项，2025-09-28起消费版默认开启）",
         "参与训练的数据将保留最长5年；关闭设置或删除账号仅使数据不再用于未来的模型训练。（Anthropic消费者条款与隐私政策更新，2025-09-28生效）"
@@ -28,6 +33,7 @@
     },
     "tob": {
       "used_for_training": false,
+      "training_status": "explicit_no",
       "training_note": "企业/商业客户内容默认不用于训练：商业条款明文 'Anthropic may not train models on Customer Content from Services.'（Customer Content 定义 inputs/outputs）。2026-08-30 原文复核：原引文句 'We do not train our models on data submitted by commercial customers' 在商业条款与AUP中均不存在（旧措辞），已替换为现行原句；policy_link 由 AUP 修正为商业条款。原'30天或按合同约定'留存表述在商业条款中无依据，已修正。风险等级 yellow：默认不训练/去标识化/版权归用户三项满足，但商业条款与AUP均未载明留存期限，绿色标准第③项（留存明确且≤30天）无法确认——按方法论需四项全满足方可标绿（2026-08-30 校准，与 DeepSeek/ima 同口径）",
       "default_state": "默认关闭",
       "opt_out": "无需退出",
@@ -37,6 +43,10 @@
       "copyright": "用户所有",
       "other_uses": "无",
       "risk_level": "yellow",
+      "criteria": {
+        "retention_clear_30": false,
+        "copyright_user": true
+      },
       "key_clauses": [
         "Anthropic may not train models on Customer Content from Services.（Anthropic 商业条款·Customer Content，2026-08-30 复核；页面 Effective June 17, 2025）"
       ],

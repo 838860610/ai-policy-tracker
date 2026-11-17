@@ -56,11 +56,25 @@
 
   /** 风险评定依据卡（A1-a）：按方法论四项绿色标准逐条自动推导，供参考 */
   function riskDeriveCard(version) {
-    // 与 scripts/validate_data.py 的绿色标准推导保持同一口径
+    // 与 scripts/policy_logic.py 的绿色标准推导保持同一口径：
+    // criteria.retention_clear_30 / criteria.copyright_user 是显式判定值
+    // （2026-11-18 迁移后为唯一口径），缺失时按文本启发式兜底
     function retentionClear30(ret) {
       if (!ret) return null;
       if (/未明确|待核实|待核|未载明|未说明/.test(ret)) return false;
       return /30\s*天|≤\s*30|30日/.test(ret);
+    }
+    function copyrightUser(cp) {
+      cp = cp || "";
+      return cp.indexOf("用户") !== -1 && cp.indexOf("待核实") === -1;
+    }
+
+    var crit = version.criteria || {};
+    function critState(key, fallback) {
+      if (crit.hasOwnProperty(key)) {
+        return crit[key] === true ? "ok" : crit[key] === false ? "no" : "q";
+      }
+      return fallback === true ? "ok" : fallback === false ? "no" : "q";
     }
 
     var trainingState = trainingStatus(version);
@@ -77,13 +91,11 @@
       },
       {
         label: "留存期限明确且≤30天",
-        state: retentionClear30(version.data_retention) === true ? "ok"
-             : retentionClear30(version.data_retention) === false ? "no" : "q",
+        state: critState("retention_clear_30", retentionClear30(version.data_retention)),
       },
       {
         label: "版权归属用户",
-        state: (version.copyright || "").indexOf("用户") !== -1 &&
-               (version.copyright || "").indexOf("待核实") === -1 ? "ok" : "no",
+        state: critState("copyright_user", copyrightUser(version.copyright)),
       },
     ];
     var cls = { ok: "rd-ok", no: "rd-no", q: "rd-q" };

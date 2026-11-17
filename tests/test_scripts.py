@@ -1107,6 +1107,150 @@ class TestNotifyWebhook(unittest.TestCase):
                              {"msgtype": "text", "text": {"content": mock.ANY}})
 
 
+class TestPolicyLogic(unittest.TestCase):
+    """policy_logic.py：训练状态/绿色标准/红色条件的共享推导（唯一权威实现）。
+    gen_data_bundle / gen_readme_table / validate_data 三处此前各自复制，
+    口径分叉出过真实事故；本类锁住推导行为与迁移不变量。"""
+
+    def setUp(self):
+        self.pl = load_script("policy_logic")
+
+    def test_explicit_training_status_matches_data(self):
+        """迁移不变量：全库 63 个版本的显式 training_status 必须与推导函数
+        输出一致——不一致说明数据被手改后口径漂移（提交前就该发现）。"""
+        checked = 0
+        for pid in json.load(open(os.path.join(DATA_DIR, "products.json"),
+                                  encoding="utf-8"))["products"]:
+            policy = load_json(os.path.join(POLICIES_DIR, pid + ".json"))
+            for tier in ("toc", "tob"):
+                v = (policy.get("versions") or {}).get(tier)
+                if not v:
+                    continue
+                checked += 1
+                self.assertEqual(v.get("training_status"),
+                                 self.pl.infer_training_status(v),
+                                 f"{pid}:{tier} 显式 training_status 与推导不一致")
+        self.assertEqual(checked, 63)
+
+    def test_opt_out_class_mapping(self):
+        cases = [
+            ("设置开关", "setting"),
+            ("设置开关（企业场景由管理员配置）", "setting"),
+            ("企业管理关闭", "setting"),
+            ("由组织与豆包的协议约定", "setting"),
+            ("邮件申请", "contact"),
+            ("联系关闭（隐私声明第十一条）", "contact"),
+            ("撤回同意", "contact"),
+            ("未明示退出机制", "none"),
+            ("未明示独立退出开关", "none"),
+            ("无需退出（默认不训练）", "none"),
+            ("无（匿名化使用不依赖授权同意）", "none"),
+            ("指引路径", "other"),
+            ("", "none"),
+        ]
+        for text, expected in cases:
+            self.assertEqual(self.pl.opt_out_class(text), expected,
+                             f"opt_out={text!r} 应归类为 {expected}")
+
+    def test_red_flags(self):
+        def version(**kw):
+            base = {"used_for_training": True, "training_status": "explicit_yes",
+                    "opt_out": "未明示退出机制", "deidentified": True}
+            base.update(kw)
+            return base
+        # 训练 + 无退出渠道 → 红①
+        self.assertIn("训练且未明示退出机制", self.pl.red_flags(version()))
+        # 训练 + 设置开关 → 不命中
+        self.assertEqual(self.pl.red_flags(version(opt_out="设置开关")), [])
+        # 训练 + 联系式退出 → 不机械命中（既有校准黄/红并存，留人工判定）
+        self.assertEqual(self.pl.red_flags(version(opt_out="邮件申请")), [])
+        # 训练 + 未去标识化 → 红③
+        self.assertIn("训练场景下未进行去标识化处理",
+                      self.pl.red_flags(version(opt_out="设置开关", deidentified=False)))
+        # 明示不训练 → 未去标识化不升红（2026-09-19 修订口径）
+        no_training = version(used_for_training=False, training_status="explicit_no",
+                              opt_out="未明示", deidentified=False)
+        self.assertEqual(self.pl.red_flags(no_training), [])
+
+    def test_criteria_overrides_text_heuristics(self):
+        """criteria 显式值优先于文本启发式（迁移后为唯一口径）；null 视为不满足。"""
+        v = {"data_retention": "最长保存 90 天", "copyright": "归用户所有",
+             "criteria": {"retention_clear_30": True, "copyright_user": None}}
+        self.assertTrue(self.pl.retention_clear_30(v))
+        self.assertFalse(self.pl.copyright_user(v))
+        v2 = {"data_retention": "最长保存 90 天"}
+        self.assertFalse(self.pl.retention_clear_30(v2))
+        self.assertFalse(self.pl.copyright_user({"copyright": "待核实"}))
+        self.assertTrue(self.pl.copyright_user({"copyright": "归用户所有"}))
+
+    def test_green_unmet(self):
+        full_green = {"used_for_training": False, "training_status": "explicit_no",
+                      "deidentified": True, "data_retention": "30 天后删除",
+                      "copyright": "归用户所有"}
+        self.assertEqual(self.pl.green_unmet(full_green), [])
+        partial = dict(full_green, deidentified=False)
+        self.assertIn("未载明去标识化", self.pl.green_unmet(partial))
+
+
+class TestGenApi(unittest.TestCase):
+    """gen_api.py：只读数据 API（v1 兼容承诺，输出确定性）。"""
+
+    def setUp(self):
+        self.mod = load_script("gen_api")
+
+    def test_api_matches_current_data(self):
+        old_argv = sys.argv
+        try:
+            sys.argv = ["gen_api.py", "--check"]
+            self.assertEqual(self.mod.main(), 0)
+        finally:
+            sys.argv = old_argv
+
+    def test_envelope_and_passthrough(self):
+        with tempfile.TemporaryDirectory() as directory:
+            index_path = os.path.join(directory, "products.json")
+            with open(index_path, "w", encoding="utf-8") as f:
+                json.dump({"products": ["demo", "other"]}, f)
+            policies_dir = os.path.join(directory, "policies")
+            os.makedirs(policies_dir)
+            demo = {
+                "name": "Demo", "company": "Demo Inc", "region": "中国",
+                "last_verified": "2026-11-01",
+                "versions": {"toc": {
+                    "risk_level": "red", "training_status": "explicit_yes",
+                    "criteria": {"retention_clear_30": False, "copyright_user": True},
+                    "risk_override_reason": "依据条款实质人工判定为红",
+                }},
+            }
+            other = {"name": "Other", "last_verified": "2026-11-15", "versions": {}}
+            for pid, data in (("demo", demo), ("other", other)):
+                with open(os.path.join(policies_dir, pid + ".json"), "w", encoding="utf-8") as f:
+                    json.dump(data, f, ensure_ascii=False)
+            api_dir = os.path.join(directory, "api")
+            with mock.patch.object(self.mod, "INDEX_FILE", index_path), \
+                 mock.patch.object(self.mod, "POLICIES_DIR", policies_dir), \
+                 mock.patch.object(self.mod, "API_DIR", api_dir), \
+                 mock.patch.object(self.mod, "PRODUCTS_FILE", os.path.join(api_dir, "products.json")), \
+                 mock.patch.object(self.mod, "SUMMARY_FILE", os.path.join(api_dir, "summary.json")):
+                self.assertEqual(self.mod.main(), 0)
+                with open(os.path.join(api_dir, "products.json"), encoding="utf-8") as f:
+                    products_doc = json.load(f)
+                with open(os.path.join(api_dir, "summary.json"), encoding="utf-8") as f:
+                    summary_doc = json.load(f)
+        self.assertEqual(products_doc["schema_version"], "1.0")
+        self.assertEqual(products_doc["count"], 2)
+        self.assertEqual([p["id"] for p in products_doc["products"]], ["demo", "other"])
+        self.assertEqual(products_doc["products"][0]["detail_url"],
+                         "https://838860610.github.io/ai-policy-tracker/p/demo.html")
+        toc = products_doc["products"][0]["versions"]["toc"]
+        self.assertEqual(toc["criteria"], {"retention_clear_30": False, "copyright_user": True})
+        self.assertIn("risk_override_reason", toc)
+        # generated_at 取数据内最新 last_verified（确定性输出，--check 才能成立）
+        self.assertEqual(products_doc["generated_at"], "2026-11-15")
+        self.assertEqual(summary_doc["total_products"], 2)
+        self.assertEqual(summary_doc["versions_by_risk_level"], {"red": 1})
+
+
 class TestMonitorState(unittest.TestCase):
     def test_fetch_url_rejects_non_https_and_private_targets(self):
         self.assertFalse(CHECK_UPDATES.safe_fetch_url("http://example.com/policy"))
@@ -2274,6 +2418,7 @@ class TestSiteConsistency(unittest.TestCase):
             pid: load_json(os.path.join(POLICIES_DIR, pid + ".json")) for pid in source_ids
         }
         bundle_module = load_script("gen_data_bundle")
+        policy_logic = bundle_module.policy_logic  # 共享推导逻辑（bundle 经它计算 training_status）
         top_fields = ("name", "company", "region", "icon", "toc_note", "tob_note")
         version_fields = ("label", "used_for_training", "training_status", "opt_out",
                           "deidentified", "data_retention", "risk_level")
@@ -2289,7 +2434,7 @@ class TestSiteConsistency(unittest.TestCase):
                 for field in version_fields:
                     expected = source_version.get(field)
                     if field == "training_status":
-                        expected = bundle_module.infer_training_status(source_version)
+                        expected = policy_logic.infer_training_status(source_version)
                     self.assertEqual(slim_version.get(field), expected)
 
     def test_published_docs_have_no_stale_wording(self):

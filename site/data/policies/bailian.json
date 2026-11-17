@@ -12,6 +12,7 @@
   "versions": {
     "tob": {
       "used_for_training": false,
+      "training_status": "explicit_no",
       "training_note": "百炼服务协议6.2.5承诺：未经授权不使用对话数据训练模型；AI订阅产品（Token Plan个人版/Coding Plan）例外，可停止服务终止授权",
       "default_state": "默认关闭",
       "opt_out": "合同约定",
@@ -21,6 +22,10 @@
       "copyright": "用户所有",
       "other_uses": "无",
       "risk_level": "yellow",
+      "criteria": {
+        "retention_clear_30": false,
+        "copyright_user": true
+      },
       "key_clauses": [
         "我们承诺仅在提供服务所必需的最短时间内保留您的对话数据。我们不会在未获您授权的情况下使用您的对话数据训练我们的模型。（百炼服务协议6.2.5）",
         "AI订阅产品例外：存储并使用Token Plan个人版（不包括团队版）和/或Coding Plan服务期间因调用模型而输入及输出的内容以实现服务改进与模型优化；可通过停止使用相应服务终止授权，但不溯及已授权内容。（5.2.2）",

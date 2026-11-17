@@ -14,6 +14,13 @@ bundle 不存在时前端自动回退为逐文件加载，因此本地改完数�
 
 import json
 import os
+import sys
+
+# scripts 不是包：把本目录加进 sys.path 后 import 共享推导逻辑
+# （infer_training_status 此前在本文件与 gen_readme_table.py 各复制一份，
+# 曾出过首页与 README 口径分叉风险，现统一走 policy_logic）
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import policy_logic  # noqa: E402
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 INDEX_FILE = os.path.join(BASE_DIR, "site", "data", "products.json")
@@ -28,34 +35,6 @@ BUNDLE_TOP_FIELDS = ("id", "name", "company", "region", "icon", "toc_note", "tob
                      "last_verified")
 BUNDLE_VERSION_FIELDS = ("label", "used_for_training", "training_status", "opt_out",
                          "deidentified", "data_retention", "risk_level")
-TRAINING_STATUSES = {
-    "explicit_no", "default_off_opt_in", "default_on_opt_out",
-    "explicit_yes", "unknown", "inferred",
-}
-
-
-def infer_training_status(version):
-    explicit = version.get("training_status")
-    if explicit in TRAINING_STATUSES:
-        return explicit
-    note = str(version.get("training_note") or "")
-    state = str(version.get("default_state") or "")
-    opt_out = str(version.get("opt_out") or "")
-    if version.get("used_for_training") is False:
-        if any(term in state for term in ("未明示", "沉默", "待核", "待核实", "未明确")) \
-                or state.startswith("—") \
-                or any(term in note for term in ("对训练沉默", "保持沉默", "零命中", "未明示模型训练")):
-            return "unknown"
-        if any(term in note for term in ("加入式", "opt-in", "主动加入", "主动选择")):
-            return "default_off_opt_in"
-        return "explicit_no"
-    if version.get("used_for_training") is True:
-        if any(term in note for term in ("按实质口径", "推断", "直接涵盖模型", "未明示模型训练")):
-            return "inferred"
-        if any(term in opt_out for term in ("设置开关", "联系", "邮件", "撤回", "退出")):
-            return "default_on_opt_out"
-        return "explicit_yes"
-    return "unknown"
 
 
 def slim_policy(policy):
@@ -69,7 +48,7 @@ def slim_policy(policy):
         version = source_versions.get(tier)
         if version:
             versions[tier] = {k: version.get(k) for k in BUNDLE_VERSION_FIELDS if k in version}
-            versions[tier]["training_status"] = infer_training_status(version)
+            versions[tier]["training_status"] = policy_logic.infer_training_status(version)
     out["versions"] = versions
     return out
 

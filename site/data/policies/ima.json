@@ -13,6 +13,7 @@
     "toc": {
       "label": "个人版（含共享知识库团队协作）",
       "used_for_training": false,
+      "training_status": "explicit_no",
       "training_note": "隐私保护指引：ima.copilot 承诺保护用户隐私和数据安全，不会擅自使用用户存储在 ima 知识库的数据进行模型训练（详见《知识库相关声明》）。AI 问答历史记录最长保存 90 天",
       "default_state": "知识库数据默认不用于训练",
       "opt_out": "无需退出（知识库数据不用于训练）",
@@ -22,6 +23,10 @@
       "copyright": "未核实",
       "other_uses": "知识库云端存储与搜索问答（大模型结合选定内容提供 AI 服务）；录音声纹匿名标注（区分发言人后及时删除声纹特征信息）",
       "risk_level": "yellow",
+      "criteria": {
+        "retention_clear_30": false,
+        "copyright_user": false
+      },
       "key_clauses": [
         "*ima.copilot 承诺保护用户隐私和数据安全，不会擅自使用用户存储在 ima知识库的数据进行模型训练。具体可见《知识库相关声明》。（ima.copilot 隐私保护指引（PC端）1.3）",
         "1.3 在线知识库 您可以将本地文档、图片、想要保存的网址、在线笔记、AI问答记录、音频文件等添加至您的知识库，添加至知识库的内容将被存储至云端服务器……（隐私保护指引1.3）",

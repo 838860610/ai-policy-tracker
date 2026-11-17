@@ -9,6 +9,7 @@
   "versions": {
     "toc": {
       "used_for_training": true,
+      "training_status": "default_on_opt_out",
       "training_note": "隐私政策1.2.2：去标识化前提下将所收集数据及模型生成内容'用于模型优化'（原文未用'训练'字样，全文'训练'0命中——按训练/优化同口径计为是）；撤销授权/注销联系邮箱 support.cn@klingai.com；面部像素信息不用于其他用途或共享给第三方。隐私政策发布/生效2025-12-16",
       "default_state": "默认开启",
       "opt_out": "邮件申请",
@@ -18,6 +19,10 @@
       "copyright": "用户所有",
       "other_uses": "模型优化（原文措辞，未用'训练'字样）",
       "risk_level": "yellow",
+      "criteria": {
+        "retention_clear_30": false,
+        "copyright_user": true
+      },
       "key_clauses": [
         "模型优化：在经安全加密技术处理、严格去标识化且无法重新识别特定个人的前提下，我们可能会将上述所收集的数据以及模型生成的对应内容用于模型优化，以不断调整优化模型的效果。（隐私政策1.2.2）",
         "除非另有明确说明并征得您的同意，我们不会将您的面部像素信息用于其他任何用途或共享给第三方。（隐私政策1.2.1）",

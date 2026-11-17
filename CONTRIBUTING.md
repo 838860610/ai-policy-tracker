@@ -282,6 +282,9 @@ python3 -m unittest discover -s tests -v
 # 订阅 feed：site/feed.xml 由脚本生成（timeline + 待核实队列），CI 会 --check
 .venv/bin/python scripts/gen_feed.py
 
+# 只读数据 API：site/generated/api/v1/{products,summary}.json，v1 只增字段不删（CI 会 --check）
+.venv/bin/python scripts/gen_api.py
+
 # 变更通知：检测到政策变更时推送 webhook（飞书/钉钉/Telegram/通用）。
 # 仅 monitor.yml 里调用；本地调试可设 WEBHOOK_URL/WEBHOOK_TYPE 后运行
 .venv/bin/python scripts/notify_webhook.py

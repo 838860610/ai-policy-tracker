@@ -9,6 +9,7 @@
   "versions": {
     "toc": {
       "used_for_training": true,
+      "training_status": "default_on_opt_out",
       "training_note": "在去标识化后用于服务改进，使用范围较严格",
       "default_state": "默认开启",
       "opt_out": "邮件申请",
@@ -18,6 +19,10 @@
       "copyright": "用户所有",
       "other_uses": "服务改进",
       "risk_level": "yellow",
+      "criteria": {
+        "retention_clear_30": false,
+        "copyright_user": true
+      },
       "key_clauses": [
         "您知悉并授权，在经安全加密技术处理、严格去标识化且无法重新识别特定个人的前提下，我们可能会使用内容来提供、维护、开发和改进我们的服务。（千问用户服务协议12.3，'内容'指输入和输出的统称）",
         "千问产品致力于为您提供更为优质的服务，在对输入内容进行去标识化处理且确保无法重新识别特定个人的前提下，我们可能会随机抽取少部分输入内容、对话上下文进行产品分析、模型评测和功能优化，以更好改善模型回答效果，如提高对话质量和响应速度。如果您不希望您的输入内容用于模型优化，请参照本政策第九条联系我们。（千问产品隐私政策，更新2026-07-14/生效2026-07-21，terms.alicdn.com/legal-agreement/terms/privacy_policy_full/20231011201849846/20231011201849846.html；原引文为旧版措辞，2026-08-30 更新）"

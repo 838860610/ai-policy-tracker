@@ -36,6 +36,7 @@
 .venv/bin/python scripts/gen_data_bundle.py  # 生成 site/generated/bundle.json
 .venv/bin/python scripts/gen_product_pages.py  # site/detail.html → site/p/{id}.html + sitemap
 .venv/bin/python scripts/gen_feed.py         # 生成 site/feed.xml（timeline + 待核实队列，CI --check）
+.venv/bin/python scripts/gen_api.py          # 生成 site/generated/api/v1/ 只读 API（CI --check）
 .venv/bin/python scripts/gen_og_image.py     # 社交卡片（需 pillow，维护用依赖）
 ```
 

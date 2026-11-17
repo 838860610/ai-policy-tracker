@@ -11,6 +11,10 @@
 
 ### Added
 
+- **数据结构化与机器可读 API（/api/v1）**：新增 `scripts/gen_api.py` 生成 `site/generated/api/v1/{products,summary}.json` 只读 API——全量政策数据 + 风险/训练状态汇总，`schema_version` 固定 "1.0"（承诺只增字段不删字段不改语义），`generated_at` 取数据内最新核实日期保证输出确定性；外部可直接把本项目当数据源引用，CI 接入生成与 `--check`
+- **risk_level 推导交叉校验 + criteria 显式化**：新增共享推导模块 `scripts/policy_logic.py`（唯一权威实现），`infer_training_status` 从 gen_data_bundle / gen_readme_table / validate_data 三份副本收编；绿色标准核对与**红色条件交叉校验**（训练且未明示退出机制、训练场景下未去标识化——命中却未标红则提示，可写 `risk_override_reason` 说明分歧）。联系式退出在既有校准里黄/红先例并存（keling/tongyi/xunfei/qoder 黄 vs codebuddy 红），不做机械判定。新增 `criteria` 字段（绿色③④留存/版权的显式布尔判定）随迁移全量填写（63/63），前端推导卡与校验脚本统一读显式值
+- **training_status 全量显式化**：一次性迁移把 48 个依赖启发式推断的版本写回显式 `training_status`（值来自推导函数，与 bundle 输出零变化，语义对比确认），前端 detail.js 的推断逻辑降级为兜底；新增回归测试锁定"显式值 == 推导值"不变量
+- **tiangong 个人版保留黄色的推导分歧记录**：`tiangong:toc` 命中红色③（训练实质 + 未去标识化）但按既有口径保留黄色——训练判定为"优化/改进"的实质推断（原文无明示训练授权专条）且存在一般性撤回权；已写 `risk_override_reason` 说明分歧依据，**待人工复核**：若后续条款出现明示训练授权应改判红色
 - **"核实即入 timeline"制度化**：`policy-change-verify` SKILL.md 与 `policy_schema.md` 把 timeline 从"里程碑变化可选追加"改为**实质性变更强制条目**（`--resolve` 收尾前自查已补）——timeline 是详情页时间线与订阅 feed 的变更叙事主线，实质变更只记在 CHANGELOG 里等于"追踪器没有追踪"。event 写条款实质（哪条从什么改成什么），核实过程仍归 `verification_notes`
 - **Kimi timeline 补录**：2026-08-31 生效协议的关键变化此前只散落在 description/key_findings——现行协议授予免费使用权将输入输出用于'模型服务优化'（默认开启，退出需联系 support@moonshot.cn）、2025 年旧版'全球、永久、可转让、品牌推广'授权表述已移除（2026-08-30 复核确认）。扫描确认其余无 timeline 产品的记录均为当前状态描述而非未收录的变更，无需补录
 - **变更订阅与通知闭环（RSS + webhook + diff 公开展示）**：此前检测到变更只有 Actions 日志一行，"最后一公里"全靠人主动打开站点。新增三件套：

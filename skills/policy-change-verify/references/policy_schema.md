@@ -44,6 +44,8 @@
 | `copyright` | string | 内容版权归属（通常 `用户所有`） |
 | `other_uses` | string | 其他用途（如 `模型训练、品牌推广`） |
 | `risk_level` | string | `red` / `yellow` / `green` |
+| `risk_override_reason` | string | （可选）人工判定与脚本推导（`policy_logic.red_flags`）不一致时的理由说明；命中红色条件却未标红时**必须**写，否则校验告警 |
+| `criteria` | object | 绿色标准③④的显式判定值：`retention_clear_30`（留存明确且 ≤30 天）、`copyright_user`（版权归用户），布尔或 null；2026-11-18 起随迁移全量填写，唯一口径，未填时脚本按文本启发式兜底 |
 | `key_clauses` | array<string> | 原文引文清单（带出处与日期） |
 | `policy_link` | string | 该版本的监测 URL（对应 `toc`/`tob` 目标） |
 | `fetch_method` | string | 该目标级抓取方式，覆盖产品级；`sources[]` 条目同理 |
