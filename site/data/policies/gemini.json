@@ -3,19 +3,19 @@
   "name": "Gemini",
   "company": "Google",
   "region": "美国",
-  "description": "用户对话数据可能用于训练，可通过关闭活动记录阻止",
+  "description": "用户对话数据可能用于训练；对话训练与音频/Gemini Live 改进已拆为独立设置，可分别关闭。临时对话及关闭历史记录后的对话约保留两个月",
   "policy_url": "https://policies.google.com/terms?gl=US&hl=zh-CN",
-  "last_verified": "2026-10-22",
+  "last_verified": "2026-11-28",
   "versions": {
     "toc": {
       "used_for_training": true,
       "training_status": "default_on_opt_out",
-      "training_note": "Keep Activity 开启时：Google 使用活动记录提供、开发和改进服务（including training generative AI models），并有人工审核；18 岁及以上默认开启。关闭后未来对话不用于训练模型（除非主动提交反馈），但仍保留 72 小时且可能经人工审核用于安全目的。语音与 Gemini Live 音视频默认不用于改进服务。设置不控制匿名化数据的处理。",
-      "default_state": "默认开启",
-      "opt_out": "设置开关",
-      "opt_out_method": "关闭 Keep Activity：未来对话不进入活动记录且不用于训练模型（原文含例外——unless you choose to send Google feedback，主动提交反馈的对话仍会被用于改进）；未来对话仍保留 72 小时用于响应、处理反馈与安全目的。自动删除默认 18 个月，可改 3/36 个月或不自动删除",
+      "training_note": "对话内容训练与音频/Gemini Live 视频及屏幕共享改进已拆成两个独立设置。对话训练设置开启时，Google 使用日后对话训练生成式 AI 模型；关闭后，除非提交反馈，否则不会使用日后对话训练，但日后对话仍会经过审核，并以其他方式用于改进 Google 服务及保护 Google、用户和公众。临时对话以及关闭历史记录后的对话不用于训练（反馈除外），保留约两个月。音频/Live 改进设置关闭后，相关内容不用于改进服务（反馈除外），但仍用于回复、处理反馈与安全目的，期间有人工审核。设置不控制匿名化数据的处理。",
+      "default_state": "对话训练默认开启；音频/Live 改进默认关闭",
+      "opt_out": "设置开关（对话训练、音频/Live 改进分设）",
+      "opt_out_method": "在 Gemini 历史记录中分别关闭“对话内容”训练设置与“音频和 Gemini Live 视频及屏幕共享内容”改进设置；主动提交反馈仍可能被用于改进。关闭后未来对话仍保留约两个月用于响应、处理反馈与安全目的，并可能经人工审核、以其他方式改进服务。自动删除默认 18 个月，可改 3/36 个月或不自动删除",
       "deidentified": true,
-      "data_retention": "活动记录自动删除默认18个月，可改为3个月或36个月（或不自动删除）；被人工抽检的对话及相关数据即使删除活动仍保留最长3年",
+      "data_retention": "临时对话及关闭历史记录后的后续对话保留约两个月；活动记录自动删除默认18个月，可改为3个月或36个月（或不自动删除）；经人工审核的对话及相关数据即使删除仍最长保留3年。删除历史记录不会删除远程浏览器数据、远程代码执行数据，也不会删除短信应用或运营商保存的与 Gemini 互发的短信",
       "copyright": "用户所有",
       "other_uses": "模型训练、服务改进",
       "risk_level": "yellow",
@@ -24,16 +24,22 @@
         "copyright_user": true
       },
       "key_clauses": [
-        "Your future chats won't appear in your Activity, and won't be used to train our AI models, unless you choose to send Google feedback. Future chats are still saved for 72 hours so Gemini can respond to you, process your feedback, and protect Google, its users, and the public.（Gemini Apps Privacy Hub·Keep Activity off，最后更新 2026-08-10）",
-        "You can change your auto-delete setting in Gemini Apps Activity from the default of 18 months to 3 months, 36 months, or indefinite. You can also manually delete your Gemini Apps chats anytime.（Gemini Apps Privacy Hub·How long we retain your data，最后更新 2026-08-10）",
-        "Chats reviewed by human reviewers (and related data like your language, device type, location info, or feedback) are not deleted when you delete your activity. Instead, they are retained for up to three years.（Gemini Apps Privacy Hub·How long we retain your data）"
+        "临时对话以及在“历史记录”设置处于关闭状态时进行的对话会在你的账号中保留大约两个月，用于实现以下用途：（Gemini 应用隐私信息中心·临时对话及关闭历史记录，2026-11-17）",
+        "即使关闭了 Gemini 历史记录，后续对话仍会保存大约 2 个月，用于回应你的请求、处理你的反馈，以及保护 Google、Google 用户和公众。这些工作也会有人工审核员协助完成。（Gemini 应用隐私信息中心·历史记录设置，2026-11-17）",
+        "除非你提供反馈，否则 Google 不会使用你日后的对话来训练生成式 AI 模型。日后的对话会经过审核，并以其他方式用于改进 Google 服务，以及保护 Google、Google 用户和公众。由服务提供商审核的对话会与你的账号解除关联，且最多会保留 3 年。（Gemini 应用隐私信息中心·对话内容训练设置，2026-11-17）",
+        "在 Gemini 历史记录中，你可以选择允许 Google 使用你的音频和 Gemini Live 视频及屏幕共享内容来改进其服务，让所有人都能从中受益。（Gemini 应用隐私信息中心·音频和 Gemini Live 改进设置，2026-11-17）",
+        "当你删除自己的历史记录时，系统不会删除经人工审核员审核的对话内容（以及你的语言、设备类型、位置信息或反馈等相关数据）。这些内容最长会保留三年。（Gemini 应用隐私信息中心·数据保留，2026-11-17）",
+        "删除历史记录不会一并删除远程浏览器数据或远程代码执行数据。（Gemini 应用隐私信息中心·历史记录设置，2026-11-17）",
+        "删除历史记录不会一并删除短信应用或运营商保存的你与 Gemini 之间的短信。（Gemini 应用隐私信息中心·历史记录设置，2026-11-17）",
+        "你与 Gemini 之间用于处理任务的短信是通过 RCS Business Messaging 发送的，并未经过端到端加密。你的移动运营商或许能够查看这些短信（受其隐私权政策和条款约束），其中可能包含来自你的关联应用（例如 Gmail、云端硬盘、文档、日历和相册）的信息。（Gemini 应用隐私信息中心·短信任务，2026-11-17）"
       ],
       "policy_link": "https://support.google.com/gemini/answer/13594961?hl=zh-CN&gl=US",
-      "last_verified": "2026-10-22",
+      "last_verified": "2026-11-28",
       "label": "个人版",
       "verification_notes": [
         "2026-09-19 逐字复核：引文出自 Gemini Apps Privacy Hub（support.google.com/gemini/answer/13594961，最后更新 2026-08-10），非 13278892（该页为活动记录管理操作页）。toc 第 1 条原为截断句，已补全 unless you choose to send Google feedback 与 72 小时保留句；第 3 条原为意译，已替换为原文整句。tob 两条与 Generative AI in Google Workspace Privacy Hub 逐字一致，无需修改。",
-        "2026-09-26 监控稳定性：两个 URL 加 gl=US&hl=zh-CN 锁定地区与语言。起因是 Google 按访问来源 IP 切换版本——本地（中国 IP）取到新加坡版、CI（美国 runner）取到美国版，导致每次换网络环境都报 changed 且 --resolve 只能掩盖。锁定 US 是因为监控实际运行在 GitHub 美国 runner 上（monitor.yml），锁定 zh-CN 是为与中文读者定位一致（hl 影响远大于 gl：toc 英文版 56422 字符 vs 中文版 24854 字符）。锁定前实测三地区对比结论：main 的 CN 与 SG 版仅差页面上的「国家/地区版本」标签、正文一字不差，toc 的 CN 与 SG 版哈希完全相同（地区不敏感），CN/SG 与 US 版的核心政策表述逐条一致（默认 18 个月留存、3/36 个月选项、人工审核、训练新模型均相同），US 版与 CN/SG 版的差异为翻译措辞（实测 55 处 1562 字符，非政策实质差异）。故锁任一地区均不改变本表记录的政策结论。"
+        "2026-09-26 监控稳定性：两个 URL 加 gl=US&hl=zh-CN 锁定地区与语言。起因是 Google 按访问来源 IP 切换版本——本地（中国 IP）取到新加坡版、CI（美国 runner）取到美国版，导致每次换网络环境都报 changed 且 --resolve 只能掩盖。锁定 US 是因为监控实际运行在 GitHub 美国 runner 上（monitor.yml），锁定 zh-CN 是为与中文读者定位一致（hl 影响远大于 gl：toc 英文版 56422 字符 vs 中文版 24854 字符）。锁定前实测三地区对比结论：main 的 CN 与 SG 版仅差页面上的「国家/地区版本」标签、正文一字不差；toc 的 CN 与 SG 版哈希完全相同（地区不敏感），CN/SG 与 US 版的核心政策表述逐条一致（默认 18 个月留存、3/36 个月选项、人工审核、训练新模型均相同），US 版与 CN/SG 版的差异为翻译措辞（实测 55 处 1562 字符，非政策实质差异）。故锁任一地区均不改变本表记录的政策结论。",
+        "2026-11-28 复核2026-11-17更新版：72小时保留改为约两个月，对话训练与音频/Live改进拆分为两项设置，关闭对话训练后仍可能审核并以其他方式改进服务；新增远程浏览器/代码执行数据及短信不随历史删除、短信任务未经端到端加密等说明。8条个人版引文均与本地最新快照逐字匹配"
       ],
       "fetch_method": "browser"
     },
@@ -66,16 +72,24 @@
       ]
     }
   },
-  "timeline": [],
-  "analysis_summary": "Gemini个人版可能使用对话数据训练，可关闭活动记录阻止。",
+  "timeline": [
+    {
+      "date": "2026-11-17",
+      "event": "个人版隐私信息中心更新：临时对话及关闭历史记录后的对话保留由72小时改为约两个月；对话训练与音频/Gemini Live 改进拆成独立设置；关闭对话训练后仍可能审核并以其他方式改进服务；明确删除历史记录不删除远程浏览器/代码执行数据及短信，短信任务未经端到端加密"
+    }
+  ],
+  "analysis_summary": "Gemini个人版可能使用对话数据训练；对话训练与音频/Gemini Live 改进已拆为独立设置，可分别关闭。临时对话及关闭历史记录后的对话约保留两个月，删除历史记录不会删除远程浏览器/代码执行数据或短信。",
   "key_findings": [
-    "个人版默认可能训练",
-    "支持自动删除3/36个月",
+    "个人版对话训练默认开启，音频/Live 改进默认关闭，两项设置可分别控制",
+    "临时对话及关闭历史记录后的对话约保留两个月；活动记录仍默认18个月，可改3/36个月",
+    "关闭对话训练后，后续对话仍可能审核并以其他方式改进服务（反馈除外）",
+    "删除历史记录不会删除远程浏览器/代码执行数据及短信；短信任务未经端到端加密",
     "Workspace版不训练",
     "中国大陆不提供 Gemini 服务：Google 未在中国大陆境内运营该产品，本表记录的是其官方条款原文（适用法律为美国加州，见 policy_url 锁定的新加坡/美国版本差异）；中国大陆用户无法通过官方渠道使用，条款仅在通过其他途径访问时具约束力"
   ],
   "recommendations": [
-    "建议关闭活动记录并设置自动删除。"
+    "在 Gemini 历史记录中分别检查对话训练与音频/Live 改进设置，并按需设置自动删除。",
+    "使用远程浏览器、代码执行或短信任务前，注意这些数据不随普通聊天历史记录删除，短信任务未经端到端加密。"
   ],
   "icon": "♊",
   "product_url": "https://gemini.google.com",
