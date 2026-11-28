@@ -194,9 +194,9 @@ cd /path/to/ai-policy-tracker
 
 `--products` / `--only` 属于**局部重试**：只请求被选中的目标，其余产品/目标直接继承上次状态（`partial_run: true`），并自动跳过孤儿快照清理。这样修完一个站点的抓取配置后，验证成本从"全量 70 个目标十几分钟"降到"单目标几十秒"。
 
-局部重试同样会重算 `update_status.json`、待核实队列和健康队列，因此适合"抓取修好了/改 URL 了"这类收尾动作。未被选中的产品/目标会沿用旧状态并标 `skipped_this_run`，健康队列的 `consecutive_runs` 与 `last_seen` 不会因为重试其他目标而虚增。局部重试**不等于完成全量监控**；`meta.partial_run=true`，且自动跳过孤儿快照清理。
+局部重试同样会重算 `update_status.json`、待核实队列和健康队列，因此适合"抓取修好了/改 URL 了"这类收尾动作。未被选中的产品/目标会沿用旧状态并标 `skipped_this_run`，健康队列的 `consecutive_runs` 与 `last_seen` 不会因为重试其他目标而虚增。局部重试**不等于完成全量监控**；`meta.partial_run=true`，且自动跳过孤儿快照清理。`--scope local` 是例外：它只更新 local 目标，非 local 目标保持最近 CI 的 checked 状态，不重置 `skipped_this_run`；同时只更新 `meta.last_local_run`，保留 `meta.last_run` 作为最近完整 CI 时间。
 
-三种“本轮没检查”要区分：`monitor_scope=local` 在 CI 中完整沿用旧目标状态，本地 `--scope local` 同样沿用非 local 目标；`--products` / `--only` 合并旧状态并标记未检查；`--no-browser` 混合产品只检查 requests 目标，被跳过的 browser 目标沿用旧状态，整产品全 browser 且无旧状态时才产品级 `skipped`。
+三种“本轮没检查”要区分：`monitor_scope=local` 在 CI 中完整沿用旧目标状态并标 `skipped_this_run`；本地 `--scope local` 沿用非 local 目标且不重置其 checked 标记；`--products` / `--only` 合并旧状态并标记未检查；`--no-browser` 混合产品只检查 requests 目标，被跳过的 browser 目标沿用旧状态，整产品全 browser 且无旧状态时才产品级 `skipped`。
 
 
 ### 输出示例
@@ -486,6 +486,8 @@ sudo systemctl enable --now ai-policy-check.timer
 
 同时健康队列里这类目标的 `consecutive_runs` **不会因为没被检查而虚增**：CI 每周跑一次却从不上手检查，连续轮数会一路涨到吓人，但那是"没查"而不是"查了还坏"。`last_seen` 同样保持不变，`checked_this_run: false` 标记本轮未检查。
 
+本地 `--scope local` 验证只更新 local 目标：非 local 目标保持最近 CI 的 checked 状态，不重新标 `skipped_this_run`；状态文件只更新 `meta.last_local_run`，`meta.last_run` 仍是最近完整 CI 时间。页面因此不会因为一次本地单目标验证而显示“69 个目标本轮未检查”，只会把 local 目标说明为“由本地监控负责”。
+
 ### 什么时候该用这个机制
 
 - ✅ 连接层失败：CI 环境根本连不上（Cloudflare 拒绝数据中心 IP、境内/境外网络隔离）
@@ -606,8 +608,8 @@ SPA 文档站常把正文**分批注入**。用固定等待（原来 `wait_for_t
 首页 `site/js/app.js` 读取 `bundle.json`（缺失时回退索引与逐产品政策 JSON）、`site/generated/update_status.json` 与 `site/generated/monitor_health.json`，**不读取** `pending_verification.json`：
 
 - **文件不存在**（从未运行过监控）：页面不显示任何监控信息
-- **全部无变化且无异常**：显示监控上次运行时间和“未检测到政策变更”
-- **存在异常或未检查目标**：显示失败、正文可疑、未监控产品、本轮未检查目标和抓取降级目标数量，不把异常伪装成正常
+- **全部无变化且无异常**：显示监控上次运行时间和“未检测到政策变更”；若有 local 目标，只附“由本地监控负责”，不计作异常
+- **存在异常或非本地未检查目标**：显示失败、正文可疑、未监控产品、本轮未检查目标和抓取降级目标数量，不把异常伪装成正常
 - **检测到变更**：显示醒目的告警横幅，列出可能已更新的产品（可点击进入详情），对应产品的名称旁也会标注 ⚠️
 - **存在抓取降级**：横幅下方展开“抓取降级明细”，逐条列出产品、目标、健康类型、失败原因和上次成功抓取时间，并给出建议动作
 - **人工核实覆盖**：顶部显示最新人工核实日期，并明确标出近 30 天已核实产品数，避免把最新日期误解为全量数据都很新

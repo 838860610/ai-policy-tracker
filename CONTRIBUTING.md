@@ -180,7 +180,7 @@ git push origin update/xxx-policy
 | `wait_for_selector` | 同上 | 浏览器抓取时等待该节点出现即视为已渲染，缩短 SPA 页耗时 |
 | `min_body_chars` | 同上 | 该目标的正文下限，覆盖默认 500 字符 |
 | `targets` | 顶层（只含 `main` 键） | 顶层 `policy_url` 对应 `main` 目标的配置载体。`toc`/`tob` 写进 `versions.*`，补充来源写进 `sources[]` 条目——不要在 `targets` 里重复定义，避免两处配置歧义 |
-| `monitor_scope` | 顶层 / `targets.main` / `versions.*` / `sources[]` 条目 | `ci`（默认，两边都跑）或 `local`（**仅本地跑**）。用于 GitHub runner 连不上的站点（如 `trae`——Cloudflare 拒绝数据中心 IP）。CI 不检查 local 目标，但沿用旧目标状态，仅标 `skipped_this_run`，健康轮次与 `last_seen` 不虚增；改由 `./scripts/local_monitor.sh` 在本地跑，以本地结果为准 |
+| `monitor_scope` | 顶层 / `targets.main` / `versions.*` / `sources[]` 条目 | `ci`（默认，两边都跑）或 `local`（**仅本地跑**）。用于 GitHub runner 连不上的站点（如 `trae`——Cloudflare 拒绝数据中心 IP）。CI 不检查 local 目标，但沿用旧目标状态，仅标 `skipped_this_run`，健康轮次与 `last_seen` 不虚增；本地 `--scope local` 沿用非 local 目标且不重置其 checked 标记，只更新 `last_local_run`；改由 `./scripts/local_monitor.sh` 在本地跑，以本地结果为准 |
 
 四个载体的优先级是 **目标级 > 产品级 > 全局默认**，所以 `targets.main.fetch_method` 会覆盖顶层 `fetch_method`，而顶层仍对其余目标生效（既有数据文件无需迁移）。
 
@@ -275,7 +275,7 @@ python3 -m venv .venv
 - `ci.yml` 运行全量回归测试、数据结构校验及 README / 文档 / 产品页 / feed / API 五项 `--check`；main push 全绿后先 `git pull --rebase origin main` 同步最新真源，再生成五类产物、复验并按最终差异提交；生成后不再 rebase，若 push 因新提交失败则整轮不部署旧产物。
 - `monitor.yml` 运行 `check_updates.py --scope ci` → 生成 feed → 可选 webhook 通知（仅发送本轮新状态，未配置静默跳过、失败不阻断）→ rebase → 提交状态、快照、两个队列与 feed；监控失败仍保留结果并标红，部署照常进行。
 - 首页读 `bundle.json`、`update_status.json`、`monitor_health.json`，不读 pending；详情页额外读 `policies/{id}.json`、`pending_verification.json` 与 `monitor_health.json`（缺失时从状态兜底）。
-- local 目标在 CI 中沿用旧状态，仅标 `skipped_this_run`；本地 `--scope local` 同样沿用非 local 目标。`--products` / `--only` 合并未检查目标并跳过孤儿快照清理；`--no-browser` 混合产品只查 requests 目标，被跳过的 browser 目标沿用旧状态；整产品全 browser 且无旧状态时才产品级 `skipped`。这些都不是完整监控轮次。
+- local 目标在 CI 中沿用旧状态，仅标 `skipped_this_run`；本地 `--scope local` 沿用非 local 目标且不重置其 checked 标记，只更新 `meta.last_local_run`。`--products` / `--only` 合并未检查目标并跳过孤儿快照清理；`--no-browser` 混合产品只查 requests 目标，被跳过的 browser 目标沿用旧状态；整产品全 browser 且无旧状态时才产品级 `skipped`。这些都不是完整监控轮次。
 - 单目标 `changed` 只与 `health=ok` 同现；`rebaselined` 只与 `ok` / `suspicious` 同现，不存在 `changed + rebaselined`。
 
 > **文档约定**：`site/docs/` 下的 `methodology` / `update-monitoring` 是线上站点与 `sitemap.xml` 直接引用的页面，**必须入库**。

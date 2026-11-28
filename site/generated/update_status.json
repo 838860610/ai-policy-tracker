@@ -1,10 +1,11 @@
 {
   "meta": {
     "last_run": "2026-11-28T19:42:04.074438+08:00",
+    "last_local_run": "2026-11-28T20:08:19.181801+08:00",
     "hash_scheme": "text-v6-bs4",
-    "scope": "ci",
+    "scope": "local",
     "local_only_targets": 1,
-    "local_targets_skipped": 1,
+    "local_targets_skipped": 0,
     "total_products": 47,
     "total_targets": 70,
     "changed": 0,
@@ -16,7 +17,7 @@
     "health_blocked": 0,
     "health_degraded": 0,
     "health_no_baseline": 0,
-    "partial_run": false
+    "partial_run": true
   },
   "products": {
     "tencent-yuanbao": {
@@ -277,11 +278,11 @@
     "trae": {
       "name": "Trae（AI IDE）",
       "status": "ok",
-      "health": "rebaselined",
+      "health": "ok",
       "health_issues": 0,
-      "url": "https://docs.trae.cn/enterprise_privacy-policy-for-trae-enterprise",
-      "message": "内容未变化（本次核实后已确认）",
-      "last_checked": "2026-11-28T19:28:48.788944+08:00",
+      "url": "https://www.trae.cn/privacy-policy",
+      "message": "内容未变化",
+      "last_checked": "2026-11-28T20:08:19.150586+08:00",
       "targets": {
         "tob": {
           "url": "https://docs.trae.cn/enterprise_privacy-policy-for-trae-enterprise",
@@ -302,20 +303,19 @@
         },
         "main": {
           "url": "https://www.trae.cn/privacy-policy",
-          "hash_scheme": "text-v4-bs4",
-          "last_checked": "2026-09-27T21:47:51.701584",
+          "hash_scheme": "text-v6-bs4",
+          "last_checked": "2026-11-28T20:08:19.150542+08:00",
           "last_changed_date": null,
-          "last_good_at": "2026-09-27T21:47:51.682728",
-          "health": "ok",
+          "last_good_at": "2026-11-28T20:08:19.106217+08:00",
+          "health": "rebaselined",
           "monitor_scope": "local",
-          "current_hash": "9461009ffd4dc8b9f999a8adf1840e05c642372b1436d23916c11f8c09b5c139",
+          "current_hash": "acbaf7e47c60ee7e408609f17f9637f0e2e63ebb393592b72d2b12f9228a8d18",
           "status": "ok",
-          "message": "内容未变化",
+          "health_reason": "hash_scheme_upgrade",
+          "message": "哈希方案已更新，已重建基线",
           "fetch_method": "browser",
           "content_etag": null,
-          "content_last_modified": null,
-          "skipped_this_run": true,
-          "skip_reason": "该目标由本地监控负责，请在本地运行 scripts/local_monitor.sh"
+          "content_last_modified": null
         }
       }
     },

@@ -518,7 +518,7 @@
   /* ---------- 监控状态 ---------- */
 
   function countMonitorStatuses() {
-    var counts = { changed: 0, failed: 0, suspicious: 0, skipped: 0, unchecked: 0 };
+    var counts = { changed: 0, failed: 0, suspicious: 0, skipped: 0, unchecked: 0, localUnchecked: 0 };
     var products = (monitorStatus && monitorStatus.products) || {};
     Object.keys(products).forEach(function (id) {
       var product = products[id] || {};
@@ -526,7 +526,9 @@
       if (product.status === "skipped") counts.skipped += 1;
       var targets = product.targets || {};
       Object.keys(targets).forEach(function (key) {
-        if (targets[key] && targets[key].skipped_this_run) counts.unchecked += 1;
+        if (!targets[key] || !targets[key].skipped_this_run) return;
+        if (targets[key].monitor_scope === "local") counts.localUnchecked += 1;
+        else counts.unchecked += 1;
       });
       var targetStatuses = Object.keys(targets).map(function (key) {
         return targets[key] && targets[key].status;
@@ -610,9 +612,13 @@
     if (healthCount > 0) anomalyParts.push(healthCount + " 个目标抓取降级");
 
     if (changed.length === 0 && anomalyParts.length === 0) {
+      var localNote = counts.localUnchecked > 0
+        ? "（" + counts.localUnchecked + " 个本地目标未在 CI 检查，由本地监控负责）"
+        : "";
       box.innerHTML =
         '<div class="monitor-ok">🔍 政策监控上次运行：' + PT.escapeHtml(when) +
-        "，检查 " + PT.escapeHtml(String(total)) + " 个产品，未检测到政策变更。</div>";
+        "，检查 " + PT.escapeHtml(String(total)) + " 个产品，未检测到政策变更" +
+        PT.escapeHtml(localNote) + "。</div>";
       return;
     }
 
@@ -629,9 +635,12 @@
       : "未检测到已确认的政策变更";
     var headlineHtml = changed.length > 0 ? headline : PT.escapeHtml(headline);
     var anomalyText = anomalyParts.length > 0 ? "；监控异常：" + anomalyParts.join("、") : "";
+    var localText = counts.localUnchecked > 0
+      ? "；" + counts.localUnchecked + " 个本地目标由本地监控负责"
+      : "";
     box.innerHTML =
       '<div class="monitor-banner">⚠️ 政策监控于 ' + PT.escapeHtml(when) + " " +
-      headlineHtml + PT.escapeHtml(anomalyText) + "</div>" + renderHealthDetails();
+      headlineHtml + PT.escapeHtml(anomalyText + localText) + "</div>" + renderHealthDetails();
   }
 
   /* ---------- 初始化 ---------- */

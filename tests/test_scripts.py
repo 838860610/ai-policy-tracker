@@ -531,6 +531,7 @@ class TestLayout(unittest.TestCase):
         self.assertIn("近 30 天人工核实覆盖", app)
         self.assertIn("skipped_this_run", app)
         self.assertIn("个目标本轮未检查", app)
+        self.assertIn("本地目标未在 CI 检查", app)
 
     def test_dynamic_json_fetches_bypass_browser_cache(self):
         with open(os.path.join(SITE_DIR, "js", "app.js"), encoding="utf-8") as f:
@@ -2004,8 +2005,8 @@ class TestFetchHealth(unittest.TestCase):
                 "demo", policy, prev, 1, 0, scope="local")
         self.assertEqual(sorted(result["targets"]), ["main", "tob", "toc"])
         self.assertEqual(result["status"], "changed")
-        self.assertTrue(result["targets"]["toc"]["skipped_this_run"])
-        self.assertTrue(result["targets"]["tob"]["skipped_this_run"])
+        self.assertNotIn("skipped_this_run", result["targets"]["toc"])
+        self.assertNotIn("skipped_this_run", result["targets"]["tob"])
         self.assertEqual(result["targets"]["tob"]["status"], "changed")
 
     def test_scope_all_runs_everything(self):
@@ -2279,7 +2280,8 @@ class TestPartialRetry(unittest.TestCase):
         self.assertEqual(result["status"], "failed")
         self.assertEqual(result["health"], "blocked")
 
-    def _run_main(self, argv, prev_products, policies, checked, result_factory=None):
+    def _run_main(self, argv, prev_products, policies, checked, result_factory=None,
+                  previous_meta=None):
         """以受控替身运行 main()，返回 (退出码, 写出的 status 数据)。"""
         with tempfile.TemporaryDirectory() as directory:
             status_path = os.path.join(directory, "update_status.json")
@@ -2303,7 +2305,8 @@ class TestPartialRetry(unittest.TestCase):
                  mock.patch.object(CHECK_UPDATES, "load_product_ids",
                                    return_value=list(policies)), \
                  mock.patch.object(CHECK_UPDATES, "load_previous_status",
-                                   return_value={"products": prev_products}), \
+                                   return_value={"products": prev_products,
+                                                 "meta": previous_meta or {}}), \
                  mock.patch.object(CHECK_UPDATES, "load_policy",
                                    side_effect=lambda pid: policies[pid]), \
                  mock.patch.object(CHECK_UPDATES, "check_product", fake_check_product), \
@@ -2395,6 +2398,43 @@ class TestPartialRetry(unittest.TestCase):
         self.assertEqual(code, 0)
         self.assertEqual(data["meta"]["failed_targets"], 0)
         self.assertTrue(data["products"]["beta"]["targets"]["main"]["skipped_this_run"])
+
+    def test_local_partial_run_preserves_ci_run_metadata_and_unchecked_flags(self):
+        prev = {
+            "trae": {"name": "Trae", "status": "ok", "targets": {
+                "main": {"url": "https://trae.cn/privacy", "status": "ok", "health": "ok",
+                         "monitor_scope": "local", "skipped_this_run": True},
+                "toc": {"url": "https://trae.cn/privacy", "status": "ok", "health": "ok",
+                        "monitor_scope": "ci"},
+            }},
+            "beta": {"name": "Beta", "status": "ok", "targets": {
+                "main": {"url": "https://b.com", "status": "ok", "health": "ok"},
+            }},
+        }
+        policies = {"trae": {"policy_url": "https://trae.cn/privacy",
+                             "targets": {"main": {"monitor_scope": "local"}},
+                             "versions": {"toc": {"policy_link": "https://trae.cn/privacy"}}},
+                    "beta": {"policy_url": "https://b.com"}}
+
+        def local_result(pid, policy):
+            return {"name": pid, "status": "ok", "health": "ok", "health_issues": 0,
+                    "url": policy["policy_url"], "message": "ok", "targets": {
+                        "main": {"url": policy["policy_url"], "status": "ok", "health": "ok",
+                                 "monitor_scope": "local"},
+                        "toc": {"url": "https://trae.cn/privacy", "status": "ok", "health": "ok",
+                                "monitor_scope": "ci"},
+                    }}
+
+        code, data = self._run_main(
+            ["--scope", "local", "--only", "trae:main"], prev, policies, [],
+            result_factory=local_result,
+            previous_meta={"last_run": "2026-11-28T19:42:04+08:00"})
+        self.assertEqual(code, 0)
+        self.assertEqual(data["meta"]["last_run"], "2026-11-28T19:42:04+08:00")
+        self.assertIn("last_local_run", data["meta"])
+        self.assertNotIn("skipped_this_run", data["products"]["trae"]["targets"]["main"])
+        self.assertNotIn("skipped_this_run", data["products"]["trae"]["targets"]["toc"])
+        self.assertNotIn("skipped_this_run", data["products"]["beta"]["targets"]["main"])
 
     def test_unknown_only_target_product_is_rejected(self):
         policies = {"alpha": {"policy_url": "https://a.com"}}

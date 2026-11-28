@@ -1247,7 +1247,7 @@ def mark_unselected_targets_skipped(products, selected_pids):
                 target["skip_reason"] = "本轮未检查（--products/--only）"
 
 
-def merge_partial_product(prev_info, new_info):
+def merge_partial_product(prev_info, new_info, mark_skipped=True):
     """局部重试时把新结果合并回上次状态：只覆盖被检查的目标，其余目标沿用上次结果。"""
     merged = json.loads(json.dumps(prev_info)) if isinstance(prev_info, dict) else {}
     merged_targets = merged.get("targets")
@@ -1257,8 +1257,9 @@ def merge_partial_product(prev_info, new_info):
     for key, target in merged_targets.items():
         if key in checked or not isinstance(target, dict):
             continue
-        target["skipped_this_run"] = True
-        target["skip_reason"] = "本轮未检查（--products/--only）"
+        if mark_skipped:
+            target["skipped_this_run"] = True
+            target["skip_reason"] = "本轮未检查（--products/--only）"
     for key, target in (new_info.get("targets") or {}).items():
         merged_targets[key] = target
     merged["targets"] = merged_targets
@@ -1305,7 +1306,7 @@ def check_product(pid, policy, prev_entry, timeout, delay, no_browser=False,
         specs, out_of_scope = list(all_specs), []
         scope_skip_reason = "当前运行范围未检查该目标，沿用上次结果"
 
-    def carry_over(reason, spec_keys):
+    def carry_over(reason, spec_keys, mark_skipped=True):
         """把本轮不该检查的目标按上次结果原样带回。"""
         carried = {}
         for spec in spec_keys:
@@ -1313,14 +1314,17 @@ def check_product(pid, policy, prev_entry, timeout, delay, no_browser=False,
             if not isinstance(previous, dict):
                 continue
             kept = dict(previous)
-            kept["skipped_this_run"] = True
-            kept["skip_reason"] = reason
+            if mark_skipped:
+                kept["skipped_this_run"] = True
+                kept["skip_reason"] = reason
             kept["monitor_scope"] = spec["monitor_scope"]
             carried[spec["key"]] = kept
         return carried
 
+    scope_mark_skipped = scope != "local"
+
     if out_of_scope:
-        carried = carry_over(scope_skip_reason, out_of_scope)
+        carried = carry_over(scope_skip_reason, out_of_scope, mark_skipped=scope_mark_skipped)
         print(f"  [范围] {name} ({pid}): "
               + "、".join(f"{TARGET_LABELS.get(s['key'], s['key'])}({s['monitor_scope']})"
                           for s in out_of_scope)
@@ -1406,7 +1410,8 @@ def check_product(pid, policy, prev_entry, timeout, delay, no_browser=False,
         target_results[spec["key"]]["monitor_scope"] = spec["monitor_scope"]
         target_results[spec["key"]].setdefault("fetch_method", spec["method"])
     # scope 之外与 --no-browser 跳过的目标均原样带回，避免状态/队列被清空。
-    target_results.update(carry_over(scope_skip_reason, out_of_scope))
+    target_results.update(carry_over(scope_skip_reason, out_of_scope,
+                                     mark_skipped=scope_mark_skipped))
     if no_browser:
         target_results.update(carry_over(browser_skip_reason, browser_skipped))
     status, summary, unhealthy = aggregate_targets(target_results)
@@ -1707,7 +1712,9 @@ def main():
     print("=" * 60)
 
     pids = load_product_ids()
-    prev_status = load_previous_status().get("products", {})
+    previous_status = load_previous_status()
+    prev_status = previous_status.get("products", {})
+    previous_meta = previous_status.get("meta", {})
 
     # 局部重试：只重跑指定产品/目标，其余结果原样继承，避免为重试一个站点重跑全量
     selected_pids = []
@@ -1749,7 +1756,8 @@ def main():
     if partial:
         new_status = {pid: json.loads(json.dumps(info))
                       for pid, info in prev_status.items() if pid in set(pids)}
-        mark_unselected_targets_skipped(new_status, selected_pids)
+        if args.scope != "local":
+            mark_unselected_targets_skipped(new_status, selected_pids)
         for pid in pids:
             new_status.setdefault(pid, {"name": pid, "status": "skipped",
                                         "health": "ok", "health_issues": 0,
@@ -1779,7 +1787,7 @@ def main():
                                no_browser=args.no_browser, only_keys=only_keys,
                                scope=args.scope)
         if partial and isinstance(prev, dict) and prev.get("targets"):
-            result = merge_partial_product(prev, result)
+            result = merge_partial_product(prev, result, mark_skipped=args.scope != "local")
         new_status[pid] = result
 
         if i < len(selected_pids) - 1:
@@ -1828,7 +1836,8 @@ def main():
 
     status_data = {
         "meta": {
-            "last_run": now_iso(),
+            "last_run": now_iso() if args.scope != "local" else previous_meta.get("last_run", now_iso()),
+            "last_local_run": now_iso() if args.scope == "local" else previous_meta.get("last_local_run"),
             "hash_scheme": HASH_SCHEME,
             "scope": args.scope,
             "local_only_targets": local_only_count,

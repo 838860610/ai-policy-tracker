@@ -386,7 +386,7 @@
       desc: 'cron "0 1 * * 1"（UTC 01:00 = 北京 09:00），也支持 Actions 页面手动触发。按 policies/{id}.json 展开全部监控目标（pid:key）：main 主监控页、toc 个人版条款、tob 企业版条款、sources[] 补充来源。配置优先级：目标级 > 产品级 > 全局默认。',
       files: ['.github/workflows/monitor.yml', 'scripts/check_updates.py'],
       cmds: ['gh workflow run "政策更新监控" --ref main   # 手动触发\npython scripts/check_updates.py --scope ci --delay 0.5 --timeout 20 --fail-on-error'],
-      notes: ['--scope ci 跳过 monitor_scope=local 的目标，沿用上次结果并加 skipped_this_run 标记',
+      notes: ['--scope ci 跳过 monitor_scope=local 的目标，沿用上次结果并加 skipped_this_run；页面将其计为本地监控责任，不算监控异常',
               'timeout-minutes: 45——70 个监控目标、部分站点需无头浏览器渲染，留足余量',
               '抓取失败只把 job 标红提醒，状态与快照已照常提交，Pages 也会照常发布']
     },
@@ -498,7 +498,7 @@
       desc: 'GitHub runner 连不上的站点（trae：Cloudflare 拒绝数据中心 IP，describe_shell 显示"实际拿到：空文档"）标记 monitor_scope: "local"，由本地跑并以本地结果为准。脚本自动提交但不 push——push 与否由人决定，push 到 main 会触发 CI 与 Pages 真实发布。',
       files: ['scripts/local_monitor.sh'],
       cmds: ['./scripts/local_monitor.sh                    # 跑全部 local 目标，自动 commit 不 push\n./scripts/local_monitor.sh --only trae:main   # 只跑一个\ngit push origin main                          # 想让首页更新再手动推'],
-      notes: ['CI 侧沿用 local 目标结果并加 skipped_this_run；本地 --scope local 同样沿用非 local 目标，任何方向都不能清空 targets 或 pending',
+      notes: ['CI 侧沿用 local 目标结果并加 skipped_this_run；本地 --scope local 沿用非 local 目标且不重置 checked 标记，只更新 last_local_run，任何方向都不能清空 targets 或 pending',
               'local_monitor.sh 只暂存并用 git commit -- 路径限定四个监控产物，不会夹带其他已暂存改动']
     },
 

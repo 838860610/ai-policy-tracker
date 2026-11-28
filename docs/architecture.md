@@ -20,7 +20,7 @@ flowchart TD
     B1["status=changed 且 health=ok → 待核实队列<br/>pending_verification.json<br/>+ 快照存档（prev.txt / 日期档）"]
     B2["health 异常 → 健康队列<br/>monitor_health.json<br/>修抓取配置，不算政策变更"]
     B3["抓取失败 / 空壳 → 绝不覆盖基线<br/>保住历史正文，不误报"]
-    B4["monitor_scope=local → CI 不检查<br/>沿用旧状态，仅标 skipped_this_run<br/>本地 local_monitor.sh 跑（commit 不 push，手动 push）"]
+    B4["monitor_scope=local → CI 不检查<br/>沿用旧状态，仅标 skipped_this_run<br/>本地验证只更新 local 目标与 last_local_run<br/>页面显示由本地监控负责，不计异常"]
 
     DEPLOY["④ 部署 deploy.yml · workflow_run 触发（限 main）<br/>校验失败不部署 · 监控失败仍部署<br/>OG 社交卡片现场生成 → 发布 site/"]
     SITE["⑤ 展示层<br/>首页读 bundle + update_status + monitor_health<br/>详情页额外读 policies/{id}.json + pending_verification.json + monitor_health.json"]

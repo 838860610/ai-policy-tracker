@@ -60,6 +60,8 @@
 
 ### Fixed
 
+- **本地监控不再污染 CI checked 状态**：`--scope local` 只更新 local 目标与 `meta.last_local_run`，非 local 目标保持最近 CI 的 checked 标记，`meta.last_run` 仍表示最近完整 CI 时间；页面把 local 目标显示为“由本地监控负责”，不再计作监控异常
+- **Trae 本地源站验证与新政策回写**：本地可正常抓取 `trae:main`，已更新 2026-11-25 发布、2026-12-02 生效的个人版政策，补充豆包飞书统一账号、会员联动、TRAE宝云端同步及代码库索引上传说明
 - **CI 支持手动触发**：`ci.yml` 增加 `workflow_dispatch`，除 PR 与 main push 外也可在 Actions 页面手动运行完整数据校验
 - **监控范围跳过导致状态与待核实项丢失**：`--scope local` 过去只保留 local 目标，`--no-browser` 混合产品会直接丢掉 browser 目标；随后队列按当前 targets 重建，CI 目标、健康异常和未核实变更可能被静默清除。现在两个方向的范围跳过、局部重试与 browser 跳过都沿用旧目标状态，只标 `skipped_this_run`
 - **定向 `--resolve` 参数解析错误**：文档中的 `--resolve <product_id> [target]` 会把 target 解析成另一个产品 ID，导致整个产品的待核实项和告警被清除。改为显式解析产品与可选目标，并补临时仓库回归测试

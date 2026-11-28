@@ -234,7 +234,7 @@ python3 -m venv .venv
 
 正文过短（默认 < 500 字符）或抓取失败时脚本**不会覆盖已有基线**，只把 `health` 标成降级/无基线/被拦截。这类目标进入独立队列 `site/generated/monitor_health.json`（记录失败原因、连续不健康轮次与建议动作，恢复后自动消失），首页 banner 下方可展开"抓取降级明细"。单个目标的 `changed` 只与 `health=ok` 同现；`rebaselined` 只与 `ok`（哈希方案升级）或 `suspicious`（缺基线后完整抓取重建）同现，不存在 `changed + rebaselined`。同一产品的不同目标可同时需要内容核实与抓取修复。
 
-有些站点在 GitHub runner 上**根本连不上**（如 `trae`：Cloudflare 拒绝数据中心 IP，抓取时"实际拿到：空文档"，而本地能正常抓到 1.2 万字符正文）。这类目标用 `monitor_scope: "local"` 标记，改由 `./scripts/local_monitor.sh` 在本地跑并以本地结果为准；CI 用 `--scope ci` 跳过它们，但会**沿用上次目标状态**（含快照引用与 `last_checked`），仅加 `skipped_this_run`。本地 `--scope local` 反过来沿用所有非 local 目标，两个方向都不会清空状态或 pending。健康连续轮次与 `last_seen` 不虚增，也不会把覆盖率写缩水或误删快照。
+有些站点在 GitHub runner 上**根本连不上**（如 `trae`：Cloudflare 拒绝数据中心 IP，抓取时"实际拿到：空文档"，而本地能正常抓到完整正文）。这类目标用 `monitor_scope: "local"` 标记，改由 `./scripts/local_monitor.sh` 在本地跑并以本地结果为准；CI 用 `--scope ci` 跳过它们，但会**沿用上次目标状态**（含快照引用与 `last_checked`），仅加 `skipped_this_run`。本地 `--scope local` 反过来沿用所有非 local 目标，不把 CI 已检查目标重新标为本轮未检查；本地轮次只更新 `meta.last_local_run`，保留 `meta.last_run` 作为最近完整 CI 时间。两个方向都不会清空状态或 pending，健康连续轮次与 `last_seen` 不虚增，也不会把覆盖率写缩水或误删快照。页面把 local 目标的 CI 跳过显示为“由本地监控负责”，不再计作监控异常。
 
 抓取方式支持按目标配置：`targets.main` / `versions.*` / `sources[]` 条目可单独设置 `fetch_method`（`requests` / `browser`）、`content_selector`、`wait_for_selector`、`min_body_chars`、`monitor_scope`，不需要为一个站点把整产品都切成浏览器抓取。默认使用 `requests`，仅配置为 `browser` 的目标启用 Playwright，不会自动兜底，也不承诺零漏报。`--no-browser` 混合产品只检查 requests 目标，被跳过的 browser 目标沿用旧状态；整产品全 browser 时也沿用旧目标状态，只有从未检查过时才产品级 `skipped`。`--products` / `--only` 局部重试合并旧状态、标记未检查目标且不清理孤儿快照，不等于完成全量监控。处置流程：
 

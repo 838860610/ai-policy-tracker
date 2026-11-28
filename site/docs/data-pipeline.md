@@ -92,7 +92,7 @@
 
 抓取方式可按产品配置，也可只配在单个目标上（`targets.main` / `versions.*` / `sources[]` 条目支持 `fetch_method`、`content_selector`、`wait_for_selector`、`min_body_chars`、`monitor_scope`）。默认使用 `requests`，仅 `fetch_method: "browser"` 的目标使用 Playwright，CI 会安装浏览器依赖；browser 不是自动兜底，提取与渲染策略只能降低漏抓概率，不承诺零漏报。
 
-`--no-browser` 混合产品只检查 `requests` 目标，被省略的 browser 目标沿用旧状态并标 `skipped_this_run`；整产品都需要 browser 时同样沿用旧目标状态，只有没有旧状态时才产品级 `skipped`。`--products` / `--only` 局部重试则合并旧状态，未检查目标标 `skipped_this_run`，且不清理孤儿快照。`--scope local` 会沿用所有非 local 目标，`--scope ci` 会沿用所有 local 目标。快照是否活跃按监控配置判定，不因本次跳过误删。
+`--no-browser` 混合产品只检查 `requests` 目标，被省略的 browser 目标沿用旧状态并标 `skipped_this_run`；整产品都需要 browser 时同样沿用旧目标状态，只有没有旧状态时才产品级 `skipped`。`--products` / `--only` 局部重试则合并旧状态，未检查目标标 `skipped_this_run`，且不清理孤儿快照。`--scope local` 会沿用所有非 local 目标且不重置其 checked 标记，只更新 `meta.last_local_run`；`--scope ci` 会沿用所有 local 目标并标 `skipped_this_run`。快照是否活跃按监控配置判定，不因本次跳过误删。
 
 **产出五件套**（由 bot 自动 commit 回 main）：
 

@@ -130,10 +130,12 @@ git push origin main                          # 想让首页更新再手动推�
 ```
 
 CI 跑 `--scope ci` 不检查它们，但**沿用上次目标结果**（含快照引用与 `last_checked`），
-只加 `skipped_this_run` 标记；本地跑 `--scope local` 时反过来沿用所有非 local 目标。
-健康队列的 `consecutive_runs` 与 `last_seen` 不虚增。任何范围跳过都不能删除目标或 pending 项。
-写成 `skipped` 会让覆盖率缩水，且快照会被 `prune_orphan_snapshots` 当成"不再监控"
-删掉——别改回那样。
+只加 `skipped_this_run` 标记；本地跑 `--scope local` 时反过来沿用所有非 local 目标，
+且不把 CI 已检查目标重新标为“本轮未检查”。本地轮次只更新 `meta.last_local_run`，
+保留 `meta.last_run` 作为最近一次完整 CI 时间。健康队列的 `consecutive_runs` 与 `last_seen`
+不虚增。任何范围跳过都不能删除目标或 pending 项。页面把 local 目标的 CI 跳过显示为
+“由本地监控负责”，不再计作监控异常。写成 `skipped` 会让覆盖率缩水，且快照会被
+`prune_orphan_snapshots` 当成"不再监控"删掉——别改回那样。
 
 ---
 
