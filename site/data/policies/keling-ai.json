@@ -5,7 +5,7 @@
   "region": "中国",
   "description": "用户数据可能用于模型训练，面部像素信息不用于其他用途或共享给第三方",
   "policy_url": "https://klingai.com/docs/privacy-policy",
-  "last_verified": "2026-08-30",
+  "last_verified": "2026-11-28",
   "versions": {
     "toc": {
       "used_for_training": true,
@@ -24,13 +24,16 @@
         "copyright_user": true
       },
       "key_clauses": [
-        "模型优化：在经安全加密技术处理、严格去标识化且无法重新识别特定个人的前提下，我们可能会将上述所收集的数据以及模型生成的对应内容用于模型优化，以不断调整优化模型的效果。（隐私政策1.2.2）",
+        "在经安全加密技术处理、严格去标识化且无法重新识别特定个人的前提下，我们可能会将上述所收集的数据以及模型生成的对应内容用于模型优化，以不断调整优化模型的效果。（隐私政策1.2.2）",
         "除非另有明确说明并征得您的同意，我们不会将您的面部像素信息用于其他任何用途或共享给第三方。（隐私政策1.2.1）",
         "一般而言，我们仅在为实现目的所必需的时间及法律法规所规定的保存期限内保留您的个人信息。（隐私政策4.2）"
       ],
       "policy_link": "https://klingai.com/docs/privacy-policy",
-      "last_verified": "2026-08-30",
-      "label": "个人版"
+      "last_verified": "2026-11-28",
+      "label": "个人版",
+      "verification_notes": [
+        "2026-11-28 抓取修复：requests 仅拿到导航空壳，改为 fetch_method=browser 并指定 .document-view-agreement 后稳定取得 1.4 万字符正文；与旧有效快照对比仅移除页首导航，条款正文无变化，已 --resolve"
+      ]
     }
   },
   "timeline": [],
@@ -44,5 +47,11 @@
   ],
   "icon": "🎬",
   "product_url": "https://www.klingai.com",
+  "targets": {
+    "main": {
+      "fetch_method": "browser",
+      "content_selector": ".document-view-agreement"
+    }
+  },
   "tob_note": "开发者服务（开放平台 API）已拆分为独立条目 keling-api（2026-08-29）。可灵企业会员'不使用企业数据训练'承诺的产品页声明随条目迁移"
 }

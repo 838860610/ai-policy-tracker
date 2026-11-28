@@ -62,6 +62,7 @@ import sys
 import tempfile
 import threading
 import time
+import unicodedata
 from urllib.parse import urljoin, urlparse
 
 import requests
@@ -83,8 +84,9 @@ HEALTH_FILE = os.path.join(BASE_DIR, "site", "generated", "monitor_health.json")
 # - text-v2：修复响应解码（此前中文被 latin-1 回退解成 mojibake）
 # - text-v4：加入结构化正文选择、PDF 处理和更保守的动态节点过滤。
 # - text-v5：时间戳标签允许 (UTC) 等时区后缀，避免日期更新误报为政策变更。
+# - text-v6：纯空白排版变化不再进入待核实队列，并保留未解决变更的原始对比基线。
 EXTRACTOR = "bs4" if BeautifulSoup is not None else "regex"
-HASH_SCHEME = f"text-v5-{EXTRACTOR}"
+HASH_SCHEME = f"text-v6-{EXTRACTOR}"
 RETRY_TIMES = 2          # 网络类错误重试次数
 RETRY_BACKOFF = 5        # 重试间隔基数（秒）
 # 正文最小长度：低于此值视为"空壳正文"（SPA / 反爬只返回标题骨架），
@@ -300,10 +302,17 @@ def extract_text(raw_html, content_selector=None):
 def normalize_text(text):
     """归一化空白：所有连续空白（含换行）折叠为单个空格。
 
-    使哈希对纯排版变化不敏感：换行、缩进、行内标签边界（如 <span> 拆分）
-    均不影响结果，只有真实文字增删改才会改变哈希。
+    使哈希对换行、缩进、行内标签边界不敏感；空白字符本身仍参与哈希，
+    避免把英文单词边界的真实变化误判为排版。
     """
     return re.sub(r"\s+", " ", text).strip()
+
+
+def formatting_key(text):
+    """忽略中英文边界与中文之间的排版空格，不忽略英文词边界。"""
+    text = unicodedata.normalize("NFKC", text).replace("\ufeff", "")
+    text = re.sub(r"(?<=[\u3400-\u9fff])\s+(?=[\u3400-\u9fffA-Za-z0-9])", "", text)
+    return re.sub(r"(?<=[A-Za-z0-9])\s+(?=[\u3400-\u9fff])", "", text)
 
 
 def snapshot_text(text):
@@ -328,29 +337,52 @@ def atomic_write_text(path, text):
             os.remove(tmp_path)
 
 
+def pending_target_exists(pid, key):
+    """未解决变更期间保留最初的 prev.txt，避免 A→B→C 把 A→C 历史冲掉。"""
+    try:
+        with open(PENDING_FILE, encoding="utf-8") as f:
+            data = json.load(f)
+    except FileNotFoundError:
+        return False
+    except (OSError, json.JSONDecodeError, UnicodeError):
+        return True
+    items = data.get("items", {}) if isinstance(data, dict) else {}
+    return isinstance(items, dict) and isinstance(items.get(f"{pid}:{key}"), dict)
+
+
 def save_snapshot(pid, key, raw_text, archived):
-    """写入最新快照；archived=True 时额外写日期存档（首次基线或检测到变更）。
-    变更时先把旧 latest.txt 保存为 prev.txt，供 policy_verify.py 对比。"""
+    """写入最新快照；archived=True 时另存日期档，变更时备份旧 latest。
+
+    同一目标尚未 resolve 时，prev.txt 固定保留首次变更前的基线；后续变更
+    只追加日期档并更新 latest，使人工始终能看到首次→当前的完整差异。
+    """
     target_dir = os.path.join(SNAPSHOTS_DIR, pid, key)
     os.makedirs(target_dir, exist_ok=True)
     body = snapshot_text(raw_text)
     if not body:
         return
     latest_path = os.path.join(target_dir, "latest.txt")
-    # 变更时先备份旧快照
     if archived and os.path.exists(latest_path):
-        prev_path = os.path.join(target_dir, "prev.txt")
         with open(latest_path, encoding="utf-8") as old_f:
             old_body = old_f.read()
         if old_body.lstrip().startswith("%PDF-"):
-            if os.path.exists(prev_path):
-                os.remove(prev_path)
+            if os.path.exists(os.path.join(target_dir, "prev.txt")):
+                os.remove(os.path.join(target_dir, "prev.txt"))
             old_body = ""
         if old_body.strip() and old_body.strip() != body.strip():
-            atomic_write_text(prev_path, old_body)
+            if not pending_target_exists(pid, key):
+                atomic_write_text(os.path.join(target_dir, "prev.txt"), old_body)
     atomic_write_text(latest_path, body + "\n")
     if archived:
-        dated = os.path.join(target_dir, datetime.date.today().isoformat() + ".txt")
+        day = datetime.datetime.now(PROJECT_TZ).date().isoformat()
+        dated = os.path.join(target_dir, day + ".txt")
+        if os.path.exists(dated):
+            stamp = datetime.datetime.now(PROJECT_TZ).strftime("%H%M%S")
+            dated = os.path.join(target_dir, f"{day}-{stamp}.txt")
+            suffix = 2
+            while os.path.exists(dated):
+                dated = os.path.join(target_dir, f"{day}-{stamp}-{suffix}.txt")
+                suffix += 1
         atomic_write_text(dated, body + "\n")
         prune_dated(target_dir)
 
@@ -393,7 +425,7 @@ def baseline_saved_at(pid, key):
 def prune_dated(target_dir, keep=12):
     """保留最近 keep 个日期存档，避免快照目录（已入库 git）无限膨胀。"""
     dated = [f for f in os.listdir(target_dir)
-             if re.match(r"\d{4}-\d{2}-\d{2}\.txt$", f)]
+             if re.match(r"\d{4}-\d{2}-\d{2}(?:-\d{6}(?:-\d+)?)?\.txt$", f)]
     dated.sort(reverse=True)
     for old in dated[keep:]:
         try:
@@ -460,7 +492,7 @@ def compute_text_hash(text):
     return compute_hash(normalize_text(text))
 
 
-def safe_fetch_url(url, resolve_dns=True):
+def safe_fetch_url(url, resolve_dns=True, fail_open=True):
     """SSRF 防护：只允许公网 HTTPS URL。
 
     关键区分——"明确解析到私有/保留地址"必须拒绝，但"DNS 没解析出来或解析太慢"
@@ -507,9 +539,9 @@ def safe_fetch_url(url, resolve_dns=True):
     worker = threading.Thread(target=lookup, daemon=True)
     worker.start()
     if not lookup_done.wait(timeout=DNS_RESOLVE_TIMEOUT):
-        return True   # 解析超时：无法判定，交由 requests 自然失败
+        return fail_open   # requests 可交由自身解析；浏览器路由可选择失败关闭
     if not addresses:
-        return True   # 解析失败：同上（见 docstring）
+        return fail_open   # 解析失败：同上（见 docstring）
     for address in addresses:
         try:
             if not ipaddress.ip_address(address[4][0]).is_global:
@@ -753,7 +785,7 @@ def fetch_browser(url, timeout=30, wait_selector=None, content_selector=None):
         page = ctx.new_page()
 
         def safe_route(route):
-            if safe_fetch_url(route.request.url, resolve_dns=False):
+            if safe_fetch_url(route.request.url, resolve_dns=True, fail_open=False):
                 route.continue_()
             else:
                 route.abort()
@@ -1091,18 +1123,18 @@ def check_target(pid, name, key, url, prev_target, timeout, method="requests", c
         elif baseline == normalized:
             result = base_target_result(url, prev_target, current_hash=current_hash, status="ok",
                                         message="内容未变化", last_good_at=now)
+        elif formatting_key(baseline) == formatting_key(normalized):
+            save_snapshot(pid, key, raw_text, archived=False)
+            result = base_target_result(
+                url, prev_target, current_hash=current_hash, status="ok",
+                message="仅空白排版变化，已更新基线（不计为政策变更）", last_good_at=now)
         else:
             print(f"  [⚠️]   {name} ({pid}·{label}): 政策可能已更新！待核实")
             print(f"         URL: {url}")
             save_snapshot(pid, key, raw_text, archived=True)
-            message = "⚠️ 政策可能已更新，待核实"
-            health, health_reason = "ok", None
-            if scheme_changed:
-                message = "⚠️ 正文发生变化（同时发生哈希方案升级），待核实"
-                health, health_reason = "rebaselined", "hash_scheme_upgrade"
             result = base_target_result(url, prev_target, current_hash=current_hash, status="changed",
-                                        message=message, last_changed_date=now, last_good_at=now,
-                                        health=health, health_reason=health_reason)
+                                        message="⚠️ 政策可能已更新，待核实",
+                                        last_changed_date=now, last_good_at=now)
 
         result["fetch_method"] = method
         if method != "browser" and resp is not None:
@@ -1264,11 +1296,14 @@ def check_product(pid, policy, prev_entry, timeout, delay, no_browser=False,
     if scope == "ci":
         specs = [spec for spec in all_specs if spec["monitor_scope"] != "local"]
         out_of_scope = [spec for spec in all_specs if spec["monitor_scope"] == "local"]
+        scope_skip_reason = f"该目标由{SCOPE_COMMANDS['local']}负责，请在本地运行 scripts/local_monitor.sh"
     elif scope == "local":
         specs = [spec for spec in all_specs if spec["monitor_scope"] == "local"]
-        out_of_scope = []
+        out_of_scope = [spec for spec in all_specs if spec["monitor_scope"] != "local"]
+        scope_skip_reason = "该目标由 GitHub Actions 监控，本地轮次沿用上次结果"
     else:
         specs, out_of_scope = list(all_specs), []
+        scope_skip_reason = "当前运行范围未检查该目标，沿用上次结果"
 
     def carry_over(reason, spec_keys):
         """把本轮不该检查的目标按上次结果原样带回。"""
@@ -1283,8 +1318,6 @@ def check_product(pid, policy, prev_entry, timeout, delay, no_browser=False,
             kept["monitor_scope"] = spec["monitor_scope"]
             carried[spec["key"]] = kept
         return carried
-
-    scope_skip_reason = f"该目标由{SCOPE_COMMANDS['local']}负责，请在本地运行 scripts/local_monitor.sh"
 
     if out_of_scope:
         carried = carry_over(scope_skip_reason, out_of_scope)
@@ -1323,37 +1356,39 @@ def check_product(pid, policy, prev_entry, timeout, delay, no_browser=False,
                 "message": "该产品已标记为不监控（无独立公开政策页）",
                 "last_checked": now_iso()}
 
+    browser_skipped = []
     if no_browser:
-        # 未安装 playwright 的环境：只跳过需浏览器抓取的目标，其余目标照常检查
+        # 未安装 playwright：只跳过 browser 目标，但必须沿用其旧状态，
+        # 不能从 targets / pending / health 中消失。
+        browser_skipped = [spec for spec in specs if spec["method"] == "browser"]
         kept = [spec for spec in specs if spec["method"] != "browser"]
+        browser_skip_reason = "浏览器抓取已禁用（--no-browser），沿用上次结果"
         if not kept:
-            # 全部目标都要浏览器：沿用上次结果而不是清空——否则本地无浏览器的一次运行
-            # 会把 CI 建立的监控覆盖从状态文件里抹掉（total_targets 缩水、覆盖被低估）
-            spec_keys = {spec["key"] for spec in specs}
-            preserved = {}
-            for key in spec_keys:
-                previous = prev_targets.get(key)
-                if isinstance(previous, dict):
-                    kept_target = dict(previous)
-                    kept_target["skipped_this_run"] = True
-                    preserved[key] = kept_target
+            preserved = carry_over(browser_skip_reason, browser_skipped)
+            preserved.update(carry_over(scope_skip_reason, out_of_scope))
             print(f"  [跳过] {name} ({pid}): 全部目标需浏览器抓取，已被 --no-browser 跳过"
                   f"（沿用上次结果，{len(preserved)} 个目标）")
+            if preserved:
+                status, summary, unhealthy = aggregate_targets(preserved)
+                return {
+                    "name": name,
+                    "status": status,
+                    "health": aggregate_health(preserved),
+                    "health_issues": unhealthy,
+                    "url": specs[0]["url"],
+                    "message": summary + "（本轮未检查：--no-browser）",
+                    "last_checked": (prev_entry or {}).get("last_checked"),
+                    "targets": preserved,
+                }
             return {
-                "name": name,
-                "status": "skipped",
-                "health": aggregate_health(preserved),
-                "health_issues": sum(1 for t in preserved.values()
-                                     if t.get("health") in HEALTH_QUEUED_STATES),
-                "url": specs[0]["url"],
-                "message": "全部目标需浏览器抓取，已被 --no-browser 跳过（沿用上次结果）",
-                "last_checked": now_iso(),
-                "targets": preserved,
+                "name": name, "status": "skipped", "health": "ok", "health_issues": 0,
+                "message": "全部目标需浏览器抓取，已被 --no-browser 跳过（无上次结果）",
+                "last_checked": now_iso(), "targets": {},
             }
-        if len(kept) != len(specs):
+        if browser_skipped:
             skipped = "、".join(TARGET_LABELS.get(s["key"], s["key"])
-                                for s in specs if s["method"] == "browser")
-            print(f"  [跳过] {name} ({pid}): 浏览器抓取已禁用（--no-browser），跳过 {skipped}")
+                                for s in browser_skipped)
+            print(f"  [跳过] {name} ({pid}): 浏览器抓取已禁用（--no-browser），跳过 {skipped}（沿用上次结果）")
         specs = kept
 
     target_results = {}
@@ -1370,8 +1405,10 @@ def check_product(pid, policy, prev_entry, timeout, delay, no_browser=False,
     for spec in specs:
         target_results[spec["key"]]["monitor_scope"] = spec["monitor_scope"]
         target_results[spec["key"]].setdefault("fetch_method", spec["method"])
-    # scope 之外的目标原样带回，与已检查的目标合并成一个完整的 targets
+    # scope 之外与 --no-browser 跳过的目标均原样带回，避免状态/队列被清空。
     target_results.update(carry_over(scope_skip_reason, out_of_scope))
+    if no_browser:
+        target_results.update(carry_over(browser_skip_reason, browser_skipped))
     status, summary, unhealthy = aggregate_targets(target_results)
     return {
         "name": name,
@@ -1769,6 +1806,10 @@ def main():
     total_targets = sum(len(info.get("targets") or {}) for info in new_status.values())
     changed_count = sum(info.get("status") == "changed" for info in new_status.values())
     failed_count = sum(info.get("status") == "failed" for info in new_status.values())
+    failed_target_count = sum(
+        1 for info in new_status.values()
+        for target in (info.get("targets") or {}).values()
+        if target.get("status") == "failed" and not target.get("skipped_this_run"))
     suspicious_count = sum(info.get("status") == "suspicious" for info in new_status.values())
     skipped_count = sum(info.get("status") == "skipped" for info in new_status.values())
     pending_count = len(pending_items)
@@ -1796,6 +1837,7 @@ def main():
             "total_targets": total_targets,
             "changed": changed_count,
             "failed": failed_count,
+            "failed_targets": failed_target_count,
             "suspicious": suspicious_count,
             "skipped": skipped_count,
             "health_issues": len(health_items),
@@ -1814,7 +1856,7 @@ def main():
     print(f"  未变化: {len(pids) - changed_count - failed_count - suspicious_count - skipped_count}")
     print(f"  已变更: {changed_count}")
     print(f"  待核实队列: {pending_count} 项（详见 site/generated/pending_verification.json）")
-    print(f"  失败:   {failed_count}")
+    print(f"  失败:   {failed_count} 个产品 / {failed_target_count} 个目标")
     print(f"  可疑:   {suspicious_count}（正文疑似空壳，未记录基线）")
     print(f"  跳过:   {skipped_count}")
     print(f"  健康队列: {len(health_items)} 项（blocked {blocked_count} / 降级 {degraded_count} / "
@@ -1841,19 +1883,18 @@ def main():
             print(f"    建议：{item['next_action']}")
         print(f"    可用 --only {sorted(health_items)[0]} 之类的命令单独重试")
 
-    if failed_count > 0:
-        print(f"\n❌ 以下 {failed_count} 个产品检查失败（下次运行会自动重试）：")
+    if failed_target_count > 0:
+        print(f"\n❌ 以下 {failed_target_count} 个目标检查失败（下次运行会自动重试）：")
         for pid, info in new_status.items():
-            if info["status"] == "failed":
-                for key, t in (info.get("targets") or {}).items():
-                    if t.get("status") == "failed":
-                        reason = summarize_failure_reason(t)
-                        print(f"  - {pid}（{TARGET_LABELS.get(key, key)}）: {reason}")
-                        print(f"    URL: {t['url']}")
-                        if t.get("last_good_at"):
-                            print(f"    上次成功抓取: {t['last_good_at']}")
+            for key, t in (info.get("targets") or {}).items():
+                if t.get("status") == "failed" and not t.get("skipped_this_run"):
+                    reason = summarize_failure_reason(t)
+                    print(f"  - {pid}（{TARGET_LABELS.get(key, key)}）: {reason}")
+                    print(f"    URL: {t['url']}")
+                    if t.get("last_good_at"):
+                        print(f"    上次成功抓取: {t['last_good_at']}")
 
-    if args.fail_on_error and failed_count:
+    if args.fail_on_error and failed_target_count:
         return 1
     return 0
 

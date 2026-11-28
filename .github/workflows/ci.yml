@@ -77,6 +77,9 @@ jobs:
       - name: 安装依赖
         run: pip install -r requirements.txt
 
+      - name: 同步 main 最新提交
+        run: git pull --rebase origin main
+
       - name: 生成数据 bundle、文档页、产品详情页、订阅 feed 与只读 API
         run: |
           python scripts/gen_data_bundle.py
@@ -98,7 +101,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          # 运行期间可能有人 push了新提交，直接 push 会被拒（fetch first）
-          git pull --rebase --autostash origin main
+          # 已在生成前同步 main；若此后又有新推送，让 push 失败而不是提交旧产物。
+          # 新推送会触发下一轮 CI，重新基于最新真源生成。
           git add site/generated/bundle.json site/docs/*.html site/p site/sitemap.xml site/feed.xml site/generated/api
           git diff --cached --quiet || (git commit -m "chore: CI 重新生成 bundle.json、文档页、产品详情页、订阅 feed 与只读 API" && git push)

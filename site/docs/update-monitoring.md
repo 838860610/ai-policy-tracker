@@ -20,7 +20,7 @@
 
 - 正文确实变了 → `status=changed`，进**待核实队列**，等人核实内容差异；
 - 抓取不可信 → `health=degraded/no_baseline/blocked`，进**健康队列**，等人修抓取配置；
-- 两者可以同时发生，首页也分别展示。
+- 同一产品的不同目标可以同时出现两者，首页也分别展示；单个目标的 `changed` 只与 `health=ok` 同现，`rebaselined` 只与 `ok` / `suspicious` 同现，不存在 `changed + rebaselined`。
 
 
 ## 检测原理
@@ -30,7 +30,7 @@
 1. **正文提取**：剥离 `<script>`、`<style>` 等非正文标签，提取可见文本（使用 BeautifulSoup，未安装时退化为正则去标签）；若目标配置了 `content_selector`，优先按该 CSS 选择器取正文
 2. **空白归一化**：压缩行内连续空白、丢弃空行，使哈希对纯排版变化不敏感
 3. **归一化比对**：与基线快照的归一化文本做**全等比较**，SHA256 仅作记录（比对基于文本本身，哈希方案升级不会丢基线）
-4. **条件请求**：携带上次记录的 `ETag` / `Last-Modified`，页面未变化时服务端直接返回 304，不下载正文、零误报
+4. **条件请求**：携带上次记录的 `ETag` / `Last-Modified`，页面未变化时服务端直接返回 304，跳过正文下载与比对；只有 URL、哈希方案和本地快照基线都有效时才接受 304，否则强制完整抓取
 5. **哈希方案版本化**：状态文件中记录 `hash_scheme`；提取算法升级时自动重建基线，而不是误报全部"已变更"
 6. **抓取健康判定**：正文过短（默认 < 500 字符）或抓取异常时不覆盖已有基线，只把 `health` 标成降级/无基线/被拦截
 
@@ -51,17 +51,21 @@
 - **位置护栏**：头部截断只在标记出现在全文前 15% 时生效，避免将来某页正文深处出现该词时被误删大段条款（`test_lead_in_marker_guard_still_protects_late_mentions`）。
 - **清单要保守**：只剔除**绝不会作为政策条款正文出现**的固定短语。协议正文里可能出现的词不能进清单。改完务必全库扫一遍新短语是否误伤（`grep` 全部 `latest.txt`）。
 
+中英文边界或中文之间的纯空白排版变化（例如“模型 API”与“模型API”）只更新 `latest.txt`，不计为政策变更；英文词边界仍参与哈希，避免把“not able”与“notable”误判为排版。同一目标在 `--resolve` 前发生多次变化时，`prev.txt` 固定保留首次变更前基线，后续版本追加日期档；同日多次变更使用时间后缀，避免覆盖唯一历史。
+
 > **反面教训**：正文起始标记曾用中文的 `生效日期：`，结果腾讯系协议页开头的
 > 「文档标题 + 更新日期 + 生效日期」被整段切掉（tencent-yuanbao 少 26 字符、ima 少 62、
 > yuanqi 少 28）——而这些字段正是政策版本标识。标记必须用**站点特有且不可省略**的格式
 > （OpenAI/英文站的 `Published:` / `Updated:` + `YYYY年`），不能用中文政策文件的通用词。
 > 回归由 `test_lead_in_marker_keeps_chinese_title_and_update_date` 锁定。
 
-### browser 渲染取最完整的一次
+### browser 仅按配置启用，渲染取最完整的一次
 
 SPA 页面正文异步渲染，单次抓取可能只出一半正文或只剩页脚壳。脚本固定做 3 次渲染（`BROWSER_RENDER_ATTEMPTS`）并取正文最长的一次（`pick_longest_render`）。
 
 不做"长度超过阈值就提前退出"的优化——各页面完整正文长度差异极大（实测 `support.google.com` 帮助页完整 5.6 万字符，文档站协议页 1.2 万），固定阈值会把渲染未完成的中间态写进基线（实测同页 9500 vs 完整 56422），之后每轮都误报 changed。三次 `goto` 复用同一个 browser 实例，额外成本远小于误报代价。
+
+这些措施只能降低漏抓与误报概率，**不承诺零漏报**。默认仍用 `requests`，不会因请求失败自动切 browser；只有目标配置 `fetch_method: "browser"` 才启用 Playwright。浏览器主文档与所有子资源都要求 HTTPS 且解析到公网地址；DNS 无法验证时浏览器路由失败关闭，requests 仍保留原有网络失败路径。
 
 ## 抓取方式与目标级配置
 
@@ -121,7 +125,7 @@ SPA 页面正文异步渲染，单次抓取可能只出一半正文或只剩页�
 
 `validate_data.py` 会校验四处载体（顶层 / `targets.main` / `versions.*` / `sources[]`）的 `fetch_method` 取值、选择器类型与正文下限类型；`targets` 里出现 `toc`/`tob` 键或非对象值会直接报错，避免出现"两处配置、优先级不明"。`targets.main` 是纯配置载体，还额外检查拼写错误。
 
-有了目标级配置，`--no-browser` 只会跳过 `browser` 目标，同产品的 `requests` 目标照常检查（早期版本是整个产品一起跳过，且会清空该产品的目标状态——现已改为沿用上次结果）。
+有了目标级配置，`--no-browser` 只省略 `browser` 目标，同产品的 `requests` 目标照常检查。混合产品只聚合本轮实际检查的 `requests` 目标，被省略的 browser 目标不出现在本轮目标集合；若整产品都需要 browser，则产品级为 `skipped`，但已有目标状态沿用并标 `skipped_this_run`。快照按监控配置判定活跃，不会因本次跳过被误删。局部重试的合并规则见下文。
 
 > **注意选择器不要用构建产物 class**：SPA 文档站的正文容器 class 常带构建 hash
 > （如 `contentFlex-Gj6M`），站点重新构建就会变。`extract_text` 对未命中的选择器会回退到
@@ -190,7 +194,9 @@ cd /path/to/ai-policy-tracker
 
 `--products` / `--only` 属于**局部重试**：只请求被选中的目标，其余产品/目标直接继承上次状态（`partial_run: true`），并自动跳过孤儿快照清理。这样修完一个站点的抓取配置后，验证成本从"全量 70 个目标十几分钟"降到"单目标几十秒"。
 
-局部重试同样会重算 `update_status.json`、待核实队列和健康队列，因此适合"抓取修好了/改 URL 了"这类收尾动作。未被选中的产品/目标会标 `skipped_this_run`，健康队列的 `consecutive_runs` 不会因为重试其他目标而虚增。
+局部重试同样会重算 `update_status.json`、待核实队列和健康队列，因此适合"抓取修好了/改 URL 了"这类收尾动作。未被选中的产品/目标会沿用旧状态并标 `skipped_this_run`，健康队列的 `consecutive_runs` 与 `last_seen` 不会因为重试其他目标而虚增。局部重试**不等于完成全量监控**；`meta.partial_run=true`，且自动跳过孤儿快照清理。
+
+三种“本轮没检查”要区分：`monitor_scope=local` 在 CI 中完整沿用旧目标状态，本地 `--scope local` 同样沿用非 local 目标；`--products` / `--only` 合并旧状态并标记未检查；`--no-browser` 混合产品只检查 requests 目标，被跳过的 browser 目标沿用旧状态，整产品全 browser 且无旧状态时才产品级 `skipped`。
 
 
 ### 输出示例
@@ -199,7 +205,7 @@ cd /path/to/ai-policy-tracker
 ============================================================
 AI 政策更新监控脚本
 运行时间：2026-09-21 06:00:00
-哈希方案：text-v5-bs4（正文文本归一化，按配置来源逐条监控）
+哈希方案：text-v6-bs4（正文文本归一化，按配置来源逐条监控）
 ============================================================
 
 共 47 个产品需要检查（本次检查 47 个）
@@ -215,7 +221,7 @@ AI 政策更新监控脚本
   未变化: 30
   已变更: 0
   待核实队列: 0 项（详见 site/generated/pending_verification.json）
-  失败:   1
+  失败:   1 个产品 / 2 个目标
   可疑:   16（正文疑似空壳，未记录基线）
   跳过:   1
   健康队列: 18 项（blocked 0 / 降级 2 / 无基线 16，详见 site/generated/monitor_health.json）
@@ -228,6 +234,12 @@ AI 政策更新监控脚本
     建议：确认页面是否 JS 渲染或反爬空壳，配置 content_selector / browser 后重试
     可用 --only nano-ai:main 之类的命令单独重试
 ```
+
+## GitHub Actions 产物与提交流程
+
+**数据校验 `ci.yml`**：PR / push 时运行全量回归测试、`validate_data.py`，以及 README / 文档 / 产品页 / feed / API 五项 `--check`。main push 全绿后，`publish` 先 `git pull --rebase origin main` 同步最新真源，再生成 `bundle.json`、文档页、产品详情页 / sitemap、`feed.xml` 与只读 API，生成后复验并暂存最终产物；仅有差异时才 bot commit + push。生成后不再 rebase，避免旧产物与新真源混交；若同步后又有新推送导致 push 失败，本轮不部署。
+
+**政策监控 `monitor.yml`**：记录本轮起点 → 运行 `check_updates.py --scope ci` → `gen_feed.py` → 可选 `notify_webhook.py`（只通知本轮写出的状态，避免前置步骤失败时重发旧告警）→ `git pull --rebase --autostash origin main` → 暂存状态、快照、两个队列与 `feed.xml` → 仅有差异时提交并 push → 健康门禁。监控步骤使用 `continue-on-error`，通知使用 `always()` + `continue-on-error`：通知未配置时静默跳过，通知失败不阻断提交；任一目标 `failed` 都会让 `--fail-on-error` 返回非零，即使同产品另有目标 `changed`，监控结果仍会保留并部署。
 
 ## 定时运行
 
@@ -293,7 +305,7 @@ sudo systemctl enable --now ai-policy-check.timer
 | `[基线]` | 哈希算法升级或无有效基线，重新记录（`health=rebaselined`） |
 | `[失败]` | 请求失败（超时、404 等，重试后仍失败），`health` 为 `degraded`/`no_baseline`/`blocked` |
 | `[可疑]` | 正文过短、疑似空壳/反爬，或本地基线缺失 |
-| `[跳过]` | URL 为空/待核实/不匹配 `--only`、未启用监控（`monitor: false`）、或 `--no-browser` 下全部目标都需浏览器抓取的产品 |
+| `[跳过]` | URL 为空/待核实/不匹配 `--only`、未启用监控（`monitor: false`）、或 `--no-browser` 下全部目标都需浏览器抓取的产品；local 目标不写 `skipped`，而是沿用旧状态并标 `skipped_this_run` |
 
 ### 抓取健康状态（health）
 
@@ -301,7 +313,7 @@ sudo systemctl enable --now ai-policy-check.timer
 |--------|--------------|------|------|
 | `ok` | 否 | 正常 | 无需处理 |
 | `initialized` | 否 | 首次建立基线，尚无历史可比较 | 无需处理，下一轮起开始比较 |
-| `rebaselined` | 否 | 因基线缺失或哈希方案升级而重建 | 人工确认一次新基线是否为真实正文 |
+| `rebaselined` | 否 | 缺基线后完整抓取重建（`status=suspicious`），或哈希方案升级重建（`status=ok`）；不与 `changed` 组合 | 人工确认一次新基线是否为真实正文 |
 | `degraded` | 是 | 本轮抓取异常，但已保留上次有效快照 | 用 `--only <pid>:<key>` 单独重试并确认正文 |
 | `no_baseline` | 是 | 本轮抓取异常且无可验证基线，该产品暂无可靠正文 | 配置 `content_selector` / `fetch_method=browser` 后重试 |
 | `blocked` | 是 | 被反爬/限流/权限拒绝（401/403/405/429/451） | 换抓取方式或人工核实来源 |
@@ -312,7 +324,7 @@ sudo systemctl enable --now ai-policy-check.timer
 {
   "meta": {
     "last_run": "2026-09-21T06:00:00",
-    "hash_scheme": "text-v5-bs4",
+    "hash_scheme": "text-v6-bs4",
     "total_products": 47,
     "total_targets": 70,
     "changed": 0,
@@ -335,7 +347,7 @@ sudo systemctl enable --now ai-policy-check.timer
       "targets": {
         "main": {
           "url": "https://openai.com/policies/terms-of-use",
-          "hash_scheme": "text-v5-bs4",
+          "hash_scheme": "text-v6-bs4",
           "current_hash": "a1b2c3d4e5f6...",
           "fetch_method": "browser",
           "content_etag": null,
@@ -359,7 +371,7 @@ sudo systemctl enable --now ai-policy-check.timer
       "targets": {
         "main": {
           "url": "https://www.n.cn/privacy",
-          "hash_scheme": "text-v5-bs4",
+          "hash_scheme": "text-v6-bs4",
           "current_hash": null,
           "last_checked": "2026-09-21T06:00:00",
           "last_good_at": null,
@@ -512,7 +524,7 @@ sudo systemctl enable --now ai-policy-check.timer
 
 不要用 `--no-prune` 之外的方式绕过清理，也不要手工编辑 `update_status.json` 里的 `current_hash` 来"消掉"告警——快照和哈希必须由脚本重新生成。
 
-### 修好配置后第一轮必然报 changed
+### 修好配置后第一轮可能报 changed
 
 把空壳目标从 `requests` 切到 `browser`（或补上 `content_selector`）后，**第一次重跑通常是 `changed`，这是预期行为，不是误报**。
 
@@ -589,17 +601,20 @@ SPA 文档站常把正文**分批注入**。用固定等待（原来 `wait_for_t
 > **在受限网络下**：本机可能完全连不上这些域名（Chromium 也会卡住），此时重建基线要靠 CI 的那一轮——别把本地"抓不到"产生的 `degraded` 状态提交上去，那会污染状态文件。
 
 
-## 首页如何展示监控结果
+## 首页与详情页如何展示监控结果
 
-首页 `site/js/app.js` 会尝试加载 `site/generated/update_status.json` 与 `site/generated/monitor_health.json`：
+首页 `site/js/app.js` 读取 `bundle.json`（缺失时回退索引与逐产品政策 JSON）、`site/generated/update_status.json` 与 `site/generated/monitor_health.json`，**不读取** `pending_verification.json`：
 
 - **文件不存在**（从未运行过监控）：页面不显示任何监控信息
 - **全部无变化且无异常**：显示监控上次运行时间和“未检测到政策变更”
-- **存在异常**：显示失败、正文可疑、未监控产品和抓取降级目标数量，不把异常伪装成正常
+- **存在异常或未检查目标**：显示失败、正文可疑、未监控产品、本轮未检查目标和抓取降级目标数量，不把异常伪装成正常
 - **检测到变更**：显示醒目的告警横幅，列出可能已更新的产品（可点击进入详情），对应产品的名称旁也会标注 ⚠️
 - **存在抓取降级**：横幅下方展开“抓取降级明细”，逐条列出产品、目标、健康类型、失败原因和上次成功抓取时间，并给出建议动作
+- **人工核实覆盖**：顶部显示最新人工核实日期，并明确标出近 30 天已核实产品数，避免把最新日期误解为全量数据都很新
 
-> 注意：`site/generated/update_status.json`、`site/generated/monitor_health.json` 与 `site/generated/snapshots/` 都由监控流程生成并**入库**——前两者供首页与 Pages 直接读取展示监控状态与健康队列，后者作为跨环境共享的持久历史供本地 agent 做 diff。`monitor.yml` 每次运行后自动提交这三者与 `pending_verification.json`。
+> 详情页 `site/js/detail.js` 额外读取 `data/policies/{id}.json`、`generated/pending_verification.json` 与 `generated/monitor_health.json`（缺失时从 `update_status.json` 兜底），分别渲染政策正文、待核实 diff 卡片和抓取异常卡片；文件缺失或请求失败时静默隐藏。pending 队列同时供本地核实、feed 与 webhook 使用。
+
+> 注意：`site/generated/update_status.json`、`site/generated/monitor_health.json` 与 `site/generated/snapshots/` 都由监控流程生成并**入库**——前两者供首页与 Pages 直接读取展示监控状态与健康队列，后者作为跨环境共享的持久历史供本地 agent 做 diff。`monitor.yml` 每次运行后自动提交这三者、`pending_verification.json` 与本轮生成的 `feed.xml`。
 
 > **部署与监控失败解耦**：`deploy.yml` 只在数据校验失败时拒绝部署；"政策更新监控"即使因单个目标超时变红，也会部署本轮已提交的结果。否则一次网络抖动就会让线上数据冻结到下一周。
 
@@ -615,7 +630,7 @@ SPA 文档站常把正文**分批注入**。用固定等待（原来 `wait_for_t
 
 在 RSS 阅读器（NetNewsWire / Inoreader 等）里订阅 `https://838860610.github.io/ai-policy-tracker/feed.xml` 即可；站点首页 `<head>` 与页脚都有发现链接。`feed.xml` 由 `scripts/gen_feed.py` 生成（不要手工编辑），CI 会校验入库版本是否最新，监控轮结束时会随队列一起更新并提交。
 
-**Webhook 通知（飞书 / 钉钉 / Telegram / 通用 JSON）**：监控轮检测到 `changed` 时，`scripts/notify_webhook.py` 会向配置的端点一次性 POST 消息摘要（目标列表 + diff 片段首几行 + 队列入口）。仓库管理员配置以下 Secrets / Variables 即自动生效，未配置时该步骤静默跳过、通知失败也不影响监控结果提交：
+**Webhook 通知（飞书 / 钉钉 / Telegram / 通用 JSON）**：监控轮存在待核实 `changed` 时，`scripts/notify_webhook.py` 会向配置的端点一次性 POST 消息摘要（目标列表 + diff 片段首几行 + 队列入口）。脚本只接受 `meta.last_run` 不早于本轮起点的状态，避免依赖安装或抓取脚本前置失败时重发旧告警；日志中的 bot token、查询参数凭据会脱敏。仓库管理员配置以下 Secrets / Variables 即自动生效，未配置时该步骤静默跳过、通知失败也不影响监控结果提交：
 
 | 配置 | 位置 | 说明 |
 |------|------|------|
@@ -630,12 +645,12 @@ SPA 文档站常把正文**分批注入**。用固定等待（原来 `wait_for_t
 
 当 `update_status.json` 出现 `changed`，或 `pending_verification.json` 有待核实项时：
 
-1. **列出待核实项**：`python3 skills/policy-change-verify/scripts/policy_verify.py --list`
-2. **查看某项目新旧 diff**：`python3 skills/policy-change-verify/scripts/policy_verify.py <product_id> [main|toc|tob|source_*]`
+1. **列出待核实项**：`.venv/bin/python skills/policy-change-verify/scripts/policy_verify.py --list`
+2. **查看某项目新旧 diff**：`.venv/bin/python skills/policy-change-verify/scripts/policy_verify.py <product_id> [main|toc|tob|source_*]`
    - 脚本从 `prev.txt` / 日期存档 / git 历史中取回旧快照（自动跳过内容相同的重基线提交），与 `latest.txt` 做 unified diff
    - 同时输出该产品当前的 `site/data/policies/{id}.json`，供判断
 3. **判断变更性质**：按 `references/verification_workflow.md` 清单区分——训练政策/退出机制/留存期限等条款文字实质变化为**实质性**；页脚版权年、时间戳、导航重排、A/B 文案、抓取失败（`failed`）/空壳（`suspicious`）为**噪声**
 4. **起草补丁**：对实质性变更，按 `references/policy_schema.md` 起草对 `versions.<tier>` 字段与 `timeline` 的修改，**必须等人工确认才写入**
-5. **收尾**：核实并更新数据后，`python3 skills/policy-change-verify/scripts/policy_verify.py --resolve <product_id> [target]` 同时清除待核实队列项和页面告警
+5. **收尾**：核实并更新数据后，`.venv/bin/python skills/policy-change-verify/scripts/policy_verify.py --resolve <product_id> [target]` 同时清除待核实队列项和页面告警
 
 > 注意：核实结论仅供参考，不自动修改 `site/data/policies/{id}.json`。人工确认后再更新数据文件，并同步 `last_verified` 与 `timeline`；`--resolve` 会同时更新待核实队列和页面告警。

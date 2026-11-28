@@ -53,12 +53,24 @@
 - **本地专属监控（`monitor_scope: local`）**：新增目标级 `monitor_scope` 字段与 `--scope {all,ci,local}` 参数。用于 GitHub runner **连不上**的站点——`trae` 被 Cloudflare 拒绝数据中心 IP（`describe_shell()` 显示"实际拿到：空文档"，Chromium 根本没拿到响应 HTML），而同一 URL 在本地可正常抓到 12272 字符正文。现标记为 `local`，由 `./scripts/local_monitor.sh` 在本地跑并以本地结果为准；`monitor.yml` 改用 `--scope ci` 跳过它们
   - 被跳过的目标**沿用上次结果**（含快照引用与 `last_checked`）而非写成 `skipped`——否则监控覆盖率会在状态文件里缩水，快照还会被 `prune_orphan_snapshots` 当成"不再监控"删掉
   - 健康队列里这类目标的 `consecutive_runs` 与 `last_seen` 不因未检查而虚增，并标 `checked_this_run: false`；否则"每周查一次却从不上手"会让轮数一路涨到吓人
-  - `local_monitor.sh` 只 `git add` 四个监控产物，不捎带工作区其他改动；**不 push**（`git push origin main` 会触发 CI 与 Pages 真实发布，留给人工确认）
+  - `local_monitor.sh` 只暂存并路径限定提交四个监控产物，不夹带其他已暂存改动；**不 push**（`git push origin main` 会触发 CI 与 Pages 真实发布，留给人工确认）
 - **长文档站等待"内容不再增长"而非固定等待**：SPA 文档站分批注入正文，固定 `wait_for_timeout(600)` 会**稳定地**停在半截内容上——不再波动，却把不完整版本固化成基线，看起来"从未变化"实则漏掉后半段条款。新增 `wait_until_text_stable()`（连续两次采样增长不足 5% 才返回）与 `measure_rendered_text()`（按 `content_selector` 而非 `body` 测长度，避免侧栏展开导致 body 长而正文未填充完时选错渲染）
 - **`content_selector` 命中多个时取文本最长的**：文档站选择器常同时命中正文容器与页脚/侧栏小容器，`select_one` 只取第一个会因 DOM 顺序变化抓到页脚（实测 `trae` 的 `[class*=content]` 命中 3 个 1.2 万字符正文容器 + 3 个 0～217 字符小容器）
 
 ### Fixed
 
+- **监控范围跳过导致状态与待核实项丢失**：`--scope local` 过去只保留 local 目标，`--no-browser` 混合产品会直接丢掉 browser 目标；随后队列按当前 targets 重建，CI 目标、健康异常和未核实变更可能被静默清除。现在两个方向的范围跳过、局部重试与 browser 跳过都沿用旧目标状态，只标 `skipped_this_run`
+- **定向 `--resolve` 参数解析错误**：文档中的 `--resolve <product_id> [target]` 会把 target 解析成另一个产品 ID，导致整个产品的待核实项和告警被清除。改为显式解析产品与可选目标，并补临时仓库回归测试
+- **CI 旧产物 rebase 竞态**：publish 过去先生成、后 rebase，可能把旧真源生成的 bundle/feed/API 叠到新提交上。现在先同步最新 main，再生成与复验；生成后不再 rebase，push 失败即整轮不部署
+- **webhook 凭据泄露与过期通知**：请求异常日志可能包含 Telegram bot token，现按 bot token、查询参数和 URL 用户信息脱敏；工作流记录本轮起点，通知脚本只发送本轮写出的状态，避免前置步骤失败时重发旧告警
+- **浏览器子资源 SSRF 校验绕过**：Playwright 路由过去对非 IP 主机名跳过 DNS 校验，现对每个请求执行完整公网地址检查；DNS 无法验证时浏览器路由失败关闭，requests 保留原有网络失败路径
+- **监控基线覆盖与空白误报**：未 resolve 的 A→B→C 变更现在固定保留首次 `prev.txt`，同日多次变更追加时间后缀；中英文边界或中文之间的空白排版变化只更新基线，不再进入待核实队列（`HASH_SCHEME` 升至 `text-v6`），英文词边界仍参与哈希
+- **`--fail-on-error` 被 changed 聚合状态掩盖**：同一产品一个目标 changed、另一个 failed 过去仍退出 0；现在按目标级失败计数返回非零，并在 `meta.failed_targets` 中单独记录
+- **本地监控脚本夹带暂存改动**：`local_monitor.sh` 现在只对四个监控产物执行 `git diff --cached` 与路径限定提交，不会把用户预先暂存的其他文件带进监控提交
+- **页面告警与信息语义**：详情页新增抓取异常卡片（健康队列缺失时从状态兜底）；首页显示未检查目标数量、近 30 天人工核实覆盖，训练统计明确包含“疑似”；详情页显示版本核实日期，未知训练场景的去标识化不再显示为明确“否”
+- **政策数据纠错**：AutoClaw 个人版由“明确不训练”改为未知；GLM 摘要风险与红色字段统一；MiniMax 去标识化明确为“未证明而非否定”；商汤移除引文中的评述；Claude 删除无出处的“5 年留存”并改用本地可核实英文原句
+- **可灵 AI 抓取降级修复**：`requests` 只返回导航空壳，改为 `fetch_method=browser` + `.document-view-agreement` 后稳定取得完整正文；与旧有效快照对比仅移除页首导航，条款无变化，已重建基线、清零健康队列并更新核实日期
+- **文档与流程图审计漂移**：按当前 `origin/main`（`47c6b60`）统一内部架构图、交互流程图与维护文档口径——CI 为全量回归测试及 README / docs / product / feed / API 五项检查、生成五类产物；监控生成 feed 并可选 webhook；首页与详情页的 pending/health 读取边界、local / partial / `--no-browser` 语义、CI 生成前同步流程均已校正；删除不可达的 `changed + rebaselined` 组合，并明确 browser 仅按目标配置启用、不承诺零漏报
 - **`prune_orphan_snapshots` 数据丢失边界**：`load_policy` 读 JSON 失败返回空 dict，prune 此前把"配置里没有活跃目标"的空 dict 产品当成孤儿，把其全部快照目录 `rmtree` 删光，且 monitor.yml 会把删除 commit 进历史——一次数据文件损坏等于永久丢掉该产品的快照 diff 历史。现在读取失败（空 dict / 非 dict）的产品整目录保护，只有配置里明确不再监控的目标才清理；补回归测试
 - **监控状态时间戳混用两种时钟**：`check_updates.py` 14 处裸 `datetime.now()` 无时区标记，GitHub runner（UTC）与本地（UTC+8）写入混存，前端展示存在 8 小时歧义。统一改为北京时间（`PROJECT_TZ` + `now_iso()`，与 `validate_data.py` 的 `last_verified` 同口径）
 - **`fetch_with_retry` docstring 失实**：注释写"指数退避"，实现是线性（`RETRY_BACKOFF × 尝试序号`）；按实现修正措辞

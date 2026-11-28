@@ -16,6 +16,7 @@ import contextlib
 import json
 import os
 import re
+import subprocess
 import sys
 import tempfile
 import time
@@ -503,6 +504,42 @@ class TestLayout(unittest.TestCase):
         self.assertIn(".monitor-health", css)
         self.assertIn(".health-tag", css)
 
+    def test_detail_page_renders_monitor_health_warnings(self):
+        with open(os.path.join(SITE_DIR, "detail.html"), encoding="utf-8") as f:
+            html = f.read()
+        with open(os.path.join(SITE_DIR, "js", "detail.js"), encoding="utf-8") as f:
+            js = f.read()
+        self.assertIn('id="monitorHealthCard"', html)
+        for needle in ("generated/monitor_health.json", "renderMonitorHealth",
+                       "generated/update_status.json", "上次成功抓取"):
+            self.assertIn(needle, js)
+
+    def test_detail_shows_version_verification_date_and_unknown_deidentification(self):
+        with open(os.path.join(SITE_DIR, "js", "detail.js"), encoding="utf-8") as f:
+            js = f.read()
+        self.assertIn("本版本核实日期", js)
+        self.assertIn("version.last_verified", js)
+        self.assertIn("未证明（非明确否定）", js)
+
+    def test_home_stats_explain_training_and_verification_coverage(self):
+        with open(os.path.join(SITE_DIR, "index.html"), encoding="utf-8") as f:
+            html = f.read()
+        with open(os.path.join(SITE_DIR, "js", "app.js"), encoding="utf-8") as f:
+            app = f.read()
+        self.assertIn("使用/疑似用于训练", html)
+        self.assertIn("最新人工核实", html)
+        self.assertIn("近 30 天人工核实覆盖", app)
+        self.assertIn("skipped_this_run", app)
+        self.assertIn("个目标本轮未检查", app)
+
+    def test_dynamic_json_fetches_bypass_browser_cache(self):
+        with open(os.path.join(SITE_DIR, "js", "app.js"), encoding="utf-8") as f:
+            app = f.read()
+        with open(os.path.join(SITE_DIR, "js", "detail.js"), encoding="utf-8") as f:
+            detail = f.read()
+        self.assertIn('fetch(url, { cache: "no-store" })', app)
+        self.assertGreaterEqual(detail.count('{ cache: "no-store" }'), 5)
+
     def test_generated_docs_remove_raw_script_and_unsafe_links(self):
         module = load_script("gen_docs")
         rendered = module.render_markdown(
@@ -748,7 +785,7 @@ class TestResponseDecoding(unittest.TestCase):
     def test_hash_scheme_covers_extractor_variant(self):
         """哈希方案必须带提取器标识：bs4 与正则回退剥离的标签不同，
         若共用 scheme，一旦依赖缺失就会全库哈希漂移 → 批量误报。"""
-        self.assertTrue(CHECK_UPDATES.HASH_SCHEME.startswith("text-v5-"))
+        self.assertTrue(CHECK_UPDATES.HASH_SCHEME.startswith("text-v6-"))
         self.assertIn(CHECK_UPDATES.EXTRACTOR, CHECK_UPDATES.HASH_SCHEME)
         self.assertIn(CHECK_UPDATES.EXTRACTOR, ("bs4", "regex"))
 
@@ -1083,6 +1120,36 @@ class TestNotifyWebhook(unittest.TestCase):
         with mock.patch.dict(os.environ, {}, clear=True):
             self.assertEqual(self.mod.main(), 0)
 
+    def test_redact_secrets_removes_bot_tokens_and_query_secrets(self):
+        text = "failed for https://api.telegram.org/bot123456:SECRET/sendMessage?token=abc&key=def"
+        redacted = self.mod.redact_secrets(text)
+        self.assertNotIn("123456:SECRET", redacted)
+        self.assertNotIn("token=abc", redacted)
+        self.assertNotIn("key=def", redacted)
+
+    def test_status_is_fresh_rejects_previous_run(self):
+        status = {"meta": {"last_run": "2026-11-23T16:46:21+08:00"}}
+        with mock.patch.dict(os.environ, {"MONITOR_STARTED_AT": "2026-11-23T16:47:00+08:00"}):
+            self.assertFalse(self.mod.status_is_fresh(status))
+        with mock.patch.dict(os.environ, {"MONITOR_STARTED_AT": "2026-11-23T16:46:00+08:00"}):
+            self.assertTrue(self.mod.status_is_fresh(status))
+
+    def test_main_skips_stale_status_without_posting(self):
+        with tempfile.TemporaryDirectory() as directory:
+            status_path = os.path.join(directory, "status.json")
+            with open(status_path, "w", encoding="utf-8") as f:
+                json.dump({"meta": {"last_run": "2026-11-23T16:46:21+08:00"},
+                           "products": {"demo": {"name": "Demo", "targets": {
+                               "main": {"status": "changed", "url": "https://x/main"},
+                           }}}}, f)
+            with mock.patch.dict(os.environ, {
+                    "WEBHOOK_URL": "https://hook.example/x",
+                    "MONITOR_STARTED_AT": "2026-11-23T16:47:00+08:00"}), \
+                    mock.patch.object(self.mod, "STATUS_FILE", status_path), \
+                    mock.patch.object(self.mod.requests, "post") as post:
+                self.assertEqual(self.mod.main(), 0)
+            post.assert_not_called()
+
     def test_main_posts_platform_payload(self):
         with tempfile.TemporaryDirectory() as directory:
             status_path = os.path.join(directory, "status.json")
@@ -1269,6 +1336,14 @@ class TestMonitorState(unittest.TestCase):
         with mock.patch.object(CHECK_UPDATES.socket, "getaddrinfo", boom):
             self.assertTrue(CHECK_UPDATES.safe_fetch_url("https://policy.example.com/terms"))
 
+    def test_browser_route_fails_closed_when_dns_cannot_be_verified(self):
+        def boom(*args, **kwargs):
+            raise CHECK_UPDATES.socket.gaierror("Name or service not known")
+
+        with mock.patch.object(CHECK_UPDATES.socket, "getaddrinfo", boom):
+            self.assertFalse(CHECK_UPDATES.safe_fetch_url(
+                "https://policy.example.com/terms", resolve_dns=True, fail_open=False))
+
     def test_dns_timeout_does_not_reject_legitimate_public_url(self):
         with mock.patch.object(CHECK_UPDATES.socket, "getaddrinfo",
                                lambda *a, **k: time.sleep(30)):
@@ -1394,6 +1469,30 @@ class TestMonitorState(unittest.TestCase):
             self.assertIn("2026-01-15.txt", remaining)     # 最新档保留
             self.assertNotIn("2026-01-03.txt", remaining)  # 最旧 3 份被清
 
+    def test_unresolved_changes_keep_original_prev_and_same_day_archives(self):
+        with tempfile.TemporaryDirectory() as directory:
+            snapshots = os.path.join(directory, "snapshots")
+            target_dir = os.path.join(snapshots, "demo", "main")
+            os.makedirs(target_dir)
+            pending_path = os.path.join(directory, "pending.json")
+            with open(pending_path, "w", encoding="utf-8") as f:
+                json.dump({"items": {"demo:main": {"pid": "demo", "key": "main"}}}, f)
+            with open(os.path.join(target_dir, "latest.txt"), "w", encoding="utf-8") as f:
+                f.write("A\n")
+            with open(os.path.join(target_dir, "prev.txt"), "w", encoding="utf-8") as f:
+                f.write("A\n")
+            with mock.patch.object(CHECK_UPDATES, "SNAPSHOTS_DIR", snapshots), \
+                    mock.patch.object(CHECK_UPDATES, "PENDING_FILE", pending_path):
+                CHECK_UPDATES.save_snapshot("demo", "main", "B\n", archived=True)
+                CHECK_UPDATES.save_snapshot("demo", "main", "C\n", archived=True)
+            with open(os.path.join(target_dir, "prev.txt"), encoding="utf-8") as f:
+                self.assertEqual(f.read(), "A\n")
+            with open(os.path.join(target_dir, "latest.txt"), encoding="utf-8") as f:
+                self.assertEqual(f.read(), "C\n")
+            dated = [name for name in os.listdir(target_dir)
+                     if re.match(r"\d{4}-\d{2}-\d{2}.*\.txt$", name)]
+            self.assertEqual(len(dated), 2)
+
     def test_timestamps_are_timezone_aware(self):
         """状态字段的时间戳必须带时区：CI（UTC）与本地（UTC+8）混写会让
         前端展示产生 8 小时歧义。"""
@@ -1509,6 +1608,36 @@ class TestMonitorState(unittest.TestCase):
                     POLICY_VERIFY.load_pending(directory)
             self.assertEqual(context.exception.code, 2)
 
+    def test_resolve_cli_target_does_not_clear_sibling_targets(self):
+        with tempfile.TemporaryDirectory() as directory:
+            generated = os.path.join(directory, "site", "generated")
+            os.makedirs(generated)
+            pending_path = os.path.join(generated, "pending_verification.json")
+            status_path = os.path.join(generated, "update_status.json")
+            with open(pending_path, "w", encoding="utf-8") as f:
+                json.dump({"items": {
+                    "demo:toc": {"pid": "demo", "key": "toc"},
+                    "demo:tob": {"pid": "demo", "key": "tob"},
+                }}, f)
+            with open(status_path, "w", encoding="utf-8") as f:
+                json.dump({"meta": {}, "products": {"demo": {
+                    "status": "changed", "targets": {
+                        "toc": {"status": "changed", "health": "ok"},
+                        "tob": {"status": "changed", "health": "ok"},
+                    }
+                }}}, f)
+            result = subprocess.run(
+                [sys.executable, POLICY_VERIFY_PATH, "--repo", directory,
+                 "--resolve", "demo", "toc"],
+                text=True, capture_output=True)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            pending = load_json(pending_path)
+            status = load_json(status_path)
+            self.assertEqual(set(pending["items"]), {"demo:tob"})
+            self.assertEqual(status["products"]["demo"]["targets"]["toc"]["status"], "ok")
+            self.assertEqual(status["products"]["demo"]["targets"]["tob"]["status"], "changed")
+            self.assertEqual(status["products"]["demo"]["status"], "changed")
+
     def test_all_targets_includes_normal_targets(self):
         output = io.StringIO()
         with contextlib.redirect_stdout(output):
@@ -1557,6 +1686,31 @@ class TestFetchHealth(unittest.TestCase):
                         config={"min_body_chars": 0})
         self.assertEqual(result["health"], "initialized")
         self.assertEqual(result["status"], "ok")
+
+    def test_whitespace_only_change_updates_baseline_without_alert(self):
+        response = _FakeResponse(
+            "text/html; charset=utf-8",
+            "<html><body><main>模型API接口条款</main></body></html>".encode("utf-8"),
+            encoding="utf-8")
+        with mock.patch.object(CHECK_UPDATES, "load_baseline_text",
+                               return_value="模型 API 接口条款"), \
+                mock.patch.object(CHECK_UPDATES, "save_snapshot") as save, \
+                mock.patch.object(CHECK_UPDATES, "fetch_with_retry",
+                                  return_value=(response, False)):
+            result = CHECK_UPDATES.check_target(
+                "demo", "Demo", "main", "https://example.com/p",
+                {"url": "https://example.com/p", "hash_scheme": CHECK_UPDATES.HASH_SCHEME},
+                1, config={"min_body_chars": 0})
+        self.assertEqual(result["status"], "ok")
+        self.assertIn("仅空白排版变化", result["message"])
+        save.assert_called_once()
+        self.assertFalse(save.call_args.kwargs["archived"])
+
+    def test_formatting_key_preserves_english_word_boundaries(self):
+        self.assertNotEqual(CHECK_UPDATES.formatting_key("not able"),
+                            CHECK_UPDATES.formatting_key("notable"))
+        self.assertEqual(CHECK_UPDATES.formatting_key("模型 API 接口"),
+                         CHECK_UPDATES.formatting_key("模型API接口"))
 
     def test_empty_body_without_baseline_is_no_baseline(self):
         with mock.patch.object(CHECK_UPDATES, "load_baseline_text", return_value=None):
@@ -1833,6 +1987,27 @@ class TestFetchHealth(unittest.TestCase):
         self.assertEqual(list(result["targets"]), ["main"])  # toc 是 ci 范围，不跑
         self.assertEqual(result["targets"]["main"]["monitor_scope"], "local")
 
+    def test_local_scope_preserves_ci_targets_and_pending_state(self):
+        policy = {"policy_url": "https://example.com/main",
+                  "targets": {"main": {"monitor_scope": "local"}},
+                  "versions": {"toc": {"policy_link": "https://example.com/toc"},
+                               "tob": {"policy_link": "https://example.com/tob"}}}
+        prev = {"status": "changed", "targets": {
+            "main": {"url": "https://example.com/main", "status": "ok", "health": "ok"},
+            "toc": {"url": "https://example.com/toc", "status": "ok", "health": "ok"},
+            "tob": {"url": "https://example.com/tob", "status": "changed", "health": "ok"},
+        }}
+        with mock.patch.object(CHECK_UPDATES, "check_target", return_value={
+                "status": "ok", "health": "ok", "message": "内容未变化"}), \
+                contextlib.redirect_stdout(io.StringIO()):
+            result = CHECK_UPDATES.check_product(
+                "demo", policy, prev, 1, 0, scope="local")
+        self.assertEqual(sorted(result["targets"]), ["main", "tob", "toc"])
+        self.assertEqual(result["status"], "changed")
+        self.assertTrue(result["targets"]["toc"]["skipped_this_run"])
+        self.assertTrue(result["targets"]["tob"]["skipped_this_run"])
+        self.assertEqual(result["targets"]["tob"]["status"], "changed")
+
     def test_scope_all_runs_everything(self):
         policy = {"policy_url": "https://example.com/main",
                   "targets": {"main": {"monitor_scope": "local"}},
@@ -1925,6 +2100,28 @@ class TestFetchHealth(unittest.TestCase):
         self.assertEqual(sorted(result["targets"]), ["main"])
         self.assertEqual(result["status"], "ok")
 
+    def test_no_browser_keeps_browser_target_in_mixed_product(self):
+        policy = {"policy_url": "https://example.com/main",
+                  "sources": [{"id": "faq", "url": "https://example.com/faq",
+                               "fetch_method": "browser"}]}
+        prev = {"targets": {
+            "main": {"url": "https://example.com/main", "status": "ok", "health": "ok"},
+            "source_faq": {"url": "https://example.com/faq", "status": "changed",
+                           "health": "ok", "current_hash": "faq-hash"},
+        }}
+        html = self._html("可抓取正文。")
+        with mock.patch.object(CHECK_UPDATES, "load_baseline_text", return_value=None), \
+                mock.patch.object(CHECK_UPDATES, "save_snapshot"), \
+                mock.patch.object(CHECK_UPDATES, "fetch_with_retry",
+                                  return_value=(self._response(html), False)), \
+                contextlib.redirect_stdout(io.StringIO()):
+            result = CHECK_UPDATES.check_product(
+                "demo", policy, prev, 1, 0, no_browser=True)
+        self.assertEqual(sorted(result["targets"]), ["main", "source_faq"])
+        self.assertEqual(result["status"], "changed")
+        self.assertTrue(result["targets"]["source_faq"]["skipped_this_run"])
+        self.assertEqual(result["targets"]["source_faq"]["current_hash"], "faq-hash")
+
     def test_no_browser_keeps_previous_results_of_browser_only_product(self):
         """回归：整产品都需浏览器时若直接清空 targets，本地无 playwright 的一次运行
         会把 CI 建立的监控覆盖从状态文件里抹掉（total_targets 缩水、覆盖被低估）。"""
@@ -1935,7 +2132,7 @@ class TestFetchHealth(unittest.TestCase):
         with contextlib.redirect_stdout(io.StringIO()):
             result = CHECK_UPDATES.check_product(
                 "demo", policy, prev, 1, 0, no_browser=True)
-        self.assertEqual(result["status"], "skipped")
+        self.assertEqual(result["status"], "ok")
         self.assertEqual(result["targets"]["main"]["current_hash"], "abc")
         self.assertTrue(result["targets"]["main"]["skipped_this_run"])
         self.assertEqual(result["targets"]["main"]["last_good_at"], "2026-01-01T00:00:00")
@@ -2082,7 +2279,7 @@ class TestPartialRetry(unittest.TestCase):
         self.assertEqual(result["status"], "failed")
         self.assertEqual(result["health"], "blocked")
 
-    def _run_main(self, argv, prev_products, policies, checked):
+    def _run_main(self, argv, prev_products, policies, checked, result_factory=None):
         """以受控替身运行 main()，返回 (退出码, 写出的 status 数据)。"""
         with tempfile.TemporaryDirectory() as directory:
             status_path = os.path.join(directory, "update_status.json")
@@ -2092,6 +2289,8 @@ class TestPartialRetry(unittest.TestCase):
             def fake_check_product(pid, policy, prev, timeout, delay,
                                    no_browser=False, only_keys=None, scope="all"):
                 checked.append((pid, only_keys, scope))
+                if result_factory:
+                    return result_factory(pid, policy)
                 return {"name": pid, "status": "ok", "health": "ok", "health_issues": 0,
                         "url": policy.get("policy_url", ""), "message": "内容未变化",
                         "last_checked": "2026-01-02T00:00:00",
@@ -2167,6 +2366,35 @@ class TestPartialRetry(unittest.TestCase):
                     with contextlib.redirect_stdout(io.StringIO()):
                         CHECK_UPDATES.main()
         prune.assert_not_called()
+
+    def test_fail_on_error_counts_failed_targets_hidden_by_changed_product(self):
+        policies = {"alpha": {"policy_url": "https://a.com"}}
+
+        def mixed(pid, policy):
+            return {"name": pid, "status": "changed", "health": "degraded",
+                    "health_issues": 1, "url": policy["policy_url"], "message": "mixed",
+                    "targets": {
+                        "main": {"url": policy["policy_url"], "status": "changed", "health": "ok"},
+                        "tob": {"url": "https://a.com/tob", "status": "failed", "health": "degraded"},
+                    }}
+
+        code, data = self._run_main(
+            ["--fail-on-error"], {}, policies, [], result_factory=mixed)
+        self.assertEqual(code, 1)
+        self.assertEqual(data["meta"]["failed"], 0)
+        self.assertEqual(data["meta"]["failed_targets"], 1)
+
+    def test_fail_on_error_ignores_failures_from_unchecked_targets(self):
+        prev = {"beta": {"name": "B", "status": "failed", "targets": {
+            "main": {"status": "failed", "health": "degraded", "url": "https://b.com"},
+        }}}
+        policies = {"alpha": {"policy_url": "https://a.com"},
+                    "beta": {"policy_url": "https://b.com"}}
+        code, data = self._run_main(
+            ["--only", "alpha:main", "--fail-on-error"], prev, policies, [])
+        self.assertEqual(code, 0)
+        self.assertEqual(data["meta"]["failed_targets"], 0)
+        self.assertTrue(data["products"]["beta"]["targets"]["main"]["skipped_this_run"])
 
     def test_unknown_only_target_product_is_rejected(self):
         policies = {"alpha": {"policy_url": "https://a.com"}}
@@ -2362,6 +2590,35 @@ class TestSiteConsistency(unittest.TestCase):
                         "push 会失败（且监控结果不会入库）")
         self.assertGreaterEqual(checked, 2, "未找到含 git push 的 job，测试本身可能失效")
 
+    def test_ci_syncs_before_generating_artifacts(self):
+        with open(os.path.join(BASE_DIR, ".github", "workflows", "ci.yml"),
+                  encoding="utf-8") as f:
+            ci = f.read()
+        sync_pos = ci.index("git pull --rebase origin main")
+        generate_pos = ci.index("python scripts/gen_data_bundle.py")
+        self.assertLess(sync_pos, generate_pos,
+                        "CI 必须在生成前同步 main，不能把旧真源产物 rebase 到新提交")
+
+    def test_monitor_marks_start_for_fresh_notifications(self):
+        with open(os.path.join(BASE_DIR, ".github", "workflows", "monitor.yml"),
+                  encoding="utf-8") as f:
+            monitor = f.read()
+        self.assertIn("MONITOR_STARTED_AT", monitor)
+        self.assertIn("MONITOR_STARTED_AT: ${{ env.MONITOR_STARTED_AT }}", monitor)
+
+    def test_browser_route_checks_dns_for_subresources(self):
+        with open(CHECK_UPDATES.__file__, encoding="utf-8") as f:
+            source = f.read()
+        route = source.split("def safe_route(route):", 1)[1].split("page.route", 1)[0]
+        self.assertIn("resolve_dns=True", route)
+
+    def test_local_monitor_commit_is_limited_to_monitor_paths(self):
+        with open(os.path.join(BASE_DIR, "scripts", "local_monitor.sh"),
+                  encoding="utf-8") as f:
+            script = f.read()
+        self.assertIn('git diff --cached --quiet -- "${MONITOR_PATHS[@]}"', script)
+        self.assertIn('-- "${MONITOR_PATHS[@]}"', script)
+
     def test_deploy_workflow_names_match(self):
         wf_dir = os.path.join(BASE_DIR, ".github", "workflows")
 
@@ -2436,6 +2693,24 @@ class TestSiteConsistency(unittest.TestCase):
                     if field == "training_status":
                         expected = policy_logic.infer_training_status(source_version)
                     self.assertEqual(slim_version.get(field), expected)
+
+    def test_docs_do_not_reintroduce_stale_flow_claims(self):
+        docs = [
+            "AGENTS.md", "README.md", "README.en.md", "CONTRIBUTING.md",
+            "docs/architecture.md", "docs/architecture.html",
+            "site/docs/data-pipeline.md", "site/docs/update-monitoring.md",
+        ]
+        for rel in docs:
+            with open(os.path.join(BASE_DIR, rel), encoding="utf-8") as f:
+                content = f.read()
+            self.assertNotRegex(content, r"\b(?:141|150|170) 项", rel)
+        with open(os.path.join(BASE_DIR, "site", "docs", "data-pipeline.md"),
+                  encoding="utf-8") as f:
+            pipeline = f.read()
+        self.assertIn("详情页额外读 data/policies/{id}.json + pending_verification.json + monitor_health.json",
+                      pipeline)
+        self.assertIn("先同步最新 main", pipeline)
+        self.assertNotIn("生成后复验，再 `git pull --rebase --autostash origin main`", pipeline)
 
     def test_published_docs_have_no_stale_wording(self):
         """文档页须反映新流程：提及本地 skill，不得残留 analyze_changes/change_reports/未来功能。"""

@@ -22,14 +22,16 @@
 **提交前必须跑的全量校验**（任何改动都跑，约 15 秒）：
 
 ```bash
-.venv/bin/python -m unittest discover -s tests -q      # 150 项回归测试
+.venv/bin/python -m unittest discover -s tests -q      # 全量回归测试
 .venv/bin/python scripts/validate_data.py              # 数据结构校验（0 错 0 警）
 .venv/bin/python scripts/gen_readme_table.py --check   # README 汇总表与数据一致
 .venv/bin/python scripts/gen_docs.py --check           # 文档页是最新
 .venv/bin/python scripts/gen_product_pages.py --check  # 产品详情页与 sitemap 是最新
+.venv/bin/python scripts/gen_feed.py --check           # 订阅 feed 是最新
+.venv/bin/python scripts/gen_api.py --check            # 只读 API 是最新
 ```
 
-改过文档 `.md` 或前端资源后还要重新生成并提交产物：
+按改动类型重新生成对应产物（对外文档只跑 `gen_docs.py`；数据 / 页面改动还需其余生成器）：
 
 ```bash
 .venv/bin/python scripts/gen_docs.py         # site/docs/*.md → *.html（.md 是唯一源）
@@ -41,9 +43,9 @@
 ```
 
 **不要手工编辑**：`site/generated/**`（`bundle.json` / `update_status.json` /
-`monitor_health.json` / `pending_verification.json` / `snapshots/` / `og-card.png`）、
-`site/docs/*.html`、`site/p/*.html` 和 `site/sitemap.xml`——它们都是脚本产物，
-改了会被 CI 覆盖。
+`monitor_health.json` / `pending_verification.json` / `snapshots/` / `api/v1/` /
+`og-card.png`）、`site/feed.xml`、`site/docs/*.html`、`site/p/*.html` 和
+`site/sitemap.xml`——它们都是脚本产物，改了会被 CI 或监控覆盖。
 
 ---
 
@@ -61,6 +63,11 @@
 | `tests/test_scripts.py` | 全部回归测试（单文件，类按关注点分组） |
 | `docs/` | **内部维护文档**（架构流程图 mermaid + 交互版 html），不发布、不经 sanitize；对外文档在 `site/docs/`。⚠️ Pages 不要切 "Deploy from branch /docs"，否则内部文档会被公开 |
 
+前端数据读取：首页读 `bundle.json`（缺失时回退索引与逐产品 JSON）、
+`update_status.json`、`monitor_health.json`，**不读 pending 队列**；详情页额外读
+`data/policies/{id}.json`、`pending_verification.json` 与 `monitor_health.json`
+（缺失时从 `update_status.json` 兜底），分别渲染待核实 diff 与抓取异常。
+
 ---
 
 ## 3. 监控的两套状态（最容易搞混的地方）
@@ -72,9 +79,10 @@
 | `status` | 政策正文相对基线**变没变** | `ok` / `changed` / `failed` / `suspicious` / `skipped` |
 | `health` | 这一轮**抓到的正文能不能信** | `ok` / `initialized` / `rebaselined` / `degraded` / `no_baseline` / `blocked` |
 
-- `status=changed` → 进**待核实队列** `pending_verification.json`，走 policy-change-verify skill；
+- 单目标 `status=changed` 只与 `health=ok` 同现 → 进**待核实队列** `pending_verification.json`，走 policy-change-verify skill；
 - `health` 非 `ok/initialized/rebaselined` → 进**健康队列** `monitor_health.json`，修抓取配置；
-- 两者可同时发生，**不要**把抓取失败当政策变更。
+- 同一产品的不同目标可同时需要内容核实与抓取修复；`rebaselined` 只与 `ok`（哈希方案升级）或 `suspicious`（缺基线后完整抓取重建）同现，**不存在 `changed + rebaselined`**；
+- **不要**把抓取失败当政策变更。
 
 正文过短或抓取失败时脚本**不会覆盖已有基线**（保住页面展示的历史正文），
 只把 `health` 标成降级/无基线/被拦截。
@@ -100,6 +108,13 @@
 - `min_body_chars`：该目标正文下限（默认 500）
 - `monitor_scope`：`ci`（默认）/ `local`（仅本地跑，见下）
 
+默认使用 `requests`；**仅配置为 `browser` 的目标**才启用 Playwright，不会在请求失败时
+自动兜底。提取、去噪与渲染策略只能降低漏抓 / 误报概率，**不承诺零漏报**。
+`--no-browser` 混合产品只检查 requests 目标，被跳过的 browser 目标沿用旧状态；
+整产品全 browser 时也沿用旧目标状态，只有从未检查过时才产品级 `skipped`。
+`--products` / `--only` 局部重试合并旧状态、标记未检查目标且不清理孤儿快照，
+都不等于完成全量监控。`--scope local` 同样必须沿用非 local 目标，不能清空其状态或队列。
+
 ---
 
 ## 5. 本地专属监控（`monitor_scope: local`）
@@ -114,9 +129,11 @@
 git push origin main                          # 想让首页更新再手动推（触发 Pages 发布）
 ```
 
-CI 跑 `--scope ci` 跳过它们，但**沿用上次结果**（含快照引用与 `last_checked`），
-只加 `skipped_this_run` 标记。写成 `skipped` 会让覆盖率缩水，且快照会被
-`prune_orphan_snapshots` 当成"不再监控"删掉——别改回那样。
+CI 跑 `--scope ci` 不检查它们，但**沿用上次目标结果**（含快照引用与 `last_checked`），
+只加 `skipped_this_run` 标记；本地跑 `--scope local` 时反过来沿用所有非 local 目标。
+健康队列的 `consecutive_runs` 与 `last_seen` 不虚增。任何范围跳过都不能删除目标或 pending 项。
+写成 `skipped` 会让覆盖率缩水，且快照会被 `prune_orphan_snapshots` 当成"不再监控"
+删掉——别改回那样。
 
 ---
 
@@ -140,8 +157,8 @@ CI 跑 `--scope ci` 跳过它们，但**沿用上次结果**（含快照引用�
 
 | 工作流 | 触发 | 职责 |
 |--------|------|------|
-| `ci.yml`（数据校验） | push main / PR | 跑测试+校验 → 生成并提交 bundle / 文档页 / 产品详情页产物 |
-| `monitor.yml`（政策更新监控） | 每周一 09:00 北京时间 / 手动 | `--scope ci` 跑监控 → 生成 feed.xml → webhook 通知（配 Secrets 后生效，continue-on-error）→ bot 提交状态/快照/队列 |
+| `ci.yml`（数据校验） | push main / PR | 全量回归测试 + 数据校验 + README / docs / product / feed / API 五项 `--check` → main 全绿后先同步最新 main，再生成五类产物、复验、按差异提交；若同步后又有新推送导致 push 失败，不部署旧产物 |
+| `monitor.yml`（政策更新监控） | 每周一 09:00 北京时间 / 手动 | `--scope ci` 跑监控 → 生成 feed.xml → webhook 通知（仅本轮新状态，未配置静默跳过，continue-on-error）→ rebase 后 bot 提交状态/快照/队列/feed |
 | `deploy.yml`（部署 Pages） | 数据校验成功即部署；政策更新监控成功或失败均部署（校验失败不部署；限 main） | 发布 `site/` 到 GitHub Pages |
 
 常用触发方式：
@@ -153,10 +170,13 @@ gh run view <id> --json status,conclusion
 gh run view <id> --log-failed | tail -30       # 失败时看日志
 ```
 
-注意：`monitor.yml` 的 job 要 `git push` 产物，其 `actions/checkout` **不能**加
-`persist-credentials: false`（会报 `could not read Username for 'https://github.com'`），
-且提交前会 `git pull --rebase origin main` 避免与人工提交冲突。有测试
-`test_push_jobs_keep_checkout_credentials` 锁定这两条不变量，改工作流时留意。
+注意：`ci.yml` 的 `publish` 与 `monitor.yml` 的 job 要 `git push` 产物，其
+`actions/checkout` **不能**加 `persist-credentials: false`（会报
+`could not read Username for 'https://github.com'`）。`ci.yml` 必须在生成前同步最新
+main，生成/复验后不再 rebase；若同步后又有新推送导致 push 失败，整轮不部署旧产物。
+`monitor.yml` 仍在提交前 `git pull --rebase --autostash origin main`。两者都仅在
+`git diff --cached` 非空时 commit + push。有测试 `test_push_jobs_keep_checkout_credentials`
+锁定凭据不变量，改工作流时留意。
 
 ---
 
@@ -173,7 +193,7 @@ gh run view <id> --log-failed | tail -30       # 失败时看日志
 4. **配抓取配置**：正文在非标准容器 → `content_selector`；JS 渲染 → `fetch_method: "browser"`
    （可加 `wait_for_selector`）；403/429 → 换 `browser`。
 5. **CI 连不上但本地能抓** → `monitor_scope: "local"`（见第 5 节）。
-6. 改完配置**第一轮必然报 `changed`**（旧 baseline 是噪声/空壳），确认后 `--resolve`。
+6. 改完配置**第一轮可能报 `changed`**（旧 baseline 是噪声/空壳），看 diff 确认后 `--resolve`；只有条款文字变化才改政策数据。
 
 正文过短时 `message` 会附上"实际拿到：标题《…》页面首段「…」"，据此区分
 Cloudflare 挑战页 / 登录墙 / 404 / 纯空壳 / 空文档（空文档 = 连接层失败）。

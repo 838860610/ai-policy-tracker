@@ -1,21 +1,22 @@
 {
   "meta": {
-    "last_run": "2026-11-23T16:46:21.430513+08:00",
-    "hash_scheme": "text-v5-bs4",
-    "scope": "ci",
+    "last_run": "2026-11-28T15:30:15.448269+08:00",
+    "hash_scheme": "text-v6-bs4",
+    "scope": "all",
     "local_only_targets": 1,
     "local_targets_skipped": 1,
     "total_products": 47,
     "total_targets": 70,
-    "changed": 7,
+    "changed": 6,
     "failed": 0,
-    "suspicious": 1,
+    "failed_targets": 0,
+    "suspicious": 0,
     "skipped": 0,
-    "health_issues": 1,
+    "health_issues": 0,
     "health_blocked": 0,
-    "health_degraded": 1,
+    "health_degraded": 0,
     "health_no_baseline": 0,
-    "partial_run": false
+    "partial_run": true
   },
   "products": {
     "tencent-yuanbao": {
@@ -40,7 +41,9 @@
           "message": "内容未变化",
           "fetch_method": "browser",
           "content_etag": null,
-          "content_last_modified": null
+          "content_last_modified": null,
+          "skipped_this_run": true,
+          "skip_reason": "本轮未检查（--products/--only）"
         },
         "toc": {
           "url": "https://privacy.qq.com/document/preview/eb9be56572ab4886b6ca124e72abf413",
@@ -55,7 +58,9 @@
           "message": "内容未变化",
           "fetch_method": "browser",
           "content_etag": null,
-          "content_last_modified": null
+          "content_last_modified": null,
+          "skipped_this_run": true,
+          "skip_reason": "本轮未检查（--products/--only）"
         }
       }
     },
@@ -81,7 +86,9 @@
           "message": "内容未变化",
           "fetch_method": "browser",
           "content_etag": null,
-          "content_last_modified": null
+          "content_last_modified": null,
+          "skipped_this_run": true,
+          "skip_reason": "本轮未检查（--products/--only）"
         }
       }
     },
@@ -107,7 +114,9 @@
           "message": "内容未变化",
           "fetch_method": "browser",
           "content_etag": null,
-          "content_last_modified": null
+          "content_last_modified": null,
+          "skipped_this_run": true,
+          "skip_reason": "本轮未检查（--products/--only）"
         }
       }
     },
@@ -134,7 +143,9 @@
           "health_reason": null,
           "fetch_method": "browser",
           "content_etag": null,
-          "content_last_modified": null
+          "content_last_modified": null,
+          "skipped_this_run": true,
+          "skip_reason": "本轮未检查（--products/--only）"
         },
         "toc": {
           "url": "https://privacy.qq.com/document/preview/771d9a58551449e9a7e7445ebfe04966",
@@ -149,7 +160,9 @@
           "message": "内容未变化",
           "fetch_method": "browser",
           "content_etag": null,
-          "content_last_modified": null
+          "content_last_modified": null,
+          "skipped_this_run": true,
+          "skip_reason": "本轮未检查（--products/--only）"
         }
       }
     },
@@ -175,7 +188,9 @@
           "message": "内容未变化",
           "fetch_method": "browser",
           "content_etag": null,
-          "content_last_modified": null
+          "content_last_modified": null,
+          "skipped_this_run": true,
+          "skip_reason": "本轮未检查（--products/--only）"
         }
       }
     },
@@ -201,7 +216,9 @@
           "message": "内容未变化",
           "fetch_method": "requests",
           "content_etag": "W/\"e54d2bb32a0c7d4643bb906af2fc997b\"",
-          "content_last_modified": "Thu, 22 Oct 2026 13:04:28 GMT"
+          "content_last_modified": "Thu, 22 Oct 2026 13:04:28 GMT",
+          "skipped_this_run": true,
+          "skip_reason": "本轮未检查（--products/--only）"
         },
         "tob": {
           "url": "https://www.doubao.com/legal/privacy",
@@ -217,7 +234,9 @@
           "health_reason": null,
           "fetch_method": "requests",
           "content_etag": "W/\"1fd43eb15ece38639a17aee6a52dc764\"",
-          "content_last_modified": "Thu, 19 Nov 2026 13:25:52 GMT"
+          "content_last_modified": "Thu, 19 Nov 2026 13:25:52 GMT",
+          "skipped_this_run": true,
+          "skip_reason": "本轮未检查（--products/--only）"
         },
         "source_training_faq": {
           "url": "https://doubao.com/legal/model_training_faq",
@@ -232,34 +251,39 @@
           "message": "内容未变化",
           "fetch_method": "requests",
           "content_etag": "W/\"e4163b1baadcc0064a9aa541179c2d30\"",
-          "content_last_modified": "Mon, 24 Aug 2026 09:42:19 GMT"
+          "content_last_modified": "Mon, 24 Aug 2026 09:42:19 GMT",
+          "skipped_this_run": true,
+          "skip_reason": "本轮未检查（--products/--only）"
         }
       }
     },
     "doubao-api": {
       "name": "豆包大模型 API（火山方舟）",
-      "status": "changed",
+      "status": "ok",
       "health": "ok",
       "health_issues": 0,
       "url": "https://docs.volcengine.com/docs/ark/doubao-model-service-agreement?lang=zh",
-      "message": "⚠️ 政策可能已更新，待核实（主监控页）",
+      "message": "内容未变化（本次核实后已确认）",
       "last_checked": "2026-11-23T16:38:53.193975+08:00",
       "targets": {
         "main": {
           "url": "https://docs.volcengine.com/docs/ark/doubao-model-service-agreement?lang=zh",
           "hash_scheme": "text-v5-bs4",
           "last_checked": "2026-11-23T16:38:53.193720+08:00",
-          "last_changed_date": "2026-11-23T16:38:53.083366+08:00",
+          "last_changed_date": null,
           "last_good_at": "2026-11-23T16:38:53.083366+08:00",
           "health": "ok",
           "monitor_scope": "ci",
           "current_hash": "cd0f281b6e2899e3974ce50671a0be0d488fa04025362396c3e37d89bc617a40",
-          "status": "changed",
-          "message": "⚠️ 政策可能已更新，待核实",
+          "status": "ok",
+          "message": "已人工核实（policy_verify --resolve）",
           "health_reason": null,
           "fetch_method": "browser",
           "content_etag": null,
-          "content_last_modified": null
+          "content_last_modified": null,
+          "resolved_at": "2026-11-28T15:17:55.143817",
+          "skipped_this_run": true,
+          "skip_reason": "本轮未检查（--products/--only）"
         }
       }
     },
@@ -286,7 +310,9 @@
           "health_reason": null,
           "fetch_method": "browser",
           "content_etag": null,
-          "content_last_modified": null
+          "content_last_modified": null,
+          "skipped_this_run": true,
+          "skip_reason": "本轮未检查（--products/--only）"
         },
         "main": {
           "url": "https://www.trae.cn/privacy-policy",
@@ -303,7 +329,7 @@
           "content_etag": null,
           "content_last_modified": null,
           "skipped_this_run": true,
-          "skip_reason": "该目标由本地监控负责，请在本地运行 scripts/local_monitor.sh"
+          "skip_reason": "本轮未检查（--products/--only）"
         }
       }
     },
@@ -329,7 +355,9 @@
           "content_etag": "W/\"06314fa5260c125c117feacd7bbcba8e\"",
           "content_last_modified": "Tue, 26 Aug 2025 07:25:02 GMT",
           "message": "内容未变化（304 Not Modified）",
-          "fetch_method": "requests"
+          "fetch_method": "requests",
+          "skipped_this_run": true,
+          "skip_reason": "本轮未检查（--products/--only）"
         },
         "tob": {
           "url": "https://lf3-cdn-tos.draftstatic.com/obj/ies-hotsoon-draft/dreamina/b966ce40-d931-4397-8def-38fe5d03c729.html",
@@ -344,7 +372,9 @@
           "content_etag": "W/\"f314e194d581d4dcccc906e5c8e0c8ee\"",
           "content_last_modified": "Fri, 23 Oct 2026 13:12:26 GMT",
           "message": "内容未变化（304 Not Modified）",
-          "fetch_method": "requests"
+          "fetch_method": "requests",
+          "skipped_this_run": true,
+          "skip_reason": "本轮未检查（--products/--only）"
         }
       }
     },
@@ -370,7 +400,9 @@
           "message": "内容未变化",
           "fetch_method": "requests",
           "content_etag": null,
-          "content_last_modified": null
+          "content_last_modified": null,
+          "skipped_this_run": true,
+          "skip_reason": "本轮未检查（--products/--only）"
         }
       }
     },
@@ -396,7 +428,9 @@
           "content_etag": null,
           "content_last_modified": "Thu, 30 Jul 2026 01:55:01 GMT",
           "message": "内容未变化（304 Not Modified）",
-          "fetch_method": "requests"
+          "fetch_method": "requests",
+          "skipped_this_run": true,
+          "skip_reason": "本轮未检查（--products/--only）"
         }
       }
     },
@@ -423,7 +457,9 @@
           "health_reason": null,
           "fetch_method": "requests",
           "content_etag": null,
-          "content_last_modified": "Sat, 21 Nov 2026 13:35:02 GMT"
+          "content_last_modified": "Sat, 21 Nov 2026 13:35:02 GMT",
+          "skipped_this_run": true,
+          "skip_reason": "本轮未检查（--products/--only）"
         },
         "tob": {
           "url": "https://terms.alicdn.com/legal-agreement/terms/c_platform_service_agreement/20231023213402278/20231023213402278.html",
@@ -438,7 +474,9 @@
           "content_etag": null,
           "content_last_modified": "Mon, 31 Aug 2026 10:22:01 GMT",
           "message": "内容未变化（304 Not Modified）",
-          "fetch_method": "requests"
+          "fetch_method": "requests",
+          "skipped_this_run": true,
+          "skip_reason": "本轮未检查（--products/--only）"
         }
       }
     },
@@ -464,7 +502,9 @@
           "message": "内容未变化",
           "fetch_method": "browser",
           "content_etag": null,
-          "content_last_modified": null
+          "content_last_modified": null,
+          "skipped_this_run": true,
+          "skip_reason": "本轮未检查（--products/--only）"
         }
       }
     },
@@ -490,7 +530,9 @@
           "content_etag": null,
           "content_last_modified": "Mon, 31 Aug 2026 10:23:01 GMT",
           "message": "内容未变化（304 Not Modified）",
-          "fetch_method": "requests"
+          "fetch_method": "requests",
+          "skipped_this_run": true,
+          "skip_reason": "本轮未检查（--products/--only）"
         }
       }
     },
@@ -516,7 +558,9 @@
           "content_etag": "W/\"36d02cdc543b43d177bce4946c109392\"",
           "content_last_modified": "Wed, 15 Jul 2026 07:30:02 GMT",
           "message": "内容未变化（304 Not Modified）",
-          "fetch_method": "requests"
+          "fetch_method": "requests",
+          "skipped_this_run": true,
+          "skip_reason": "本轮未检查（--products/--only）"
         },
         "tob": {
           "url": "https://cdn.deepseek.com/policies/zh-CN/deepseek-terms-of-use.html",
@@ -531,7 +575,9 @@
           "content_etag": "W/\"8c11ed86ab9a36d914b9ab4ffc769dc0\"",
           "content_last_modified": "Wed, 15 Jul 2026 07:30:02 GMT",
           "message": "内容未变化（304 Not Modified）",
-          "fetch_method": "requests"
+          "fetch_method": "requests",
+          "skipped_this_run": true,
+          "skip_reason": "本轮未检查（--products/--only）"
         },
         "source_model_disclosure": {
           "url": "https://cdn.deepseek.com/policies/zh-CN/model-algorithm-disclosure.html",
@@ -546,7 +592,9 @@
           "content_etag": "W/\"b085024c740ee1355e8d7d9645ad4e20\"",
           "content_last_modified": "Wed, 15 Jul 2026 07:30:03 GMT",
           "message": "内容未变化（304 Not Modified）",
-          "fetch_method": "requests"
+          "fetch_method": "requests",
+          "skipped_this_run": true,
+          "skip_reason": "本轮未检查（--products/--only）"
         }
       }
     },
@@ -572,7 +620,9 @@
           "message": "内容未变化",
           "fetch_method": "browser",
           "content_etag": null,
-          "content_last_modified": null
+          "content_last_modified": null,
+          "skipped_this_run": true,
+          "skip_reason": "本轮未检查（--products/--only）"
         },
         "tob": {
           "url": "https://openai.com/policies/business-terms/",
@@ -587,7 +637,9 @@
           "message": "内容未变化",
           "fetch_method": "browser",
           "content_etag": null,
-          "content_last_modified": null
+          "content_last_modified": null,
+          "skipped_this_run": true,
+          "skip_reason": "本轮未检查（--products/--only）"
         }
       }
     },
@@ -613,7 +665,9 @@
           "message": "内容未变化",
           "fetch_method": "requests",
           "content_etag": null,
-          "content_last_modified": null
+          "content_last_modified": null,
+          "skipped_this_run": true,
+          "skip_reason": "本轮未检查（--products/--only）"
         },
         "toc": {
           "url": "https://privacy.claude.com/en/articles/12109829-how-do-i-change-my-model-improvement-privacy-settings",
@@ -628,7 +682,9 @@
           "message": "内容未变化",
           "fetch_method": "requests",
           "content_etag": null,
-          "content_last_modified": null
+          "content_last_modified": null,
+          "skipped_this_run": true,
+          "skip_reason": "本轮未检查（--products/--only）"
         },
         "tob": {
           "url": "https://www.anthropic.com/legal/commercial-terms",
@@ -643,7 +699,9 @@
           "message": "内容未变化",
           "fetch_method": "requests",
           "content_etag": null,
-          "content_last_modified": null
+          "content_last_modified": null,
+          "skipped_this_run": true,
+          "skip_reason": "本轮未检查（--products/--only）"
         }
       }
     },
@@ -669,7 +727,9 @@
           "message": "内容未变化",
           "fetch_method": "browser",
           "content_etag": null,
-          "content_last_modified": null
+          "content_last_modified": null,
+          "skipped_this_run": true,
+          "skip_reason": "本轮未检查（--products/--only）"
         },
         "toc": {
           "url": "https://support.google.com/gemini/answer/13594961?hl=zh-CN&gl=US",
@@ -685,7 +745,9 @@
           "health_reason": null,
           "fetch_method": "browser",
           "content_etag": null,
-          "content_last_modified": null
+          "content_last_modified": null,
+          "skipped_this_run": true,
+          "skip_reason": "本轮未检查（--products/--only）"
         },
         "tob": {
           "url": "https://knowledge.workspace.google.com/admin/generative-ai/generative-ai-in-google-workspace-privacy-hub",
@@ -700,7 +762,9 @@
           "message": "内容未变化",
           "fetch_method": "browser",
           "content_etag": null,
-          "content_last_modified": null
+          "content_last_modified": null,
+          "skipped_this_run": true,
+          "skip_reason": "本轮未检查（--products/--only）"
         }
       }
     },
@@ -726,7 +790,9 @@
           "message": "内容未变化",
           "fetch_method": "requests",
           "content_etag": "W/\"e17745c4388942b91a744e1a3ac128cd\"",
-          "content_last_modified": "Wed, 18 Nov 2026 13:18:12 GMT"
+          "content_last_modified": "Wed, 18 Nov 2026 13:18:12 GMT",
+          "skipped_this_run": true,
+          "skip_reason": "本轮未检查（--products/--only）"
         }
       }
     },
@@ -752,7 +818,9 @@
           "message": "内容未变化",
           "fetch_method": "requests",
           "content_etag": null,
-          "content_last_modified": null
+          "content_last_modified": null,
+          "skipped_this_run": true,
+          "skip_reason": "本轮未检查（--products/--only）"
         }
       }
     },
@@ -778,7 +846,9 @@
           "message": "内容未变化",
           "fetch_method": "browser",
           "content_etag": null,
-          "content_last_modified": null
+          "content_last_modified": null,
+          "skipped_this_run": true,
+          "skip_reason": "本轮未检查（--products/--only）"
         }
       }
     },
@@ -804,7 +874,9 @@
           "message": "内容未变化",
           "fetch_method": "browser",
           "content_etag": null,
-          "content_last_modified": null
+          "content_last_modified": null,
+          "skipped_this_run": true,
+          "skip_reason": "本轮未检查（--products/--only）"
         }
       }
     },
@@ -830,7 +902,9 @@
           "message": "内容未变化",
           "fetch_method": "browser",
           "content_etag": null,
-          "content_last_modified": null
+          "content_last_modified": null,
+          "skipped_this_run": true,
+          "skip_reason": "本轮未检查（--products/--only）"
         }
       }
     },
@@ -856,7 +930,9 @@
           "message": "内容未变化",
           "fetch_method": "requests",
           "content_etag": null,
-          "content_last_modified": "Sun, 22 Nov 2026 19:47:52 GMT"
+          "content_last_modified": "Sun, 22 Nov 2026 19:47:52 GMT",
+          "skipped_this_run": true,
+          "skip_reason": "本轮未检查（--products/--only）"
         },
         "tob": {
           "url": "https://docs.bigmodel.cn/cn/terms/subscription-agreement-team",
@@ -871,7 +947,9 @@
           "message": "内容未变化",
           "fetch_method": "requests",
           "content_etag": null,
-          "content_last_modified": "Sun, 22 Nov 2026 19:48:08 GMT"
+          "content_last_modified": "Sun, 22 Nov 2026 19:48:08 GMT",
+          "skipped_this_run": true,
+          "skip_reason": "本轮未检查（--products/--only）"
         }
       }
     },
@@ -897,7 +975,9 @@
           "message": "内容未变化",
           "fetch_method": "requests",
           "content_etag": null,
-          "content_last_modified": "Sun, 22 Nov 2026 19:48:15 GMT"
+          "content_last_modified": "Sun, 22 Nov 2026 19:48:15 GMT",
+          "skipped_this_run": true,
+          "skip_reason": "本轮未检查（--products/--only）"
         }
       }
     },
@@ -923,7 +1003,9 @@
           "message": "内容未变化",
           "fetch_method": "browser",
           "content_etag": null,
-          "content_last_modified": null
+          "content_last_modified": null,
+          "skipped_this_run": true,
+          "skip_reason": "本轮未检查（--products/--only）"
         }
       }
     },
@@ -949,7 +1031,9 @@
           "content_etag": "W/\"6a8587d0-edcf\"",
           "content_last_modified": "Wed, 19 Aug 2026 10:39:12 GMT",
           "message": "内容未变化（304 Not Modified）",
-          "fetch_method": "requests"
+          "fetch_method": "requests",
+          "skipped_this_run": true,
+          "skip_reason": "本轮未检查（--products/--only）"
         },
         "toc": {
           "url": "https://docs.aminer.cn/terms/privacy-policy/",
@@ -964,7 +1048,9 @@
           "content_etag": "W/\"6a8587d0-e0cf\"",
           "content_last_modified": "Wed, 19 Aug 2026 10:39:12 GMT",
           "message": "内容未变化（304 Not Modified）",
-          "fetch_method": "requests"
+          "fetch_method": "requests",
+          "skipped_this_run": true,
+          "skip_reason": "本轮未检查（--products/--only）"
         }
       }
     },
@@ -990,7 +1076,9 @@
           "content_etag": null,
           "content_last_modified": "Tue, 14 Apr 2026 08:01:29 GMT",
           "message": "内容未变化（304 Not Modified）",
-          "fetch_method": "requests"
+          "fetch_method": "requests",
+          "skipped_this_run": true,
+          "skip_reason": "本轮未检查（--products/--only）"
         }
       }
     },
@@ -1016,7 +1104,9 @@
           "message": "内容未变化",
           "fetch_method": "requests",
           "content_etag": null,
-          "content_last_modified": null
+          "content_last_modified": null,
+          "skipped_this_run": true,
+          "skip_reason": "本轮未检查（--products/--only）"
         },
         "toc": {
           "url": "https://zcode.z.ai/cn/privacy",
@@ -1031,7 +1121,9 @@
           "message": "内容未变化",
           "fetch_method": "requests",
           "content_etag": null,
-          "content_last_modified": null
+          "content_last_modified": null,
+          "skipped_this_run": true,
+          "skip_reason": "本轮未检查（--products/--only）"
         }
       }
     },
@@ -1057,7 +1149,9 @@
           "message": "内容未变化",
           "fetch_method": "requests",
           "content_etag": null,
-          "content_last_modified": "Sun, 22 Nov 2026 20:30:31 GMT"
+          "content_last_modified": "Sun, 22 Nov 2026 20:30:31 GMT",
+          "skipped_this_run": true,
+          "skip_reason": "本轮未检查（--products/--only）"
         },
         "tob": {
           "url": "https://platform.kimi.com/docs/agreement/modeluse",
@@ -1072,7 +1166,9 @@
           "message": "内容未变化",
           "fetch_method": "requests",
           "content_etag": null,
-          "content_last_modified": "Sun, 22 Nov 2026 20:30:17 GMT"
+          "content_last_modified": "Sun, 22 Nov 2026 20:30:17 GMT",
+          "skipped_this_run": true,
+          "skip_reason": "本轮未检查（--products/--only）"
         }
       }
     },
@@ -1098,7 +1194,9 @@
           "content_etag": "W/\"6afaa321-1712c\"",
           "content_last_modified": "Mon, 16 Nov 2026 06:30:57 GMT",
           "message": "内容未变化（304 Not Modified）",
-          "fetch_method": "requests"
+          "fetch_method": "requests",
+          "skipped_this_run": true,
+          "skip_reason": "本轮未检查（--products/--only）"
         },
         "toc": {
           "url": "https://xinghuo.xfyun.cn/policy/%E8%AE%AF%E9%A3%9E%E6%98%9F%E7%81%ABAPP%E7%94%A8%E6%88%B7%E5%8D%8F%E8%AE%AE",
@@ -1113,7 +1211,9 @@
           "message": "内容未变化",
           "fetch_method": "requests",
           "content_etag": null,
-          "content_last_modified": null
+          "content_last_modified": null,
+          "skipped_this_run": true,
+          "skip_reason": "本轮未检查（--products/--only）"
         }
       }
     },
@@ -1139,7 +1239,9 @@
           "content_etag": "W/\"64edac69-45e44\"",
           "content_last_modified": "Tue, 29 Aug 2023 08:29:29 GMT",
           "message": "内容未变化（304 Not Modified）",
-          "fetch_method": "requests"
+          "fetch_method": "requests",
+          "skipped_this_run": true,
+          "skip_reason": "本轮未检查（--products/--only）"
         }
       }
     },
@@ -1165,32 +1267,36 @@
           "content_etag": "W/\"6afaa321-17400\"",
           "content_last_modified": "Mon, 16 Nov 2026 06:30:57 GMT",
           "message": "内容未变化（304 Not Modified）",
-          "fetch_method": "requests"
+          "fetch_method": "requests",
+          "skipped_this_run": true,
+          "skip_reason": "本轮未检查（--products/--only）"
         }
       }
     },
     "keling-ai": {
       "name": "可灵AI",
-      "status": "suspicious",
-      "health": "degraded",
-      "health_issues": 1,
+      "status": "ok",
+      "health": "ok",
+      "health_issues": 0,
       "url": "https://klingai.com/docs/privacy-policy",
-      "message": "正文疑似空壳（主监控页），未记录基线，需人工确认抓取目标（1 个目标抓取降级，已保留上次有效快照）",
-      "last_checked": "2026-11-23T16:44:12.931701+08:00",
+      "message": "内容未变化（本次核实后已确认）",
+      "last_checked": "2026-11-28T15:30:15.407921+08:00",
       "targets": {
         "main": {
           "url": "https://klingai.com/docs/privacy-policy",
-          "hash_scheme": "text-v5-bs4",
-          "last_checked": "2026-11-23T16:44:11.774687+08:00",
+          "hash_scheme": "text-v6-bs4",
+          "last_checked": "2026-11-28T15:30:15.407892+08:00",
           "last_changed_date": null,
-          "last_good_at": "2026-11-16T07:49:14.686132",
-          "health": "degraded",
+          "last_good_at": "2026-11-28T15:30:15.348922+08:00",
+          "health": "ok",
           "monitor_scope": "ci",
-          "current_hash": "33484397efcc530753a1c0b04eafa0f0d5fa579ed61a789ff9644082380f85cd",
-          "status": "suspicious",
-          "health_reason": "empty_body",
-          "message": "抓取正文过短（36 字符 < 500），疑似 JS 渲染或反爬，已保留上次有效快照；实际拿到：标题《可灵AI隐私政策》，页面首段「可灵AI隐私政策 用户协议 隐私政策 付费服务协议 灵感值规则说明 社区公约 侵权投诉指引」",
-          "fetch_method": "requests"
+          "current_hash": "3751871f9e33838f5a6a3787094b59bfe90bc3a347936bdb4f97651a21a7fe75",
+          "status": "ok",
+          "message": "已人工核实（policy_verify --resolve）",
+          "fetch_method": "browser",
+          "content_etag": null,
+          "content_last_modified": null,
+          "resolved_at": "2026-11-28T15:30:31.370703"
         }
       }
     },
@@ -1216,7 +1322,9 @@
           "message": "内容未变化",
           "fetch_method": "browser",
           "content_etag": null,
-          "content_last_modified": null
+          "content_last_modified": null,
+          "skipped_this_run": true,
+          "skip_reason": "本轮未检查（--products/--only）"
         }
       }
     },
@@ -1243,7 +1351,9 @@
           "health_reason": null,
           "fetch_method": "requests",
           "content_etag": "W/\"da5a-1a1e98f3130\"",
-          "content_last_modified": "Tue, 17 Nov 2026 12:50:38 GMT"
+          "content_last_modified": "Tue, 17 Nov 2026 12:50:38 GMT",
+          "skipped_this_run": true,
+          "skip_reason": "本轮未检查（--products/--only）"
         },
         "tob": {
           "url": "https://platform.minimaxi.com/protocol/user-agreement",
@@ -1258,7 +1368,9 @@
           "message": "内容未变化",
           "fetch_method": "browser",
           "content_etag": null,
-          "content_last_modified": null
+          "content_last_modified": null,
+          "skipped_this_run": true,
+          "skip_reason": "本轮未检查（--products/--only）"
         },
         "source_platform_privacy": {
           "url": "https://platform.minimaxi.com/protocol/privacy-policy",
@@ -1273,7 +1385,9 @@
           "message": "内容未变化",
           "fetch_method": "browser",
           "content_etag": null,
-          "content_last_modified": null
+          "content_last_modified": null,
+          "skipped_this_run": true,
+          "skip_reason": "本轮未检查（--products/--only）"
         }
       }
     },
@@ -1299,7 +1413,9 @@
           "message": "内容未变化",
           "fetch_method": "requests",
           "content_etag": null,
-          "content_last_modified": null
+          "content_last_modified": null,
+          "skipped_this_run": true,
+          "skip_reason": "本轮未检查（--products/--only）"
         }
       }
     },
@@ -1325,7 +1441,9 @@
           "message": "内容未变化",
           "fetch_method": "requests",
           "content_etag": null,
-          "content_last_modified": "Mon, 23 Nov 2026 03:24:43 GMT"
+          "content_last_modified": "Mon, 23 Nov 2026 03:24:43 GMT",
+          "skipped_this_run": true,
+          "skip_reason": "本轮未检查（--products/--only）"
         }
       }
     },
@@ -1351,7 +1469,9 @@
           "content_etag": null,
           "content_last_modified": "Fri, 27 Feb 2026 08:47:00 GMT",
           "message": "内容未变化（304 Not Modified）",
-          "fetch_method": "requests"
+          "fetch_method": "requests",
+          "skipped_this_run": true,
+          "skip_reason": "本轮未检查（--products/--only）"
         }
       }
     },
@@ -1377,7 +1497,9 @@
           "content_etag": "\"6aa3ce8c-4241f\"",
           "content_last_modified": "Fri, 11 Sep 2026 09:49:00 GMT",
           "message": "内容未变化（304 Not Modified）",
-          "fetch_method": "requests"
+          "fetch_method": "requests",
+          "skipped_this_run": true,
+          "skip_reason": "本轮未检查（--products/--only）"
         }
       }
     },
@@ -1403,7 +1525,9 @@
           "message": "内容未变化",
           "fetch_method": "browser",
           "content_etag": null,
-          "content_last_modified": null
+          "content_last_modified": null,
+          "skipped_this_run": true,
+          "skip_reason": "本轮未检查（--products/--only）"
         }
       }
     },
@@ -1429,7 +1553,9 @@
           "content_etag": "W/\"6ae82eef-13a87\"",
           "content_last_modified": "Mon, 02 Nov 2026 06:34:23 GMT",
           "message": "内容未变化（304 Not Modified）",
-          "fetch_method": "requests"
+          "fetch_method": "requests",
+          "skipped_this_run": true,
+          "skip_reason": "本轮未检查（--products/--only）"
         },
         "source_privacy_policy": {
           "url": "https://sensetime.com/cn/personal_clause",
@@ -1444,7 +1570,9 @@
           "message": "内容未变化",
           "fetch_method": "requests",
           "content_etag": null,
-          "content_last_modified": null
+          "content_last_modified": null,
+          "skipped_this_run": true,
+          "skip_reason": "本轮未检查（--products/--only）"
         }
       }
     },
@@ -1470,7 +1598,9 @@
           "message": "内容未变化",
           "fetch_method": "browser",
           "content_etag": null,
-          "content_last_modified": null
+          "content_last_modified": null,
+          "skipped_this_run": true,
+          "skip_reason": "本轮未检查（--products/--only）"
         }
       }
     },
@@ -1496,7 +1626,9 @@
           "message": "内容未变化",
           "fetch_method": "browser",
           "content_etag": null,
-          "content_last_modified": null
+          "content_last_modified": null,
+          "skipped_this_run": true,
+          "skip_reason": "本轮未检查（--products/--only）"
         }
       }
     },
@@ -1522,7 +1654,9 @@
           "message": "内容未变化",
           "fetch_method": "browser",
           "content_etag": null,
-          "content_last_modified": null
+          "content_last_modified": null,
+          "skipped_this_run": true,
+          "skip_reason": "本轮未检查（--products/--only）"
         }
       }
     },
@@ -1548,7 +1682,9 @@
           "message": "内容未变化",
           "fetch_method": "requests",
           "content_etag": null,
-          "content_last_modified": null
+          "content_last_modified": null,
+          "skipped_this_run": true,
+          "skip_reason": "本轮未检查（--products/--only）"
         },
         "toc": {
           "url": "https://browser.360.cn/se/ai/agreement/privacy.html",
@@ -1563,7 +1699,9 @@
           "content_etag": "\"66543e8e-4b77\"",
           "content_last_modified": "Mon, 27 May 2024 08:04:30 GMT",
           "message": "内容未变化（304 Not Modified）",
-          "fetch_method": "requests"
+          "fetch_method": "requests",
+          "skipped_this_run": true,
+          "skip_reason": "本轮未检查（--products/--only）"
         }
       }
     },
@@ -1589,7 +1727,9 @@
           "content_etag": "\"9b3647799f141919d5524f8fd1f4401b\"",
           "content_last_modified": "Tue, 13 Jan 2026 01:25:45 GMT",
           "message": "内容未变化（304 Not Modified）",
-          "fetch_method": "requests"
+          "fetch_method": "requests",
+          "skipped_this_run": true,
+          "skip_reason": "本轮未检查（--products/--only）"
         }
       }
     }

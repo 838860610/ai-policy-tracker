@@ -6,8 +6,8 @@
   <meta name="description" content="AI 用户政策追踪器数据流水线：数据层、检测、构建校验、部署、展示到本地核实的完整闭环与各脚本职责。">
   <title>数据流水线 - AI 用户政策追踪器</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%9B%A1%EF%B8%8F%3C/text%3E%3C/svg%3E">
-  <script src="../js/theme.js?v=20261118-3"></script>
-  <link rel="stylesheet" href="../css/style.css?v=20261118-3">
+  <script src="../js/theme.js?v=20261128-2"></script>
+  <link rel="stylesheet" href="../css/style.css?v=20261128-2">
 </head>
 <body>
   <button class="theme-toggle theme-toggle-fixed" type="button" data-theme-toggle aria-label="切换到暗色主题" title="切换到暗色主题" aria-pressed="true">
@@ -27,7 +27,7 @@
   <div class="docs-body">
 <h1>数据流水线：从数据到页面的完整闭环</h1>
 <h2>概述</h2>
-<p>本项目的运转是一条<strong>端到端闭环</strong>：人工维护的政策数据 → 两条相互独立的 GitHub Actions 流水线（每周监控检测变化、每次 push 校验构建）→ 部署到 GitHub Pages → 页面展示并提示"待核实" → 本地核实后回写数据 → 重新进入下一轮。</p>
+<p>本项目的运转是一条<strong>端到端闭环</strong>：人工维护的政策数据 → 两条共用写入并发组的 GitHub Actions 工作流（每周监控检测变化、每次 push 校验构建）→ 部署到 GitHub Pages → 页面展示并提示"待核实" → 本地核实后回写数据 → 重新进入下一轮。</p>
 <pre><code> ① 数据层（人工唯一真源，一切展示与比对的源头）
      site/data/policies/{id}.json · products.json
        │
@@ -35,19 +35,22 @@
        └── 提供监控配置与目标 URL ──▶ ②
 
  ② 监控线 monitor.yml（每周一 09:00 北京时间 / 手动触发）
-     输入：各 AI 产品线上政策页（requests + ETag/304，或无头浏览器）
+     输入：各 AI 产品线上政策页（默认 requests + ETag/304；仅配置 browser 的目标用 Playwright）
      check_updates.py --scope ci：抓取 → 提取去噪 → 空白归一化
-       → 与基线快照 snapshots/{id}/{key}/latest.txt 全等比对
-       │  双轴判定：status 回答"正文变没变"，health 回答"抓到的能不能信"（正交）
-       ├─ changed ─────────▶ 待核实队列 pending_verification.json
-       │                     + 快照存档（旧 latest.txt 转 prev.txt + 日期档）→ ⑥
+       → 与基线快照 snapshots/{id}/{key}/latest.txt 全等比对（有效基线才接受 304）
+       │  统一判定：status 回答"正文变没变"，health 回答"抓到的能不能信"（正交）
+       ├─ changed + health=ok ─▶ 待核实队列 pending_verification.json
+       │                     + 快照存档（首次变更前基线固定为 prev.txt，日期档保留每次新版本）→ ⑥
        ├─ health 异常 ─────▶ 健康队列 monitor_health.json → 修抓取配置，不算政策变更
        ├─ 抓取失败/空壳 ───▶ 绝不覆盖基线（保住历史正文，也不误报为变更）
-       └─ monitor_scope=local ▶ CI 跳过（沿用上次结果）→ 本地 local_monitor.sh 跑
+       └─ monitor_scope=local ▶ CI 不检查，沿用旧状态且仅标 skipped_this_run
+                              → 本地 local_monitor.sh 跑（commit 不 push，手动 push）
+    生成 feed.xml → 可选 webhook（未配置静默跳过，失败不阻断）
+    → rebase 后 bot 提交状态 / 快照 / 两个队列 / feed
 
- ③ 校验线 ci.yml（push / PR 触发，与 ② 相互独立并行）
-     150 项回归测试 → validate_data → README 表 / 文档页 / 产品页 3 项 --check
-     全绿且为 main push → publish：重新生成 bundle / 文档页 / 产品页，bot 提交
+ ③ 校验线 ci.yml（push / PR 触发，与 ② 共用写入并发组，避免同时提交）
+     全量回归测试 → validate_data → README / 文档 / 产品页 / feed / API 五项 --check
+     全绿且为 main push → publish：先同步最新 main → 生成五类产物 → 复验 → 按最终差异 bot 提交
      （bot 的 GITHUB_TOKEN 提交不再触发 push 事件，不会死循环）
 
  ②③ 完成后 ──▶ ④ 部署 deploy.yml（workflow_run 触发，限 main）
@@ -56,9 +59,9 @@
      现场生成 OG 社交卡片 → 发布 site/ 到 GitHub Pages
        │
        ▼
- ⑤ 展示层 site/index.html 与 /p/{id}.html
-     读 bundle.json + update_status.json + monitor_health.json
-     渲染对比表 / 监控 banner / 抓取降级明细
+ ⑤ 展示层
+     首页读 bundle.json + update_status.json + monitor_health.json；详情页额外读 data/policies/{id}.json + pending_verification.json + monitor_health.json
+     首页渲染对比表 / 监控 banner / 抓取降级明细；详情页另渲染待核实 diff 与抓取异常卡片
        │
        ▼ 人看到"待核实"告警
  ⑥ 核实层 skills/policy-change-verify（本地 agent + 人工）
@@ -94,7 +97,7 @@
 <ul>
 <li><strong>触发</strong>：<code>.github/workflows/monitor.yml</code>，<code>cron: "0 1 * * 1"</code>，也支持 Actions 页面手动触发。</li>
 <li><strong>范围</strong>：每个产品的每个监控目标 <code>main</code>（主页面）/ <code>toc</code>（个人版条款）/ <code>tob</code>（企业版条款）/ <code>source_*</code>（补充来源）。</li>
-<li><strong>流程</strong>：抓取页面 → 按 HTML/PDF/文本类型提取正文 → 去噪 → 空白归一化 → 与基线快照 <code>snapshots/{id}/{key}/latest.txt</code> 的归一化文本做全等比对（SHA256 仅作记录）。</li>
+<li><strong>流程</strong>：抓取页面 → 按 HTML/PDF/文本类型提取正文 → 去噪 → 空白归一化 → 与基线快照 <code>snapshots/{id}/{key}/latest.txt</code> 的归一化文本做全等比对（SHA256 仅作记录）；若仅中英文边界或中文之间的空白排版不同，则更新基线但不进待核实队列。</li>
 </ul>
 <p>去噪是避免误报的关键，脚本按序剔除：UI 控件短语、导航和页脚 DOM、帮助中心文末 UI 尾巴、正文之前的站点导航，以及明确标记为 token/session/nonce 的动态节点；不再全局删除正文中的长数字。</p>
 <table>
@@ -113,23 +116,23 @@
 </tr>
 <tr>
 <td><code>changed</code></td>
-<td>文本发生变化</td>
-<td>写入 <code>latest.txt</code>，旧内容转存 <code>prev.txt</code>，另存 <code>{YYYY-MM-DD}.txt</code> 存档</td>
+<td>可信正文与基线不同，且 <code>health=ok</code></td>
+<td>写入 <code>latest.txt</code>；首次变更前基线固定为 <code>prev.txt</code>，每次新版本追加日期档（同日追加时间后缀）</td>
 </tr>
 <tr>
 <td><code>suspicious</code></td>
-<td>正文过短、疑似 JS 渲染/反爬空壳，或本地基线缺失</td>
-<td>不把异常当作正常结果；完整抓取后建立基线或等待人工确认</td>
+<td>正文过短、疑似 JS 渲染/反爬空壳；或缺基线后完整抓取重建（<code>health=rebaselined</code>）</td>
+<td>不把异常当作正常结果；重建基线需人工确认</td>
 </tr>
 <tr>
 <td><code>failed</code></td>
 <td>请求失败/超时</td>
-<td>不误报为"已变更"</td>
+<td>不误报为"已变更"；按 <code>health</code> 进入健康队列</td>
 </tr>
 <tr>
 <td><code>skipped</code></td>
-<td>该产品未启用监控</td>
-<td>—</td>
+<td>未启用监控、URL 为空/待核实、未匹配筛选，或 <code>--no-browser</code> 下整产品均需 browser 且无旧状态</td>
+<td>不等于 local；local 与范围跳过沿用旧状态，仅标 <code>skipped_this_run</code></td>
 </tr>
 </tbody>
 </table>
@@ -155,7 +158,7 @@
 </tr>
 <tr>
 <td><code>rebaselined</code></td>
-<td>基线缺失/哈希方案升级导致重建</td>
+<td>缺基线后完整抓取重建（<code>suspicious</code>），或哈希方案升级重建（<code>ok</code>）；不与 <code>changed</code> 组合</td>
 <td>否</td>
 </tr>
 <tr>
@@ -175,9 +178,10 @@
 </tr>
 </tbody>
 </table>
-<p>两者正交的意义：一次 Cloudflare 挑战只会进健康队列，不会污染"政策是否变化"的判断，也不会被当成待核实的政策变更。</p>
-<p>抓取方式可按产品配置，也可只配在单个目标上（<code>versions</code> / <code>sources[]</code> 条目支持 <code>fetch_method</code>、<code>content_selector</code>、<code>wait_for_selector</code>、<code>min_body_chars</code>）。被 Cloudflare 等拦截的目标走无头浏览器抓取（<code>fetch_method: "browser"</code>，CI 会安装 Playwright）；<code>--no-browser</code> 只跳过 <code>browser</code> 目标，同产品的普通目标照常检查。</p>
-<p><strong>产出四件套</strong>（由 bot 自动 commit 回 main）：</p>
+<p>两者正交的意义：同一产品的不同目标可以同时出现 <code>changed</code> 与健康异常；单个目标的 <code>changed</code> 只与 <code>health=ok</code> 同现。一次 Cloudflare 挑战只会进健康队列，不会污染"政策是否变化"的判断，也不会被当成待核实的政策变更。<code>rebaselined</code> 只与 <code>ok</code> / <code>suspicious</code> 同现，<strong>不存在 <code>changed + rebaselined</code> 组合</strong>。</p>
+<p>抓取方式可按产品配置，也可只配在单个目标上（<code>targets.main</code> / <code>versions.*</code> / <code>sources[]</code> 条目支持 <code>fetch_method</code>、<code>content_selector</code>、<code>wait_for_selector</code>、<code>min_body_chars</code>、<code>monitor_scope</code>）。默认使用 <code>requests</code>，仅 <code>fetch_method: "browser"</code> 的目标使用 Playwright，CI 会安装浏览器依赖；browser 不是自动兜底，提取与渲染策略只能降低漏抓概率，不承诺零漏报。</p>
+<p><code>--no-browser</code> 混合产品只检查 <code>requests</code> 目标，被省略的 browser 目标沿用旧状态并标 <code>skipped_this_run</code>；整产品都需要 browser 时同样沿用旧目标状态，只有没有旧状态时才产品级 <code>skipped</code>。<code>--products</code> / <code>--only</code> 局部重试则合并旧状态，未检查目标标 <code>skipped_this_run</code>，且不清理孤儿快照。<code>--scope local</code> 会沿用所有非 local 目标，<code>--scope ci</code> 会沿用所有 local 目标。快照是否活跃按监控配置判定，不因本次跳过误删。</p>
+<p><strong>产出五件套</strong>（由 bot 自动 commit 回 main）：</p>
 <table>
 <thead>
 <tr>
@@ -188,7 +192,7 @@
 <tbody>
 <tr>
 <td><code>site/generated/update_status.json</code></td>
-<td><strong>网页告警的唯一数据源</strong>：每产品聚合状态 + 各目标明细（含 <code>health</code>）+ <code>meta</code> 计数</td>
+<td><strong>首页监控告警的聚合源</strong>：每产品聚合状态 + 各目标明细（含 <code>health</code>）+ <code>meta</code> 计数；详情页健康队列缺失时也从中兜底</td>
 </tr>
 <tr>
 <td><code>site/generated/snapshots/**</code></td>
@@ -202,20 +206,30 @@
 <td><code>site/generated/monitor_health.json</code></td>
 <td>抓取健康队列：每轮由状态重建，记录 <code>health</code>、失败原因、连续轮次与建议动作；恢复后自动消失</td>
 </tr>
+<tr>
+<td><code>site/feed.xml</code></td>
+<td>Atom 订阅源：timeline + 待核实队列，由 <code>gen_feed.py</code> 生成；监控轮更新，CI 校验</td>
+</tr>
 </tbody>
 </table>
 <h2>③ 构建与校验：<code>.github/workflows/ci.yml</code></h2>
 <p>每次 PR 或 push 到 main 触发，依次执行：</p>
 <ol>
-<li><code>python -m unittest discover -s tests</code>（回归测试）</li>
-<li><code>scripts/validate_data.py</code>（数据结构完整性校验）</li>
-<li><code>scripts/gen_readme_table.py --check</code>（README 汇总表与数据一致）</li>
-<li><code>scripts/gen_docs.py --check</code>（文档页为最新）</li>
+<li><code>.venv/bin/python -m unittest discover -s tests</code>（全量回归测试）</li>
+<li><code>.venv/bin/python scripts/validate_data.py</code>（数据结构完整性校验）</li>
+<li><code>.venv/bin/python scripts/gen_readme_table.py --check</code>（README 汇总表与数据一致）</li>
+<li><code>.venv/bin/python scripts/gen_docs.py --check</code>（文档页为最新）</li>
+<li><code>.venv/bin/python scripts/gen_product_pages.py --check</code>（产品详情页与 sitemap 为最新）</li>
+<li><code>.venv/bin/python scripts/gen_feed.py --check</code>（订阅 feed 为最新）</li>
+<li><code>.venv/bin/python scripts/gen_api.py --check</code>（只读 API 为最新）</li>
 </ol>
-<p>校验通过后，<code>publish</code> job 生成并提交产物：</p>
+<p>校验通过后，<code>publish</code> job 先执行 <code>git pull --rebase origin main</code> 同步最新真源，再生成五类产物并跑生成后复验；暂存最终文件后仅有差异时才 bot commit + push。生成后不再 rebase，避免把旧产物叠到新真源上；若同步后又有新推送导致 push 失败，本轮不部署：</p>
 <ul>
 <li><code>scripts/gen_data_bundle.py</code> → <code>site/generated/bundle.json</code>：把索引与全部政策合并为单个请求（首页优先加载，白名单裁剪后约 32KB）</li>
 <li><code>scripts/gen_docs.py</code> → <code>site/docs/*.md</code> 渲染为 <code>.html</code>（<code>.md</code> 为唯一源，避免两份手工副本漂移）</li>
+<li><code>scripts/gen_product_pages.py</code> → <code>site/p/{id}.html</code> + <code>site/sitemap.xml</code></li>
+<li><code>scripts/gen_feed.py</code> → <code>site/feed.xml</code></li>
+<li><code>scripts/gen_api.py</code> → <code>site/generated/api/v1/</code></li>
 </ul>
 <h2>④ 部署：<code>.github/workflows/deploy.yml</code> → GitHub Pages</h2>
 <ul>
@@ -241,26 +255,30 @@
 </tr>
 <tr>
 <td><code>generated/monitor_health.json</code>（缺失时从 <code>update_status.json</code> 的 <code>health</code> 兜底推导）</td>
-<td>banner 下方可展开的"抓取降级明细"：逐条列出产品、目标、健康类型、失败原因、上次成功抓取时间</td>
+<td>首页 banner 下方可展开的"抓取降级明细"，以及详情页"政策监控抓取异常"卡片：逐条列出产品、目标、健康类型、失败原因、上次成功抓取时间</td>
 </tr>
 <tr>
 <td><code>data/policies/{id}.json</code>（详情页 <code>detail.js</code>）</td>
 <td>单产品详情与长条款原文</td>
 </tr>
+<tr>
+<td><code>generated/pending_verification.json</code>（详情页 <code>detail.js</code>）</td>
+<td>“待核实的政策变更”卡片与 diff 片段；文件缺失或请求失败时静默隐藏</td>
+</tr>
 </tbody>
 </table>
-<p>注意：前端<strong>不读取</strong> <code>pending_verification.json</code>，该文件只服务于本地核实流程。</p>
+<p>首页<strong>不读取</strong> <code>pending_verification.json</code>，只读 <code>update_status.json</code> 的聚合状态；详情页读取 pending 队列与健康队列（缺失时从状态兜底）。pending 队列同时供本地核实、订阅 feed 与 webhook 通知使用。</p>
 <h2>⑥ 核实层：<code>skills/policy-change-verify</code>（本地 agent + 人工）</h2>
 <ul>
 <li><strong>触发</strong>：维护者看到页面 banner，或主动要求核实某个产品的变更。</li>
 <li><strong>脚本</strong>：<code>skills/policy-change-verify/scripts/policy_verify.py</code>（从仓库根目录运行）</li>
 </ul>
 <pre><code class="language-bash"># 列出待核实队列与被标记的产品/目标
-python3 skills/policy-change-verify/scripts/policy_verify.py --list
+.venv/bin/python skills/policy-change-verify/scripts/policy_verify.py --list
 # 查看单个产品的某个目标（输出旧→新 diff 与当前政策 JSON）
-python3 skills/policy-change-verify/scripts/policy_verify.py &lt;product_id&gt; [target]
+.venv/bin/python skills/policy-change-verify/scripts/policy_verify.py &lt;product_id&gt; [target]
 # 核实收尾：清除队列项 + 清除页面告警
-python3 skills/policy-change-verify/scripts/policy_verify.py --resolve &lt;product_id&gt; [target]
+.venv/bin/python skills/policy-change-verify/scripts/policy_verify.py --resolve &lt;product_id&gt; [target]
 </code></pre>
 <p>旧快照按 <code>prev.txt</code> → 日期存档 → git 历史依次回溯，并自动跳过"内容相同的重基线提交"，避免全库重建基线造成的假差异。</p>
 <p><strong>判断变更性质</strong>：</p>
@@ -268,7 +286,7 @@ python3 skills/policy-change-verify/scripts/policy_verify.py --resolve &lt;produ
 <li><strong>实质性变更</strong>（训练政策、留存期限、版权归属、责任限制等条款实质变化）→ 起草对 <code>site/data/policies/{id}.json</code> 的修改：更新对应字段、<code>last_verified</code> 置为当天，必要时向 <code>timeline</code> 追加条目。<strong>必须先作为提议交给人工确认再落盘。</strong></li>
 <li><strong>噪声</strong>（页脚版权年、cookie 横幅、"最后更新"时间戳、旋转令牌，以及 <code>failed</code> / <code>suspicious</code>）→ 不修改数据。若属于抓取类噪声（例如页面每次加载都变化的令牌），需修复 <code>extract_text</code> 的去噪规则并<strong>重新基线</strong> <code>latest.txt</code>，否则下一轮仍会误报。</li>
 </ul>
-<p><code>--resolve</code> 会同时清除待核实队列项与 <code>update_status.json</code> 中的 <code>changed</code> 状态（重算产品级状态与全局计数），使页面告警立即消失——因为页面只读 <code>update_status.json</code>，只清队列并不会让告警消失。</p>
+<p><code>--resolve</code> 会同时清除待核实队列项与 <code>update_status.json</code> 中的 <code>changed</code> 状态（重算产品级状态与全局计数）。首页读聚合状态，详情页读 pending 队列，因此两处必须同步清理，告警才会立即消失。</p>
 <p>核实并回写数据后 push，CI 会重新生成 bundle 并部署，告警消失，<strong>闭环回到 ①</strong>。</p>
 <h2>脚本职责速查</h2>
 <table>
@@ -306,6 +324,26 @@ python3 skills/policy-change-verify/scripts/policy_verify.py --resolve &lt;produ
 <td>README 汇总表与数据同步</td>
 </tr>
 <tr>
+<td><code>scripts/gen_product_pages.py</code></td>
+<td>③</td>
+<td>产品静态详情页与 sitemap</td>
+</tr>
+<tr>
+<td><code>scripts/gen_feed.py</code></td>
+<td>②③</td>
+<td>生成 / 校验 Atom 订阅源</td>
+</tr>
+<tr>
+<td><code>scripts/gen_api.py</code></td>
+<td>③</td>
+<td>生成 / 校验只读数据 API</td>
+</tr>
+<tr>
+<td><code>scripts/notify_webhook.py</code></td>
+<td>②</td>
+<td>监控轮可选 webhook 通知</td>
+</tr>
+<tr>
 <td><code>scripts/gen_og_image.py</code></td>
 <td>④</td>
 <td>部署时生成社交分享卡片</td>
@@ -334,7 +372,7 @@ python3 skills/policy-change-verify/scripts/policy_verify.py --resolve &lt;produ
 <ol>
 <li><strong>来源覆盖仍需持续维护</strong>：新增产品或补充证据时，应将关键 Help Center、数据授权和隐私政策登记到 <code>sources[]</code>，否则相关附属文档变化不会自动告警。</li>
 <li><strong>时间线不是自动生成</strong>：产品没有历史事件时详情页不显示时间线，需人工补充重要政策变更。</li>
-<li><strong>抓取降级目标需要人工处置</strong>：首页"抓取降级明细"里的目标不会自愈（正文过短通常是站点改版或 JS 渲染所致），需按 <code>next_action</code> 配置 <code>content_selector</code> / <code>fetch_method=browser</code> 后用 <code>--only &lt;pid&gt;:&lt;key&gt;</code> 重试验证。</li>
+<li><strong>抓取降级目标需要人工处置</strong>：首页"抓取降级明细"里的目标不会仅靠重复运行自愈，需按 <code>next_action</code> 配置 <code>content_selector</code> / <code>fetch_method=browser</code> 后用 <code>--only &lt;pid&gt;:&lt;key&gt;</code> 重试验证；恢复后健康队列条目自动消失。</li>
 </ol>
   </div>
 

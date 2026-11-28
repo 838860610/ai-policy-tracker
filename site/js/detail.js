@@ -54,6 +54,13 @@
     );
   }
 
+  function deidentifiedValue(version) {
+    if (trainingStatus(version) === "unknown" && version.deidentified === false) {
+      return '<span style="color:var(--text-tertiary)">未证明（非明确否定）</span>';
+    }
+    return PT.boolBadge(version.deidentified, true);
+  }
+
   /** 风险评定依据卡（A1-a）：按方法论四项绿色标准逐条自动推导，供参考 */
   function riskDeriveCard(version) {
     // 与 scripts/policy_logic.py 的绿色标准推导保持同一口径：
@@ -128,8 +135,8 @@
       PT.escapeHtml(version.opt_out) + "</div></div>" +
       '<div class="info-item"><div class="label">退出操作说明</div><div class="value">' +
       PT.escapeHtml(version.opt_out_method) + "</div></div>" +
-      '<div class="info-item"><div class="label">是否去标识化</div><div class="value">' +
-      PT.boolBadge(version.deidentified, true) + "</div></div>" +
+      '<div class="info-item"><div class="label">训练场景去标识化</div><div class="value">' +
+      deidentifiedValue(version) + "</div></div>" +
       '<div class="info-item"><div class="label">数据留存期限</div><div class="value">' +
       PT.escapeHtml(version.data_retention) + "</div></div>" +
       '<div class="info-item"><div class="label">版权归属</div><div class="value">' +
@@ -138,6 +145,8 @@
       PT.escapeHtml(version.other_uses) + "</div></div>" +
       '<div class="info-item"><div class="label">风险等级</div><div class="value">' +
       PT.riskBadge(version.risk_level) + "</div></div>" +
+      '<div class="info-item"><div class="label">本版本核实日期</div><div class="value">' +
+      PT.escapeHtml(version.last_verified || "未知") + "</div></div>" +
       "</div>" +
       riskDeriveCard(version);
 
@@ -284,7 +293,7 @@
     var card = document.getElementById("pendingChangeCard");
     var list = document.getElementById("pendingChangeList");
     if (!card || !list) return;
-    fetch("generated/pending_verification.json")
+    fetch("generated/pending_verification.json", { cache: "no-store" })
       .then(function (res) {
         if (!res.ok) throw new Error("HTTP " + res.status);
         return res.json();
@@ -320,6 +329,66 @@
       });
   }
 
+  function renderMonitorHealth(pid) {
+    var card = document.getElementById("monitorHealthCard");
+    var list = document.getElementById("monitorHealthList");
+    if (!card || !list) return;
+    var labels = {blocked: "被拦截", no_baseline: "无可用基线", degraded: "抓取降级"};
+    function show(items) {
+      var html = items.map(function (item) {
+        var url = PT.safeUrl(item.url);
+        var checked = String(item.last_checked || "").replace("T", " ").slice(0, 16);
+        var good = String(item.last_good_at || "").replace("T", " ").slice(0, 16);
+        return '<div class="pending-change-item">' +
+          '<div class="pending-change-head"><strong>' + PT.escapeHtml(item.label || item.key || "") +
+          '</strong><span class="health-tag health-' + PT.escapeHtml(item.health) + '">' +
+          PT.escapeHtml(labels[item.health] || item.health) + "</span></div>" +
+          (url ? '<a class="policy-link" href="' + PT.escapeHtml(url) +
+            '" target="_blank" rel="noopener noreferrer">查看官方页面 &rarr;</a>' : "") +
+          '<p class="pending-note">' + PT.escapeHtml(item.message || "") +
+          (checked ? "；最近检查：" + PT.escapeHtml(checked) : "") +
+          (good ? "；上次成功抓取：" + PT.escapeHtml(good) : "；从未成功抓取") +
+          "</p></div>";
+      }).join("");
+      if (!html) return;
+      list.innerHTML = html;
+      card.style.display = "block";
+    }
+    fetch("generated/monitor_health.json", { cache: "no-store" })
+      .then(function (res) {
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        return res.json();
+      })
+      .then(function (data) {
+        var items = Object.keys((data && data.items) || {}).map(function (key) {
+          return data.items[key];
+        }).filter(function (item) {
+          return item && item.pid === pid &&
+            ["blocked", "no_baseline", "degraded"].indexOf(item.health) !== -1;
+        });
+        show(items);
+      })
+      .catch(function () {
+        fetch("generated/update_status.json", { cache: "no-store" })
+          .then(function (res) {
+            if (!res.ok) throw new Error("HTTP " + res.status);
+            return res.json();
+          })
+          .then(function (data) {
+            var product = ((data && data.products) || {})[pid] || {};
+            var items = Object.keys(product.targets || {}).map(function (key) {
+              return product.targets[key];
+            }).filter(function (item) {
+              return item && ["blocked", "no_baseline", "degraded"].indexOf(item.health) !== -1;
+            }).map(function (item) {
+              return Object.assign({}, item, {pid: pid, key: item.key || ""});
+            });
+            show(items);
+          })
+          .catch(function () {});
+      });
+  }
+
   function detailHref(pid) {
     return "p/" + encodeURIComponent(pid) + ".html";
   }
@@ -350,7 +419,7 @@
   function renderNav(data) {
     var nav = document.getElementById("detailNav");
     if (!nav) return;
-    fetch("generated/bundle.json")
+    fetch("generated/bundle.json", { cache: "no-store" })
       .then(function (res) {
         if (!res.ok) throw new Error("HTTP " + res.status);
         return res.json();
@@ -406,7 +475,7 @@
 
   function loadDetail(id) {
     currentId = id;
-    fetch("data/policies/" + id + ".json")
+    fetch("data/policies/" + id + ".json", { cache: "no-store" })
       .then(function (res) {
         if (!res.ok) throw new Error("HTTP " + res.status);
         return res.json();
@@ -476,5 +545,6 @@
     }
     loadDetail(id);
     renderPendingDiff(id);
+    renderMonitorHealth(id);
   });
 })();

@@ -26,19 +26,23 @@ echo "=== 本地专属监控（monitor_scope=local）==="
 
 echo
 echo "=== 提交监控产物（不 push）==="
-git add site/generated/update_status.json \
-        site/generated/monitor_health.json \
-        site/generated/pending_verification.json \
-        site/generated/snapshots
+MONITOR_PATHS=(
+  site/generated/update_status.json
+  site/generated/monitor_health.json
+  site/generated/pending_verification.json
+  site/generated/snapshots
+)
+git add "${MONITOR_PATHS[@]}"
 
-if git diff --cached --quiet; then
+if git diff --cached --quiet -- "${MONITOR_PATHS[@]}"; then
   echo "无监控产物变化，跳过提交"
   exit 0
 fi
 
 git -c user.name="$(git config user.name)" \
     -c user.email="$(git config user.email)" \
-    commit -q -m "monitor(local): 本地专属监控 $(date +%F)"
+    commit -q -m "monitor(local): 本地专属监控 $(date +%F)" \
+    -- "${MONITOR_PATHS[@]}"
 
 echo "已提交。查看与推送："
 echo "  git show --stat HEAD"

@@ -8,8 +8,8 @@ policy-change-verify skill 的本地核实助手。
 git 历史可靠地取回"旧快照"（自动跳过内容相同的重基线提交），
 与 latest.txt（新快照）做 unified diff，并输出该产品的当前政策 JSON，
 供 agent 判断实质变更并起草补丁。核实完成并更新数据后，用 --resolve 做收尾：
-清除待核实队列项，并同步把 update_status.json 中对应目标改为 ok，使页面上的
-"待核实"告警立即消失（页面告警只读 update_status.json，与队列互不影响）。
+清除待核实队列项，并同步把 update_status.json 中对应目标改为 ok，使首页与详情页的
+"待核实"告警立即消失。
 
 用法（从仓库根目录运行）：
   python3 policy_verify.py --list
@@ -142,8 +142,8 @@ def clear_page_alert(root, pid, key):
     """清除页面上的"待核实"告警：把该产品（默认全部 changed 目标）在
     update_status.json 中标记为 ok，并重算产品级状态与全局计数。
 
-    页面 banner 只读 update_status.json，与 pending_verification 队列互不影响，
-    因此只清队列不足以让告警消失，必须同步改动这里。
+    首页告警读 update_status.json，详情页 diff 卡片读 pending_verification.json，
+    因此两处都必须同步清理。
     只处理 changed（failed/suspicious 属监控异常，交给各自的修复流程，不在此掩盖）。
     """
     path = os.path.join(root, "site", "generated", "update_status.json")
@@ -305,7 +305,8 @@ def get_old_text(root, pid, key, depth):
     dated = []
     if os.path.isdir(base):
         for fn in os.listdir(base):
-            if re.match(r"\d{4}-\d{2}-\d{2}\.txt$", fn) and fn[:-4] != today:
+            if (re.match(r"\d{4}-\d{2}-\d{2}(?:-\d{6}(?:-\d+)?)?\.txt$", fn)
+                    and not fn.startswith(today)):
                 dated.append(fn)
     dated.sort(reverse=True)
     for fn in dated:
@@ -389,14 +390,23 @@ def main():
     ap.add_argument("--all-targets", action="store_true", help="打印该产品全部目标")
     ap.add_argument("--depth", type=int, default=6, help="回溯 git 历史提交数（默认 6）")
     ap.add_argument("--max-diff", type=int, default=240, help="diff 最大行数（默认 240）")
-    ap.add_argument("--resolve", metavar="PRODUCT_ID", default=None,
-                    help="核实完成并更新数据后，从待核实队列移除该产品（可配合 target 只移一项）")
+    ap.add_argument("--resolve", nargs="+", metavar="PRODUCT_ID[TARGET]",
+                    help="核实完成并更新数据后移除队列项与页面告警；可再带一个目标键")
     args = ap.parse_args()
 
     root = repo_root(args.repo)
-    if args.resolve and not ID_PATTERN.match(args.resolve):
-        print("[错误] 非法产品 ID", file=sys.stderr)
-        raise SystemExit(2)
+    resolve_pid = resolve_key = None
+    if args.resolve:
+        if len(args.resolve) not in (1, 2):
+            ap.error("--resolve 需要 PRODUCT_ID，最多再带一个 TARGET")
+        resolve_pid = args.resolve[0]
+        resolve_key = args.resolve[1] if len(args.resolve) == 2 else None
+        if not ID_PATTERN.match(resolve_pid):
+            print("[错误] 非法产品 ID", file=sys.stderr)
+            raise SystemExit(2)
+        if resolve_key and not TARGET_PATTERN.match(resolve_key):
+            print("[错误] 非法目标键", file=sys.stderr)
+            raise SystemExit(2)
     if args.product_id and not ID_PATTERN.match(args.product_id):
         print("[错误] 非法产品 ID", file=sys.stderr)
         raise SystemExit(2)
@@ -404,9 +414,9 @@ def main():
         print("[错误] 非法目标键", file=sys.stderr)
         raise SystemExit(2)
 
-    if args.resolve:
-        resolve_pending(root, args.resolve, args.target)
-        clear_page_alert(root, args.resolve, args.target)
+    if resolve_pid:
+        resolve_pending(root, resolve_pid, resolve_key)
+        clear_page_alert(root, resolve_pid, resolve_key)
         return
 
     status = load_status(root)

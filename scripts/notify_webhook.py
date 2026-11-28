@@ -18,8 +18,10 @@ pending_verification.json 取各目标的 diff 片段首几行。只做一次性
 continue-on-error 保证通知故障不掩盖监控结果本身。
 """
 
+import datetime
 import json
 import os
+import re
 import sys
 
 import requests
@@ -33,6 +35,30 @@ TARGET_LABELS = {"main": "主监控页", "toc": "个人版", "tob": "企业版"}
 MAX_TARGETS_IN_MESSAGE = 10
 DIFF_LINES_IN_MESSAGE = 6
 MESSAGE_MAX_CHARS = 3500  # Telegram 单条上限 4096，留余量
+
+
+def redact_secrets(text):
+    text = re.sub(r"(?i)(bot[^/\s:]+:)[A-Za-z0-9_-]+", r"\1***", str(text))
+    text = re.sub(r"(?i)([?&](?:token|access_token|key|secret)=)[^&\s]+", r"\1***", text)
+    return re.sub(r"(https?://)[^/@\s]+:[^/@\s]+@", r"\1***@", text)
+
+
+def status_is_fresh(status_data):
+    """只有本轮监控写出的状态才允许通知，避免前置步骤失败时重发旧告警。"""
+    since_raw = os.environ.get("MONITOR_STARTED_AT", "").strip()
+    if not since_raw:
+        return True
+    try:
+        since = datetime.datetime.fromisoformat(since_raw.replace("Z", "+00:00"))
+        last_raw = (status_data.get("meta") or {}).get("last_run", "")
+        last = datetime.datetime.fromisoformat(str(last_raw).replace("Z", "+00:00"))
+    except (TypeError, ValueError):
+        return False
+    if since.tzinfo is None:
+        since = since.replace(tzinfo=datetime.timezone.utc)
+    if last.tzinfo is None:
+        last = last.replace(tzinfo=datetime.timezone.utc)
+    return last >= since
 
 
 def collect_changed(status_data):
@@ -80,7 +106,7 @@ def load_pending_state():
 
 def build_text(changed, diff_previews, queue_total):
     """组装纯文本通知。各平台的格式适配在 build_payload，这里只管内容。"""
-    lines = [f"⚠️ AI 政策追踪器：本轮检测到 {len(changed)} 项政策可能已更新", ""]
+    lines = [f"⚠️ AI 政策追踪器：当前有 {len(changed)} 项政策变更待核实", ""]
     for item in changed[:MAX_TARGETS_IN_MESSAGE]:
         lines.append(f"· {item['name']}（{item['label']}）")
         if item["url"]:
@@ -140,6 +166,9 @@ def main():
     except (OSError, json.JSONDecodeError) as e:
         print(f"读取 update_status.json 失败，跳过通知：{e}")
         return 0
+    if not status_is_fresh(status_data):
+        print("update_status.json 不是本轮监控结果，跳过过期通知")
+        return 0
 
     changed = collect_changed(status_data)
     if not changed:
@@ -158,17 +187,17 @@ def main():
     try:
         resp = requests.post(webhook_url, json=payload, timeout=10)
     except requests.exceptions.RequestException as e:
-        print(f"[webhook] 发送失败：{e.__class__.__name__}: {e}")
+        print(f"[webhook] 发送失败：{e.__class__.__name__}: {redact_secrets(e)}")
         return 1
     if resp.status_code >= 300:
-        print(f"[webhook] HTTP {resp.status_code}：{resp.text[:200]}")
+        print(f"[webhook] HTTP {resp.status_code}：{redact_secrets(resp.text[:200])}")
         return 1
     try:
         body = resp.json()
     except ValueError:
         body = None
     if not platform_ok(body):
-        print(f"[webhook] 平台拒绝（HTTP 200 但业务失败）：{str(body)[:200]}")
+        print(f"[webhook] 平台拒绝（HTTP 200 但业务失败）：{redact_secrets(str(body)[:200])}")
         return 1
     print(f"[webhook] 通知已发送（{webhook_type}，{len(changed)} 项变更）")
     return 0

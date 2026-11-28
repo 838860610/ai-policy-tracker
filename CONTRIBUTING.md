@@ -17,7 +17,9 @@ The rest of this guide is in Chinese. The essentials:
    .venv/bin/python scripts/gen_readme_table.py --check
    .venv/bin/python scripts/gen_docs.py --check
    .venv/bin/python scripts/gen_product_pages.py --check
-   .venv/bin/python -m unittest discover -s tests         # regression tests
+   .venv/bin/python scripts/gen_feed.py --check
+   .venv/bin/python scripts/gen_api.py --check
+   .venv/bin/python -m unittest discover -s tests         # 170 regression tests
    ```
 
 4. **Commit message**: `update: ...` / `add: ...` / `fix: ...` / `docs: ...` / `feat: ...`
@@ -30,7 +32,7 @@ Questions are welcome via Issues — use the "数据纠错" template if you spot
 - **`site/data/policies/{id}.json` 是每个产品唯一的数据源**，包含该产品的名称、公司、版本政策、时间线等全部字段
 - `site/data/products.json` 只维护产品 ID 的排列顺序（定义首页/README 表格的展示顺序）与项目元信息，**不存储产品数据**
 - 修改产品数据只需要改 `site/data/policies/{id}.json` 一个文件，不存在需要同步的两份数据
-- **目录分层**：`data/` 只放人工维护的源数据（`products.json` + `policies/`）；脚本产出一律写入 `site/generated/`（`bundle.json`、`update_status.json`、`pending_verification.json`、`snapshots/`、`og-card.png`），**不要手工编辑**这些文件，改动会被下次 CI 覆盖
+- **目录分层**：`data/` 只放人工维护的源数据（`products.json` + `policies/`）；脚本产物包括 `site/generated/` 下的 `bundle.json`、`update_status.json`、`pending_verification.json`、`monitor_health.json`、`snapshots/`、`api/v1/`、`og-card.png`，以及 `site/feed.xml`、`site/docs/*.html`、`site/p/*.html`、`site/sitemap.xml`，**不要手工编辑**，改动会被下次 CI 或监控覆盖
 
 ## 如何贡献政策更新
 
@@ -43,11 +45,11 @@ Questions are welcome via Issues — use the "数据纠错" template if you spot
 
 **人工跟进步骤**（在本地用 `policy-change-verify` skill）：
 
-1. 运行 `python3 skills/policy-change-verify/scripts/policy_verify.py --list` 查看待核实项
-2. 对每项运行 `python3 skills/policy-change-verify/scripts/policy_verify.py <product_id> [target]` 看新旧 diff
+1. 运行 `.venv/bin/python skills/policy-change-verify/scripts/policy_verify.py --list` 查看待核实项
+2. 对每项运行 `.venv/bin/python skills/policy-change-verify/scripts/policy_verify.py <product_id> [target]` 看新旧 diff
 3. 判断是实质性条款变更还是噪声（页脚年/时间戳/导航重排/抓取失败等属噪声）
 4. 如为实质变更：访问官方政策页面，更新 `site/data/policies/{id}.json`，同步 `last_verified` 与 `timeline`
-5. 核实并更新数据后，运行 `python3 skills/policy-change-verify/scripts/policy_verify.py --resolve <product_id>` 同时清除队列项和页面告警
+5. 核实并更新数据后，运行 `.venv/bin/python skills/policy-change-verify/scripts/policy_verify.py --resolve <product_id>` 同时清除队列项和页面告警
 
 ### 2. 新增产品
 
@@ -56,7 +58,7 @@ Questions are welcome via Issues — use the "数据纠错" template if you spot
 1. 在 `site/data/policies/` 下创建 `{id}.json` 详细政策文件（id 用小写英文+连字符，如 `github-copilot.json`）
 2. 在 `site/data/products.json` 的 `products` 数组中加入该 ID（决定展示顺序）
 3. 确保所有必填字段都已填写
-4. 运行 `python3 scripts/gen_readme_table.py` 重新生成 README 汇总表
+4. 运行 `.venv/bin/python scripts/gen_readme_table.py` 重新生成 README 汇总表
 
 ### 增删产品后必须同步生成产物
 
@@ -67,11 +69,14 @@ Questions are welcome via Issues — use the "数据纠错" template if you spot
 .venv/bin/python scripts/gen_data_bundle.py
 # 重新生成 site/p/{id}.html 与 site/sitemap.xml（每个产品一个独立静态详情页）
 .venv/bin/python scripts/gen_product_pages.py
+# 重新生成订阅 feed 与只读 API
+.venv/bin/python scripts/gen_feed.py
+.venv/bin/python scripts/gen_api.py
 ```
 
 `site/p/*.html` 与 `site/sitemap.xml` 都是 `scripts/gen_product_pages.py` 的产物，**不要手工编辑**。生成器以 `site/detail.html` 为模板，写入产品专属 title/描述/OG/canonical 与静态 `<noscript>` 摘要；sitemap 的 id 集合与 `products.json` **完全一致**，多一个少一个都会让 `test_sitemap_matches_products` 失败。
 
-> 实战踩坑：曾删除 `pangu`/`skyreels` 两个产品后漏了重新生成产物，导致 `test_bundle_is_slim_and_complete` 与 `test_sitemap_matches_products` 双双失败、CI 红灯。记住——`products.json` 一变，bundle、sitemap、产品静态页必须跟着变（CI 的 `gen_product_pages.py --check` 会拦下）。
+> 实战踩坑：曾删除 `pangu`/`skyreels` 两个产品后漏了重新生成产物，导致 `test_bundle_is_slim_and_complete` 与 `test_sitemap_matches_products` 双双失败、CI 红灯。记住——`products.json` 一变，bundle、sitemap、产品静态页、feed 与 API 必须跟着变（CI 会分别跑对应生成器的 `--check`）。
 
 > 注：`update_status.json` / `pending_verification.json` / `monitor_health.json` / `snapshots/` 由监控脚本每轮按当前索引重建；已删除产品或已移除监控目标的旧快照和队列项会在下一轮监控后清理（`monitor_health.json` 每轮整体重建，目标恢复后条目自动消失）。
 
@@ -87,7 +92,11 @@ git checkout -b update/xxx-policy
 # 提交前运行校验（首次请先创建虚拟环境，见下方"运行验证"）
 .venv/bin/python scripts/validate_data.py
 .venv/bin/python scripts/gen_readme_table.py --check
-python3 -m unittest discover -s tests
+.venv/bin/python scripts/gen_docs.py --check
+.venv/bin/python scripts/gen_product_pages.py --check
+.venv/bin/python scripts/gen_feed.py --check
+.venv/bin/python scripts/gen_api.py --check
+.venv/bin/python -m unittest discover -s tests -q
 
 # 提交
 git add -A
@@ -166,12 +175,12 @@ git push origin update/xxx-policy
 | `verification_notes` | `versions.toc` / `versions.tob` | 核实说明数组（非政策原文），不参与条款展示 |
 | `monitor` | 顶层 | 设为 `false` 时该产品**不纳入自动监控**。适用于没有独立公开政策页、政策 URL 只能指向产品首页的占位条目，否则监控脚本会对首页做正文哈希，产生持续误报 |
 | `toc_note` / `tob_note` | 顶层 | 该版本无数据时的书面说明（填了就不会产生"缺少版本数据"警告） |
-| `fetch_method` | 顶层 / `targets.main` / `versions.*` / `sources[]` 条目 | 抓取方式：`requests`（默认）或 `browser`（无头 Chromium，应对 Cloudflare 等挑战页，CI 会装 Playwright）。写在单个目标上即可，不必为了一页升级整产品 |
+| `fetch_method` | 顶层 / `targets.main` / `versions.*` / `sources[]` 条目 | 抓取方式：`requests`（默认）或 `browser`（无头 Chromium）。仅配置为 `browser` 的目标启用 Playwright，不会自动兜底，也不承诺零漏报；CI 会安装浏览器依赖 |
 | `content_selector` | 同上 | CSS 选择器，正文不在 `<main>` / `<article>` 内时指定容器（文档预览页、富文本页等） |
 | `wait_for_selector` | 同上 | 浏览器抓取时等待该节点出现即视为已渲染，缩短 SPA 页耗时 |
 | `min_body_chars` | 同上 | 该目标的正文下限，覆盖默认 500 字符 |
 | `targets` | 顶层（只含 `main` 键） | 顶层 `policy_url` 对应 `main` 目标的配置载体。`toc`/`tob` 写进 `versions.*`，补充来源写进 `sources[]` 条目——不要在 `targets` 里重复定义，避免两处配置歧义 |
-| `monitor_scope` | 顶层 / `targets.main` / `versions.*` / `sources[]` 条目 | `ci`（默认，两边都跑）或 `local`（**仅本地跑**）。用于 GitHub runner 连不上的站点（如 `trae`——Cloudflare 拒绝数据中心 IP），改由 `./scripts/local_monitor.sh` 在本地跑，以本地结果为准 |
+| `monitor_scope` | 顶层 / `targets.main` / `versions.*` / `sources[]` 条目 | `ci`（默认，两边都跑）或 `local`（**仅本地跑**）。用于 GitHub runner 连不上的站点（如 `trae`——Cloudflare 拒绝数据中心 IP）。CI 不检查 local 目标，但沿用旧目标状态，仅标 `skipped_this_run`，健康轮次与 `last_seen` 不虚增；改由 `./scripts/local_monitor.sh` 在本地跑，以本地结果为准 |
 
 四个载体的优先级是 **目标级 > 产品级 > 全局默认**，所以 `targets.main.fetch_method` 会覆盖顶层 `fetch_method`，而顶层仍对其余目标生效（既有数据文件无需迁移）。
 
@@ -202,7 +211,7 @@ git push origin update/xxx-policy
 1. **数据准确**：所有信息必须来源于官方政策，不得推测
 2. **核实日期**：更新 `last_verified` 为实际核实日期
 3. **格式一致**：遵循现有数据文件的格式规范
-4. **校验通过**：`scripts/validate_data.py` 0 错误、`gen_readme_table.py --check` 通过、`gen_docs.py --check` 通过、`python3 -m unittest discover -s tests` 全绿
+4. **校验通过**：`validate_data.py` 0 错误，README / 文档 / 产品页 / feed / API 五项 `--check` 通过，`.venv/bin/python -m unittest discover -s tests` 全绿（全量）
 5. **描述清晰**：PR 描述中说明变更原因和信息来源 URL
 
 ## 核实要求
@@ -249,13 +258,25 @@ python3 -m venv .venv
 # 产品详情页与 sitemap 是否由数据最新生成
 .venv/bin/python scripts/gen_product_pages.py --check
 
+# 订阅 feed 与只读 API 是否最新
+.venv/bin/python scripts/gen_feed.py --check
+.venv/bin/python scripts/gen_api.py --check
+
 # 回归测试（标准库 unittest，无需额外依赖）
-python3 -m unittest discover -s tests -v
+.venv/bin/python -m unittest discover -s tests -v
 
 # 启动本地服务预览（自动打开浏览器；根目录为 site/，与线上一致）
 ./start.sh
 # 或手动：python3 -m http.server 8080 --directory site，访问 http://localhost:8080 检查页面
 ```
+
+### 自动化链路与跳过语义
+
+- `ci.yml` 运行全量回归测试、数据结构校验及 README / 文档 / 产品页 / feed / API 五项 `--check`；main push 全绿后先 `git pull --rebase origin main` 同步最新真源，再生成五类产物、复验并按最终差异提交；生成后不再 rebase，若 push 因新提交失败则整轮不部署旧产物。
+- `monitor.yml` 运行 `check_updates.py --scope ci` → 生成 feed → 可选 webhook 通知（仅发送本轮新状态，未配置静默跳过、失败不阻断）→ rebase → 提交状态、快照、两个队列与 feed；监控失败仍保留结果并标红，部署照常进行。
+- 首页读 `bundle.json`、`update_status.json`、`monitor_health.json`，不读 pending；详情页额外读 `policies/{id}.json`、`pending_verification.json` 与 `monitor_health.json`（缺失时从状态兜底）。
+- local 目标在 CI 中沿用旧状态，仅标 `skipped_this_run`；本地 `--scope local` 同样沿用非 local 目标。`--products` / `--only` 合并未检查目标并跳过孤儿快照清理；`--no-browser` 混合产品只查 requests 目标，被跳过的 browser 目标沿用旧状态；整产品全 browser 且无旧状态时才产品级 `skipped`。这些都不是完整监控轮次。
+- 单目标 `changed` 只与 `health=ok` 同现；`rebaselined` 只与 `ok` / `suspicious` 同现，不存在 `changed + rebaselined`。
 
 > **文档约定**：`site/docs/` 下的 `methodology` / `update-monitoring` 是线上站点与 `sitemap.xml` 直接引用的页面，**必须入库**。
 > - **`.md` 是唯一源，`.html` 由 `scripts/gen_docs.py` 渲染生成，不要手工编辑 html**（此前两份手工维护导致 html 长期停留在旧版本）；CI 会跑 `--check`，不一致即失败

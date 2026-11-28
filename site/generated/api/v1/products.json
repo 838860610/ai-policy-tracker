@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "generated_at": "2026-11-15",
+  "generated_at": "2026-11-28",
   "description": "AI 用户政策追踪器只读 API v1：47 款 AI 产品的隐私政策 / 训练条款结构化数据。字段语义见 https://github.com/838860610/ai-policy-tracker（policy_schema.md / methodology.md）。v1 承诺向后兼容：只增字段、不删字段、不改已有字段语义。",
   "disclaimer": "本数据仅供参考，不构成法律建议。各产品政策可能随时变更，请以官方最新政策为准。",
   "count": 47,
@@ -1130,19 +1130,19 @@
       "name": "Claude",
       "company": "Anthropic",
       "region": "美国",
-      "description": "消费版自2025-09-28起默认将对话用于模型训练（可关闭'Help improve Claude'）；商业版不训练",
+      "description": "消费版采用退出式模型训练（可通过账户设置关闭模型改进）；商业版不训练。训练数据留存期限尚未独立核实",
       "policy_url": "https://www.anthropic.com/legal/consumer-terms",
       "last_verified": "2026-08-30",
       "versions": {
         "toc": {
           "used_for_training": true,
           "training_status": "default_on_opt_out",
-          "training_note": "2025-09-28起消费版（Free/Pro/Max）改为退出式：对话默认用于模型训练，可在Settings-Privacy关闭'Help improve Claude'；参与训练的数据保留最长5年（欧洲经济区/英国/瑞士等地区默认不同）",
-          "default_state": "默认开启（可关闭）",
+          "training_note": "本地消费者条款快照（页面 Effective Oct 8, 2025）明文允许将 Materials 用于模型训练，除非用户通过账户设置退出；反馈材料或被标记为安全审查的材料即使退出仍可能用于训练。隐私设置帮助页（2026-08-03）载明关闭后不再将新对话/编程会话用于未来训练，已开始的训练不受影响。原'2025-09-28起默认开启'的起始日期与'参与训练数据最长5年'均未获现有本地快照逐字核实，留存期限待核",
+          "default_state": "退出式（条款允许训练，除非通过账户设置退出）",
           "opt_out": "设置开关",
-          "opt_out_method": "Settings → Privacy → 关闭'Help improve Claude'；关闭仅对后续数据生效",
+          "opt_out_method": "Settings → Privacy → 在'Help Improve our AI models'下切换开关；关闭后新对话/编程会话不用于未来训练，已开始训练不受影响",
           "deidentified": false,
-          "data_retention": "参与训练的数据最长保留5年；关闭后未来数据不再用于训练",
+          "data_retention": "未独立核实（现有消费者条款与隐私设置帮助页快照未载明具体训练数据留存期限；原'最长5年'表述已删除）",
           "copyright": "用户所有",
           "other_uses": "无",
           "risk_level": "red",
@@ -1151,12 +1151,15 @@
             "copyright_user": true
           },
           "key_clauses": [
-            "Help improve Claude. Allow the use of your chats and coding sessions to train and improve Anthropic AI models.（模型改进隐私设置项，2025-09-28起消费版默认开启）",
-            "参与训练的数据将保留最长5年；关闭设置或删除账号仅使数据不再用于未来的模型训练。（Anthropic消费者条款与隐私政策更新，2025-09-28生效）"
+            "We may use Materials to provide, maintain, and improve the Services and to develop other products and services, including training our models, unless you opt out of training through your account settings. Even if you opt out, we will use Materials for model training when: (1) you provide Feedback to us regarding any Materials, or (2) your Materials are flagged for safety review to improve our ability to detect harmful content, enforce our policies, or advance our safety research.（Anthropic Consumer Terms of Service·4 Our use of Materials，页面 Effective Oct 8, 2025；本地快照2026-11-09）",
+            "If you decide to turn off the model training setting, we will not use any new chats and coding sessions you have with Claude for future model training. Your data will still be included in model training that has already started and in models that have already been trained, but we will stop using your previously stored chats and coding sessions in future model training runs.（How do I change my model improvement privacy settings?，2026-08-03；本地快照）"
           ],
           "policy_link": "https://privacy.claude.com/en/articles/12109829-how-do-i-change-my-model-improvement-privacy-settings",
           "last_verified": "2026-08-29",
-          "label": "个人版"
+          "label": "个人版",
+          "verification_notes": [
+            "2026-11-28 本地快照审计：原中文'参与训练的数据将保留最长5年'在现有消费者条款与隐私设置帮助页快照中均无逐字出处，已删除，并改用两条英文原文；原'2025-09-28起默认开启'与'隐身聊天不用于训练'亦未获现有快照逐字支持，相关日期与说明已移除或降级为未独立核实"
+          ]
         },
         "tob": {
           "used_for_training": false,
@@ -1184,19 +1187,19 @@
       },
       "timeline": [
         {
-          "date": "2025-09-28",
-          "event": "消费者条款与隐私政策更新：Free/Pro/Max对话默认用于模型训练（退出式），参与训练数据保留最长5年；商业版不受影响"
+          "date": "2025-10-08",
+          "event": "消费者条款（页面 Effective Oct 8, 2025）允许将 Materials 用于模型训练，除非通过账户设置退出；反馈及安全审查材料另有例外，商业版不受影响"
         }
       ],
-      "analysis_summary": "Claude消费版（Free/Pro/Max）自2025年9月28日起采用退出式训练：默认使用对话训练模型，可在Settings-Privacy关闭'Help improve Claude'，参与训练的数据保留最长5年。商业版（Team/Enterprise/API）默认不训练。关闭仅对后续数据生效。",
+      "analysis_summary": "Claude消费版（Free/Pro/Max）采用退出式训练：现有条款允许将 Materials 用于模型训练，除非通过账户设置退出；可在 Settings-Privacy 的'Help Improve our AI models'下关闭。关闭后新对话/编程会话不用于未来训练，但已开始训练以及反馈、安全审查场景另有例外。原'2025-09-28起'与'参与训练数据最长保留5年'未获现有本地快照独立核实，留存期限待核。商业版（Team/Enterprise/API）默认不训练。",
       "key_findings": [
-        "2025-09-28起消费版改为退出式：默认训练，需手动关闭",
-        "参与训练的数据最长保留5年",
-        "商业版（Team/Enterprise/API）默认不训练",
-        "隐身聊天（Incognito）不用于训练"
+        "消费版条款允许将 Materials 用于模型训练，除非通过账户设置退出；反馈与安全审查场景有例外",
+        "关闭模型训练后，新对话/编程会话不再用于未来训练；已开始训练不受影响",
+        "原'参与训练数据最长保留5年'及'2025-09-28起默认开启'未获本地快照逐字核实，留存期限待核",
+        "商业版（Team/Enterprise/API）默认不训练"
       ],
       "recommendations": [
-        "消费版用户建议在Settings-Privacy关闭'Help improve Claude'",
+        "消费版用户建议在Settings-Privacy的'Help Improve our AI models'下关闭模型训练，并注意反馈、安全审查例外",
         "商业用途使用Team/Enterprise/API版本"
       ],
       "icon": "🧠",
@@ -1650,9 +1653,9 @@
           "event": "订阅及自动续费协议新版生效：新增'单次购买套餐特别条款'专章（额度到期自动失效不退还、禁标准 API 调用、违规转售 5 倍违约金）；责任限额由'最近一个自然月消费总额'收窄为'引发责任的单产品实际消耗费用（不含赠送/优惠券/预付未消耗）'"
         }
       ],
-      "analysis_summary": "GLM Coding Plan 为智谱编程订阅服务（个人订阅 + 团队套餐）。个人订阅无独立训练条款，适用开放平台条款（匿名化训练无需另行同意，中风险）；团队套餐购买协议在套餐清单中明示'数据默认不用于模型训练'（2026-08-30 复核修正，默认不训练、无需退出）。调用额度仅限智谱官方工具内使用，禁转售。2026-11-13 版商业条款收紧：责任限额收窄至单产品实际消耗费用，违规转售新增 5 倍违约金。",
+      "analysis_summary": "GLM Coding Plan 为智谱编程订阅服务（个人订阅 + 团队套餐）。个人订阅无独立训练条款，适用开放平台条款（匿名化训练无需另行同意，且无单独退出路径，高风险）；团队套餐购买协议在套餐清单中明示'数据默认不用于模型训练'（2026-08-30 复核修正，默认不训练、无需退出）。调用额度仅限智谱官方工具内使用，禁转售。2026-11-13 版商业条款收紧：责任限额收窄至单产品实际消耗费用，违规转售新增 5 倍违约金。",
       "key_findings": [
-        "个人订阅：无独立训练/数据条款，适用开放平台条款（匿名化训练无需另行同意）",
+        "个人订阅：无独立训练/数据条款，适用开放平台条款（匿名化训练无需另行同意、无单独退出路径，高风险）",
         "团队套餐：套餐清单明示'数据默认不用于模型训练'（2026-08-30 复核）",
         "调用额度仅限智谱官方工具内使用，禁通用 API 接入与转售",
         "个人订阅单一账号限本人使用",
@@ -1720,7 +1723,7 @@
       "company": "智谱AI",
       "region": "中国",
       "icon": "🦞",
-      "description": "智谱本地版 OpenClaw 智能体（国内首个一键安装，2026-10-27 协议生效，积分制计费）。新版协议删除了原'不可撤销、免费、全球范围、可分许可使用权（含产品推广）'条款；团队数据未经单独同意原则上不用于模型训练或产品优化；个人'优化计划'默认状态协议未载明",
+      "description": "智谱本地版 OpenClaw 智能体（国内首个一键安装，2026-10-27 协议生效，积分制计费）。新版协议删除了原'不可撤销、免费、全球范围、可分许可使用权（含产品推广）'条款；团队数据未经单独同意原则上不用于模型训练或产品优化；个人版训练状态尚未明确（'优化计划'仅适用于个人用户，默认状态协议未载明）",
       "product_url": "https://autoglm.aminer.cn/",
       "policy_url": "https://autoglm.aminer.cn/web/md2html/index.html?md=autoclaw_agreement&favicon=autoglm",
       "last_verified": "2026-11-14",
@@ -1728,11 +1731,11 @@
         "toc": {
           "label": "个人版（积分制）",
           "used_for_training": false,
-          "training_status": "explicit_no",
-          "training_note": "2026-10-27生效版：原'不可撤销的、免费的、全球范围内的、可分许可使用权（模型服务优化、产品内容推广与宣传）'条款已整体删除；新增团队服务专章载明'未经您的单独同意，AutoClaw 原则上不会将您的数据用于模型训练或产品优化'（语境为团队服务，并指明'优化计划'仅适用个人用户）；个人'优化计划'的默认状态协议未载明，权威来源为《AutoClaw隐私政策》（未纳入监控）。支持自行填入第三方大模型 API（该模式下 AutoClaw 仅作本地执行通道，费用与数据按第三方协议）",
-          "default_state": "协议层面无默认训练授权（原不可撤销许可已移除）；个人'优化计划'默认状态未载明",
-          "opt_out": "无需退出（协议已无默认训练授权）",
-          "opt_out_method": "协议未载明默认训练授权；个人'优化计划'设置及《AutoClaw隐私政策》为准",
+          "training_status": "unknown",
+          "training_note": "2026-10-27生效版：原'不可撤销的、免费的、全球范围内的、可分许可使用权（模型服务优化、产品内容推广与宣传）'条款已整体删除；新增团队服务专章载明'未经您的单独同意，AutoClaw 原则上不会将您的数据用于模型训练或产品优化'，但该章适用于团队服务，且明确'优化计划'仅适用于个人用户。现有用户协议未载明个人版训练授权或否定承诺，个人'优化计划'默认状态及《AutoClaw隐私政策》均未独立核实，故训练结论为 unknown。支持自行填入第三方大模型 API（该模式下 AutoClaw 仅作本地执行通道，费用与数据按第三方协议）",
+          "default_state": "未明示（个人版训练授权及'优化计划'默认状态均未获现有协议证实）",
+          "opt_out": "未明示（不能将团队服务专章视为个人版无需退出承诺）",
+          "opt_out_method": "现有用户协议未载明个人版训练退出路径；个人'优化计划'设置及《AutoClaw隐私政策》待核",
           "deidentified": false,
           "data_retention": "未明确说明（含删除措施滞后性表述：'由于人工智能的训练需要一定时间，我们的删除和禁用措施可能具有滞后性'，2026-10-27版仍在）",
           "copyright": "您提供、发布及在使用AutoClaw平台服务中形成的非个人信息（文字、图片、视频、音频等），均不会因上传、发布等行为发生知识产权、肖像权等权利的转移（用户协议十一，2026-10-27生效）；输入/输出包含第三方权利内容不改变权属",
@@ -1752,7 +1755,8 @@
           "last_verified": "2026-11-14",
           "verification_notes": [
             "2026-11-09监控检出、2026-11-14逐字复核：旧引文'您授予智谱和/或其关联方一项不可撤销的、免费的、全球范围内的、可分许可的使用权……用于模型服务优化、产品内容推广与宣传'在2026-10-27生效版中已不存在（整体删除）；新版新增团队服务数据用途条款与权利转移说明，两条新引文逐字命中",
-            "原API条款引文旧标注'四.8'，新版该条位于'五、您的权利和义务'（2026-11-14 更正章节号）"
+            "原API条款引文旧标注'四.8'，新版该条位于'五、您的权利和义务'（2026-11-14 更正章节号）",
+            "2026-11-28 语义审计：唯一的不训练证据位于'团队服务特别约定'，该章不适用于个人用户；个人'优化计划'仅明确适用于个人服务，默认状态未载明。training_status 由 explicit_no 改为 unknown；used_for_training=false 仅为 schema 布尔兼容字段的保守值，配合 unknown 表示现有证据不足以认定用于训练，不表示个人版获得明确不训练承诺"
           ]
         }
       },
@@ -1762,16 +1766,18 @@
           "event": "新版用户协议生效：删除'不可撤销、免费、全球范围、可分许可使用权（模型服务优化与产品推广宣传）'条款；新增'团队服务特别约定'专章（团队数据未经单独同意原则上不用于模型训练或产品优化）；明确非个人信息不因上传、发布发生知识产权等权利转移"
         }
       ],
-      "analysis_summary": "AutoClaw（澳龙）为智谱本地版 OpenClaw 智能体（积分制计费、可自备第三方 API）。2026-10-27版协议删除了原'不可撤销、全球可分许可（含产品推广）'授权条款，新增团队服务数据用途限制；协议层面已无默认训练授权，评为中风险（个人'优化计划'默认状态与留存期限仍未明确）。",
+      "analysis_summary": "AutoClaw（澳龙）为智谱本地版 OpenClaw 智能体（积分制计费、可自备第三方 API）。2026-10-27版协议删除了原'不可撤销、全球可分许可（含产品推广）'授权条款，新增团队服务数据用途限制；但个人版训练授权及'优化计划'默认状态未获现有协议证实，训练状态未知，留存期限亦未明确，评为中风险。",
       "key_findings": [
+        "个人版训练状态未知：现有协议未载明个人训练授权或否定承诺，团队专章不适用于个人版",
         "2026-10-27版删除原'不可撤销、免费、全球范围、可分许可'授权条款",
-        "团队服务：未经单独同意原则上不用于模型训练或产品优化（仅合规审查/排障/安全处置三场景）",
+        "团队服务：未经单独同意原则上不用于模型训练或产品优化；另列合规审查、排障与安全风险处置场景",
         "非个人信息明确不因上传、发布发生权利转移",
         "删除措施因 AI 训练'可能具有滞后性'的表述保留；个人'优化计划'默认状态未载明",
         "积分制计费；支持自备第三方 API 模式"
       ],
       "recommendations": [
-        "在意训练的用户关注产品内'优化计划'设置（默认状态协议未载明，以《AutoClaw隐私政策》为准）",
+        "不要将团队服务'不训练'承诺推定适用于个人版；使用前核对《AutoClaw隐私政策》并在产品内确认'优化计划'状态",
+        "现有协议未载明个人版训练退出路径；不同意训练或优化的用户应先向官方确认关闭方式",
         "可选用自备第三方 API 模式（数据按第三方协议处理）"
       ],
       "tob_note": "未设 ToB 块：AutoClaw 为个人桌面智能体（积分制，账号与 AutoGLM 系列通用），未见独立企业版条款；企业智能体场景由智谱开放平台/HiAgent 类产品承接，待核实",
@@ -2208,7 +2214,7 @@
       "region": "中国",
       "description": "用户数据可能用于模型训练，面部像素信息不用于其他用途或共享给第三方",
       "policy_url": "https://klingai.com/docs/privacy-policy",
-      "last_verified": "2026-08-30",
+      "last_verified": "2026-11-28",
       "versions": {
         "toc": {
           "used_for_training": true,
@@ -2227,13 +2233,16 @@
             "copyright_user": true
           },
           "key_clauses": [
-            "模型优化：在经安全加密技术处理、严格去标识化且无法重新识别特定个人的前提下，我们可能会将上述所收集的数据以及模型生成的对应内容用于模型优化，以不断调整优化模型的效果。（隐私政策1.2.2）",
+            "在经安全加密技术处理、严格去标识化且无法重新识别特定个人的前提下，我们可能会将上述所收集的数据以及模型生成的对应内容用于模型优化，以不断调整优化模型的效果。（隐私政策1.2.2）",
             "除非另有明确说明并征得您的同意，我们不会将您的面部像素信息用于其他任何用途或共享给第三方。（隐私政策1.2.1）",
             "一般而言，我们仅在为实现目的所必需的时间及法律法规所规定的保存期限内保留您的个人信息。（隐私政策4.2）"
           ],
           "policy_link": "https://klingai.com/docs/privacy-policy",
-          "last_verified": "2026-08-30",
-          "label": "个人版"
+          "last_verified": "2026-11-28",
+          "label": "个人版",
+          "verification_notes": [
+            "2026-11-28 抓取修复：requests 仅拿到导航空壳，改为 fetch_method=browser 并指定 .document-view-agreement 后稳定取得 1.4 万字符正文；与旧有效快照对比仅移除页首导航，条款正文无变化，已 --resolve"
+          ]
         }
       },
       "timeline": [],
@@ -2247,6 +2256,12 @@
       ],
       "icon": "🎬",
       "product_url": "https://www.klingai.com",
+      "targets": {
+        "main": {
+          "fetch_method": "browser",
+          "content_selector": ".document-view-agreement"
+        }
+      },
       "tob_note": "开发者服务（开放平台 API）已拆分为独立条目 keling-api（2026-08-29）。可灵企业会员'不使用企业数据训练'承诺的产品页声明随条目迁移",
       "detail_url": "https://838860610.github.io/ai-policy-tracker/p/keling-ai.html"
     },
@@ -2305,7 +2320,7 @@
       "company": "MiniMax（上海稀宇极智科技）",
       "region": "中国",
       "icon": "🌊",
-      "description": "海螺 AI（视频/对话，ToC）与 MiniMax 开放平台（API）。海螺：去标识化输入输出明确用于模型训练，且用户协议授予永久、可转让、全球范围许可（含品牌推广），退出需联系官方；开放平台：用户协议与隐私政策（2026-11-13 生效版逐字复核，此前2026-10-15版同样）均无'训练/优化/改进'表述，但 1.10.1 载明去标识化信息可分析并商业化利用、4.5 载明匿名化信息可流通且无需另行通知",
+      "description": "海螺 AI（视频/对话，ToC）与 MiniMax 开放平台（API）。海螺：去标识化输入输出明确用于模型训练，且用户协议授予永久、可转让、全球范围许可（含品牌推广），退出需联系官方；开放平台：用户协议与隐私政策（2026-11-13 生效版逐字复核）未明示模型训练，但存在服务优化及去标识化/匿名化信息利用条款，训练场景去标识化未获证明",
       "product_url": "https://hailuoai.com/",
       "policy_url": "https://hailuoai.com/doc/zh/privacy-policy.html",
       "sources": [
@@ -2351,14 +2366,14 @@
           "label": "开发者服务（个人/企业统一条款）",
           "used_for_training": false,
           "training_status": "unknown",
-          "training_note": "《MiniMax开放平台用户协议》检索'训练''改进'零命中；《MiniMax开放平台隐私政策》（2026-11-13 生效版）全文'训练''模型优化''改进'亦 0 命中——对训练保持沉默（2026-10-15 版同样，2026-11-14 复核）。但 1.10.1 载明去标识化信息可用于分析及商业化利用，4.5 载明匿名化信息可流通、保存及使用无需另行通知或同意（均未明示用于训练）",
+          "training_note": "《MiniMax开放平台用户协议》检索'训练''改进'零命中；《MiniMax开放平台隐私政策》（2026-11-13 生效版）全文'训练''模型优化''改进'亦 0 命中——对训练保持沉默（2026-10-15 版同样，2026-11-14 复核）。1.10.1 载明去标识化信息可用于分析及商业化利用，4.5 载明匿名化信息可流通、保存及使用无需另行通知或同意；用户协议6.3亦仅对服务优化、统计分析、问题排查、安全风控等目的设置去标识化前提。上述条款均未明确指向训练，故不能据此认定训练数据已经去标识化",
           "default_state": "未明示（用户协议对训练沉默）",
           "opt_out": "未明示",
           "opt_out_method": "未明示；个人信息权利见《MiniMax开放平台隐私政策》",
           "deidentified": false,
           "data_retention": "未明确具体天数（'仅为实现目的所必需的最短时间保留您的个人信息'，法定情形除外；超期或终止服务后删除或匿名化）（开放平台隐私政策4.2，2026-11-13 生效）",
           "copyright": "通过本服务提交、提供、上传、输入、输出、发布、传播的全部信息内容，权属完整归属于您本人，或已事先取得对应权利持有人完整、合法的处理授权。（用户协议）",
-          "other_uses": "依据您的指令对内容开展数据分析、内容加工处理并衍生生成全新内容；去标识化信息可分析并商业化利用（1.10.1）；匿名化信息可流通、无需另行通知（4.5）",
+          "other_uses": "依据您的指令对内容开展数据分析、内容加工处理并衍生生成全新内容；去标识化输入输出用于服务优化、统计分析、问题排查、安全风控（用户协议6.3）；去标识化信息可分析并商业化利用（隐私政策1.10.1）；匿名化信息可流通、无需另行通知（4.5）",
           "risk_level": "yellow",
           "criteria": {
             "retention_clear_30": false,
@@ -2374,7 +2389,8 @@
           "last_verified": "2026-11-14",
           "fetch_method": "browser",
           "verification_notes": [
-            "2026-11-09监控检出、2026-11-14复核：主体由'上海稀宇科技有限公司'更名为'上海稀宇极智科技有限公司'（用户协议2026-11-06发布、2026-11-13生效，隐私政策同批更名）；训练相关表述在新版隐私政策仍 0 命中；其余为措辞统一（甲方/乙方→您/我们、Api Key→API Key 等）、删除'第三方服务声明'章节、联系方式变更（api@minimaxi.com）与日期更新，无实质性条款变化"
+            "2026-11-09监控检出、2026-11-14复核：主体由'上海稀宇科技有限公司'更名为'上海稀宇极智科技有限公司'（用户协议2026-11-06发布、2026-11-13生效，隐私政策同批更名）；训练相关表述在新版隐私政策仍 0 命中；其余为措辞统一（甲方/乙方→您/我们、Api Key→API Key 等）、删除'第三方服务声明'章节、联系方式变更（api@minimaxi.com）与日期更新，无实质性条款变化",
+            "2026-11-28 语义审计：deidentified 的 schema 仅允许布尔值、无 unknown/null，故保留 false 作为'未证明训练场景去标识化'的保守合规值，不表示条款明确不去标识化。隐私政策1.10.1/4.5及用户协议6.3证明其他用途存在去标识化或匿名化处理，但均未明确指向训练，不能据此将训练场景的 deidentified 改为 true"
           ]
         }
       },
@@ -2384,12 +2400,12 @@
           "event": "开放平台主体由'上海稀宇科技有限公司'更名为'上海稀宇极智科技有限公司'（用户协议2026-11-13生效、隐私政策同批）；条款无实质变化，训练相关表述保持沉默"
         }
       ],
-      "analysis_summary": "海螺 AI 为强授权模式：隐私政策明确去标识化输入输出用于模型训练（默认），用户协议叠加永久、可转让、全球范围（含品牌推广）的内容许可，退出仅能联系官方——与 Kimi 同型且授权更宽，评为高风险。开放平台用户协议与隐私政策（2026-10-15 版）均对训练沉默，但去标识化信息可商业化利用、匿名化信息可流通，维持中风险。",
+      "analysis_summary": "海螺 AI 为强授权模式：隐私政策明确去标识化输入输出用于模型训练（默认），用户协议叠加永久、可转让、全球范围（含品牌推广）的内容许可，退出仅能联系官方——与 Kimi 同型且授权更宽，评为高风险。开放平台用户协议与隐私政策（2026-11-13 生效版）均未明示模型训练；其他用途虽有去标识化、匿名化及服务优化条款，但训练场景去标识化未获证明，维持中风险。",
       "key_findings": [
         "海螺：去标识化输入输出明确用于模型训练（隐私政策）",
         "海螺：永久、可转让、全球范围许可，含品牌推广和宣传（用户协议）",
         "海螺：退出为联系式，无产品内开关",
-        "开放平台：协议与隐私政策均对训练沉默；去标识化信息可商业化利用"
+        "开放平台：协议与隐私政策均未明示模型训练；其他用途存在去标识化/匿名化处理，但训练场景去标识化未获证明"
       ],
       "recommendations": [
         "海螺个人版用户在意训练与授权范围的，通过隐私政策列明方式联系撤回",
@@ -2707,7 +2723,7 @@
           "key_clauses": [
             "商汤科技将检测、浏览、记录您的服务使用行为、您数据的不安全特征等用户支持数据。（大装置用户服务协议·用户支持数据条款）",
             "我们保留随时修改、中断或终止该大模型服务的权利，并可能在不事先通知的情况下对模型进行更新或改进。（大装置用户服务协议）",
-            "本平台提供从训练到推理端到端的全流程AI研发服务——平台自身能力描述，未涉及用户数据训练授权。（大装置用户协议·平台介绍）"
+            "本平台提供从训练到推理端到端的全流程AI研发服务，满足广大研发人员在模型生产中各个环节的业务所需；（大装置用户服务协议·平台介绍，本地快照2026-09-25）"
           ],
           "policy_link": "https://signin.sensecore.cn/html/zh-CN/UserAgreement.html",
           "last_verified": "2026-08-29"

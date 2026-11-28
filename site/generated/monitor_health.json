@@ -1,24 +1,4 @@
 {
-  "updated_at": "2026-11-23T16:46:21.429929+08:00",
-  "items": {
-    "keling-ai:main": {
-      "pid": "keling-ai",
-      "name": "可灵AI",
-      "key": "main",
-      "label": "主监控页",
-      "url": "https://klingai.com/docs/privacy-policy",
-      "health": "degraded",
-      "health_reason": "empty_body",
-      "status": "suspicious",
-      "message": "抓取正文过短（36 字符 < 500），疑似 JS 渲染或反爬，已保留上次有效快照；实际拿到：标题《可灵AI隐私政策》，页面首段「可灵AI隐私政策 用户协议 隐私政策 付费服务协议 灵感值规则说明 社区公约 侵权投诉指引」",
-      "monitor_scope": "ci",
-      "checked_this_run": true,
-      "last_checked": "2026-11-23T16:44:11.774687+08:00",
-      "last_good_at": "2026-11-16T07:49:14.686132",
-      "consecutive_runs": 1,
-      "first_seen": "2026-11-23T16:46:21.429929+08:00",
-      "last_seen": "2026-11-23T16:46:21.429929+08:00",
-      "next_action": "已保留上次有效快照；用 --only <pid>:<key> 单独重试并确认正文"
-    }
-  }
+  "updated_at": "2026-11-28T15:30:15.437462+08:00",
+  "items": {}
 }

@@ -82,10 +82,12 @@ ai-policy-tracker/
 │   ├── generated/          # 全部自动生成物，一律不手工编辑
 │   │   ├── bundle.json     # 合并数据包（gen_data_bundle.py，首页加速，CI 提交）
 │   │   ├── update_status.json # 监控状态（check_updates.py，首页读取展示）
-│   │   ├── pending_verification.json # 待核实队列（changed 目标的跨轮交接物）
+│   │   ├── pending_verification.json # 待核实队列（changed 目标的跨轮交接物；详情页读取）
 │   │   ├── monitor_health.json # 抓取健康队列（degraded/no_baseline/blocked 目标）
 │   │   ├── snapshots/      # 政策正文快照（入库，作为跨环境核实的持久历史）
+│   │   ├── api/v1/         # 只读政策数据 API（gen_api.py）
 │   │   └── og-card.png     # Open Graph 分享卡片（gen_og_image.py）
+│   ├── feed.xml            # Atom 订阅源（gen_feed.py，timeline + 待核实队列）
 │   └── docs/               # 对外发布文档（methodology / update-monitoring / data-pipeline）
 │       │                   #   注意：站点与 sitemap 直接引用这些页面，必须入库
 │       └── internal/       # 内部工作底稿（核实报告、优化清单，.gitignore 忽略）
@@ -95,6 +97,10 @@ ai-policy-tracker/
 │   ├── gen_readme_table.py # README 汇总表生成脚本
 │   ├── gen_data_bundle.py  # 数据合并包生成脚本（首页加速）
 │   ├── gen_docs.py         # Markdown 文档页生成脚本
+│   ├── gen_product_pages.py # 产品详情页与 sitemap 生成脚本
+│   ├── gen_feed.py         # Atom 订阅源生成脚本
+│   ├── gen_api.py          # 只读数据 API 生成脚本
+│   ├── notify_webhook.py   # 监控变更通知脚本
 │   ├── gen_og_image.py     # 社交分享卡片生成脚本
 │   └── extract_clauses.py  # 条款提取工具
 ├── skills/                 # 本地政策变更核实 skill
@@ -158,7 +164,7 @@ ai-policy-tracker/
 | 腾讯元器 | 腾讯 | ❓ 未明确 | 未明示 | ❓ 未明确 | 🟡 中 |
 | Kimi | 月之暗面 | ✅ 是（可退出） | ⚠️ 需邮件申请 | ✅ 是 | 🔴 高 |
 | AMiner（科研 AI 助手） | 智谱AI | ✅ 是（可退出） | 未明示退出机制 | — | 🔴 高 |
-| AutoClaw（智谱本地智能体，澳龙） | 智谱AI | ❌ 否 | 无需退出（协议已无默认训练授权） | — | 🟡 中 |
+| AutoClaw（智谱本地智能体，澳龙） | 智谱AI | ❓ 未明确 | 未明示（不能将团队服务专章视为个人版无需退出承诺） | — | 🟡 中 |
 | AutoGLM（智谱） | 智谱AI | ❌ 默认否 | 设置开关（初始化时选择）+ 联系撤回 | — | 🟡 中 |
 | 智谱开放平台（bigmodel.cn） | 智谱AI | — | — | ✅ 是 | — |
 | GLM Coding Plan（智谱） | 智谱AI | ✅ 是 | 无（匿名化使用不依赖授权同意） | ❌ 否 | 🔴 高 |
@@ -206,7 +212,7 @@ python3 -m venv .venv
 
 # 运行监控脚本（每周一由 CI 自动跑；也可本地手动）
 .venv/bin/python scripts/check_updates.py
-# 未安装浏览器依赖时可显式跳过 browser 目标
+# 未安装浏览器依赖时可显式跳过 browser 目标（混合产品的 requests 目标仍检查）
 .venv/bin/python scripts/check_updates.py --no-browser
 # 只重试某几个产品/目标（其余沿用上次状态，不重跑全量）
 .venv/bin/python scripts/check_updates.py --only gemini:main
@@ -217,7 +223,7 @@ python3 -m venv .venv
 
 脚本对 HTML、Markdown、纯文本和 PDF 政策正文进行结构化提取、归一化并计算哈希，同时使用 ETag/If-Modified-Since 条件请求。检测结果写入 `site/generated/update_status.json`，首页会分别展示已确认变更、检查失败、正文可疑和未监控产品；监控运行时间与人工核实日期分开显示。
 
-正文快照留档到 `site/generated/snapshots/`（`latest.txt` 为当前内容，`prev.txt` 为变更前的旧快照，日期文件为历史存档）并入库作为跨环境共享的持久历史。本轮检测为 `changed` 的目标会写入 `site/generated/pending_verification.json`；在人工 `--resolve` 前，后续 304 不会清除页面告警。
+正文快照留档到 `site/generated/snapshots/`（`latest.txt` 为当前内容，`prev.txt` 为首次变更前基线，日期文件为历史存档）并入库作为跨环境共享的持久历史。本轮检测为 `changed` 且 `health=ok` 的目标会写入 `site/generated/pending_verification.json`；在人工 `--resolve` 前，后续 304 不会清除页面告警。首页只读聚合状态，不读 pending 队列；详情页额外读取 `policies/{id}.json`、pending 队列与健康队列（缺失时从状态兜底），展示政策正文、待核实 diff 与抓取异常。
 
 ### 抓取健康与"政策变化"分开记录
 
@@ -226,11 +232,11 @@ python3 -m venv .venv
 - `status`：政策正文相对基线**变没变**（`ok` / `changed` / `failed` / `suspicious` / `skipped`）；
 - `health`：这一轮**抓到的正文能不能信**（`ok` / `initialized` / `rebaselined` / `degraded` / `no_baseline` / `blocked`）。
 
-正文过短（默认 < 500 字符）或抓取失败时脚本**不会覆盖已有基线**，只把 `health` 标成降级/无基线/被拦截。这类目标进入独立队列 `site/generated/monitor_health.json`（记录失败原因、连续不健康轮次与建议动作，恢复后自动消失），首页 banner 下方可展开"抓取降级明细"。这样一次 Cloudflare 挑战不会伪装成"政策可能已更新"。
+正文过短（默认 < 500 字符）或抓取失败时脚本**不会覆盖已有基线**，只把 `health` 标成降级/无基线/被拦截。这类目标进入独立队列 `site/generated/monitor_health.json`（记录失败原因、连续不健康轮次与建议动作，恢复后自动消失），首页 banner 下方可展开"抓取降级明细"。单个目标的 `changed` 只与 `health=ok` 同现；`rebaselined` 只与 `ok`（哈希方案升级）或 `suspicious`（缺基线后完整抓取重建）同现，不存在 `changed + rebaselined`。同一产品的不同目标可同时需要内容核实与抓取修复。
 
-有些站点在 GitHub runner 上**根本连不上**（如 `trae`：Cloudflare 拒绝数据中心 IP，抓取时"实际拿到：空文档"，而本地能正常抓到 1.2 万字符正文）。这类目标用 `monitor_scope: "local"` 标记，改由 `./scripts/local_monitor.sh` 在本地跑并以本地结果为准；CI 用 `--scope ci` 跳过它们，但会**沿用上次状态**（不会把覆盖率写缩水，快照也不会被当孤儿清理）。
+有些站点在 GitHub runner 上**根本连不上**（如 `trae`：Cloudflare 拒绝数据中心 IP，抓取时"实际拿到：空文档"，而本地能正常抓到 1.2 万字符正文）。这类目标用 `monitor_scope: "local"` 标记，改由 `./scripts/local_monitor.sh` 在本地跑并以本地结果为准；CI 用 `--scope ci` 跳过它们，但会**沿用上次目标状态**（含快照引用与 `last_checked`），仅加 `skipped_this_run`。本地 `--scope local` 反过来沿用所有非 local 目标，两个方向都不会清空状态或 pending。健康连续轮次与 `last_seen` 不虚增，也不会把覆盖率写缩水或误删快照。
 
-抓取方式支持按目标配置：`targets.main` / `versions.*` / `sources[]` 条目可单独设置 `fetch_method`（`requests` / `browser`）、`content_selector`、`wait_for_selector`、`min_body_chars`、`monitor_scope`，不需要为一个站点把整产品都切成浏览器抓取。处置流程：
+抓取方式支持按目标配置：`targets.main` / `versions.*` / `sources[]` 条目可单独设置 `fetch_method`（`requests` / `browser`）、`content_selector`、`wait_for_selector`、`min_body_chars`、`monitor_scope`，不需要为一个站点把整产品都切成浏览器抓取。默认使用 `requests`，仅配置为 `browser` 的目标启用 Playwright，不会自动兜底，也不承诺零漏报。`--no-browser` 混合产品只检查 requests 目标，被跳过的 browser 目标沿用旧状态；整产品全 browser 时也沿用旧目标状态，只有从未检查过时才产品级 `skipped`。`--products` / `--only` 局部重试合并旧状态、标记未检查目标且不清理孤儿快照，不等于完成全量监控。处置流程：
 
 ```bash
 # 1. 确认是网络抖动还是抓取方式问题（长超时单目标重试）
@@ -247,9 +253,9 @@ python3 -m venv .venv
 
 ```bash
 # 列出待核实队列 + 所有被标记目标（优先看队列）
-python3 skills/policy-change-verify/scripts/policy_verify.py --list
+.venv/bin/python skills/policy-change-verify/scripts/policy_verify.py --list
 # 查看某产品某个目标的旧→新 diff 与当前政策数据
-python3 skills/policy-change-verify/scripts/policy_verify.py <product_id> [main|toc|tob|source_*]
+.venv/bin/python skills/policy-change-verify/scripts/policy_verify.py <product_id> [main|toc|tob|source_*]
 ```
 
 skill 提取新旧快照 diff、判断是实质性条款变化还是噪声，并起草对 `site/data/policies/{id}.json` 的字段 + timeline 修改，必须等人工确认才写入。核实并更新数据后，用 `--resolve <product_id> [target]` 同时清除待核实队列项和页面告警。
@@ -260,13 +266,16 @@ skill 提取新旧快照 diff、判断是实质性条款变化还是噪声，并
 .venv/bin/python scripts/validate_data.py    # 校验数据结构完整性（提交前运行）
 .venv/bin/python scripts/gen_readme_table.py --check
 .venv/bin/python scripts/gen_docs.py --check
-.venv/bin/python -m unittest discover -s tests -v
+.venv/bin/python scripts/gen_product_pages.py --check
+.venv/bin/python scripts/gen_feed.py --check
+.venv/bin/python scripts/gen_api.py --check
+.venv/bin/python -m unittest discover -s tests -v  # 全量回归测试
 ```
 
 仓库内置 GitHub Actions 工作流：
 
-- `.github/workflows/monitor.yml`——每周一北京时间 09:00 自动运行 `check_updates.py`：检测变化、提交 `update_status.json` + `monitor_health.json` + 快照 + 待核实队列（推送到 GitHub 后生效，也可在 Actions 页手动触发）。**不含** AI 分析 / 建 Issue 步骤；检查失败会以非零状态结束 CI
-- `.github/workflows/ci.yml`——PR 与主分支推送时自动运行回归测试、数据校验和文档一致性检查；main 推送后重新生成 `site/generated/bundle.json` 和文档页（OG 图片由部署阶段生成）
+- `.github/workflows/monitor.yml`——每周一北京时间 09:00 自动运行 `check_updates.py`：检测变化 → 生成 `feed.xml` → 可选 webhook 通知（未配置静默跳过、失败不阻断）→ rebase 后提交 `update_status.json` + `monitor_health.json` + 快照 + 待核实队列 + feed。**不含** AI 分析 / 建 Issue 步骤；检查失败会以非零状态结束 job，但已提交结果仍会部署
+- `.github/workflows/ci.yml`——PR 与主分支推送时运行全量回归测试、数据校验及 README / 文档 / 产品页 / feed / API 五项一致性检查；main 推送全绿后先同步最新 main，再生成 `bundle.json`、文档页、产品页 / sitemap、feed 与 API 并复验，按差异提交（OG 图片由部署阶段生成）
 - `.github/workflows/deploy.yml`——在上述工作流跑完后把 `site/` 目录部署到 GitHub Pages（也可手动触发）
 - 依赖目前不做自动 PR 更新；升级依赖时需人工运行校验并审阅变更
 
@@ -283,7 +292,7 @@ skill 提取新旧快照 diff、判断是实质性条款变化还是噪声，并
 
 ## 贡献指南
 
-欢迎贡献政策更新和新产品数据！请阅读 [贡献指南](CONTRIBUTING.md) 了解如何参与。提交 PR 前请运行 `.venv/bin/python scripts/validate_data.py`、`.venv/bin/python scripts/gen_readme_table.py --check`、`.venv/bin/python scripts/gen_docs.py --check` 与 `.venv/bin/python -m unittest discover -s tests`。
+欢迎贡献政策更新和新产品数据！请阅读 [贡献指南](CONTRIBUTING.md) 了解如何参与。提交 PR 前请运行 `.venv/bin/python scripts/validate_data.py`、README / 文档 / 产品页 / feed / API 五项生成器 `--check` 与 `.venv/bin/python -m unittest discover -s tests`。
 
 参与本项目即表示你同意遵守 [行为准则](CODE_OF_CONDUCT.md)；如发现安全相关问题，请按 [安全政策](SECURITY.md) 私密报告。完整版本历史见 [CHANGELOG.md](CHANGELOG.md)。
 

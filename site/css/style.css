@@ -299,7 +299,7 @@ html[data-theme="light"] .theme-toggle .icon-moon { display: block; }
   color: var(--text);
   font-variant-numeric: tabular-nums;
 }
-/* 最近核实日期是 10 位字符串，比数字更宽，降一档字号避免挤压 */
+/* 最新核实日期是 10 位字符串，比数字更宽，降一档字号避免挤压 */
 .stat-num.stat-num-date {
   font-size: 15px;
   font-family: var(--font-mono);
@@ -311,6 +311,14 @@ html[data-theme="light"] .theme-toggle .icon-moon { display: block; }
   font-family: var(--font-mono);
   text-transform: uppercase;
   letter-spacing: 0.04em;
+}
+.stat-coverage {
+  max-width: 720px;
+  margin: 10px auto 0;
+  color: var(--text-tertiary);
+  font-size: 12px;
+  line-height: 1.6;
+  text-align: center;
 }
 /* Hero 背景网格 */
 .hero-grid {

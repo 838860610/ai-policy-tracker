@@ -21,7 +21,7 @@
   };
 
   function fetchJson(url) {
-    return fetch(url).then(function (res) {
+    return fetch(url, { cache: "no-store" }).then(function (res) {
       if (!res.ok) throw new Error("HTTP " + res.status);
       return res.json();
     });
@@ -90,11 +90,23 @@
     return "";
   }
 
+  function verificationCoverage() {
+    var cutoff = Date.now() - 30 * 24 * 60 * 60 * 1000;
+    var recent = 0;
+    allProducts.forEach(function (p) {
+      var value = p && p.last_verified;
+      if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return;
+      var parsed = new Date(value + "T00:00:00Z").getTime();
+      if (Number.isFinite(parsed) && parsed >= cutoff) recent += 1;
+    });
+    return { recent: recent, total: allProducts.length };
+  }
+
   function updateDataDate() {
     var el = document.getElementById("updateDate");
     if (!el) return;
     var d = effectiveLastUpdated();
-    if (d) el.textContent = "数据最后人工核实日期：" + d;
+    if (d) el.textContent = "产品数据最近人工核实日期（最新值）：" + d;
   }
 
   function changedProductIds() {
@@ -493,6 +505,12 @@
     if (eyebrow) {
       eyebrow.textContent = "每周自动监控 · " + total + " 款 AI 产品 · 隐私政策对比";
     }
+    var coverage = document.getElementById("verificationCoverage");
+    if (coverage) {
+      var fresh = verificationCoverage();
+      coverage.textContent = "近 30 天人工核实覆盖：" + fresh.recent + " / " + fresh.total +
+        " 款产品（按产品最近核实日期，最新日期不代表全部数据）";
+    }
     var hs = document.getElementById("heroStats");
     if (hs) hs.removeAttribute("aria-hidden");
   }
@@ -500,13 +518,16 @@
   /* ---------- 监控状态 ---------- */
 
   function countMonitorStatuses() {
-    var counts = { changed: 0, failed: 0, suspicious: 0, skipped: 0 };
+    var counts = { changed: 0, failed: 0, suspicious: 0, skipped: 0, unchecked: 0 };
     var products = (monitorStatus && monitorStatus.products) || {};
     Object.keys(products).forEach(function (id) {
       var product = products[id] || {};
       if (product.status === "changed") counts.changed += 1;
       if (product.status === "skipped") counts.skipped += 1;
       var targets = product.targets || {};
+      Object.keys(targets).forEach(function (key) {
+        if (targets[key] && targets[key].skipped_this_run) counts.unchecked += 1;
+      });
       var targetStatuses = Object.keys(targets).map(function (key) {
         return targets[key] && targets[key].status;
       });
@@ -585,6 +606,7 @@
     if (counts.failed > 0) anomalyParts.push(counts.failed + " 个产品检查失败");
     if (counts.suspicious > 0) anomalyParts.push(counts.suspicious + " 个产品正文可疑");
     if (counts.skipped > 0) anomalyParts.push(counts.skipped + " 个产品未监控");
+    if (counts.unchecked > 0) anomalyParts.push(counts.unchecked + " 个目标本轮未检查");
     if (healthCount > 0) anomalyParts.push(healthCount + " 个目标抓取降级");
 
     if (changed.length === 0 && anomalyParts.length === 0) {

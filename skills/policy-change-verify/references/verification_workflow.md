@@ -1,12 +1,12 @@
 # 变更性质判断清单（实质性 vs 噪声）
 
-监控脚本只报告"文本哈希变了"，无法区分下列两类。本清单用于人工（agent）判断。
+监控脚本对归一化正文做确定性比对，只能报告"文本变了"，无法区分实质性条款变化与抓取噪声。纯空白排版变化已由脚本自动忽略；本清单用于人工（agent）判断其余变更。
 
 ## 零、先分清两套状态：`status` 与 `health`
 
 | 字段 | 回答的问题 | 该走哪条路 |
 | --- | --- | --- |
-| `status`（`ok` / `changed` / `failed` / `suspicious`） | 政策正文相对基线**变没变** | `changed` → 走本清单一～五；`failed` / `suspicious` → 一 |
+| `status`（`ok` / `changed` / `failed` / `suspicious` / `skipped`） | 政策正文相对基线**变没变** | `changed` → 走本清单一～五；`failed` / `suspicious` → 一；`skipped` → 按 `skip_reason` 处理 |
 | `health`（`ok` / `initialized` / `rebaselined` / `degraded` / `no_baseline` / `blocked`） | 这一轮**抓到的正文能不能信** | 非 `ok`/`initialized`/`rebaselined` → 修抓取配置，**不改数据** |
 
 `health` 类问题的处置（`policy_verify.py --list` 末尾会列出）：
@@ -17,7 +17,7 @@
    （必要时加 `wait_for_selector`）。载体对应关系：`main` → `targets.main`，
    `toc`/`tob` → `versions.toc`/`versions.tob`，`source_*` → `sources[]` 那个条目；
    优先级为 目标级 > 产品级 > 全局默认。
-3. 重试后 `health` 回到 `ok` / `initialized` 即视为修复完成；`monitor_health.json` 中对应条目会自动消失。
+3. 重试后 `health` 回到 `ok` / `initialized` 即视为修复完成；若为 `rebaselined`，先确认新基线是真实正文。`monitor_health.json` 中对应条目会自动消失。
 
 注意：连接超时且本机网络本身就访问不了该域名（境外政策站点在受限网络常见）时，
 `browser` 也无济于事——这类目标应以 GitHub Actions 上的监控结果为准。

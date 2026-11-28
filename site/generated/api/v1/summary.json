@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "generated_at": "2026-11-15",
+  "generated_at": "2026-11-28",
   "description": "AI 用户政策追踪器只读 API v1：47 款 AI 产品的隐私政策 / 训练条款结构化数据。字段语义见 https://github.com/838860610/ai-policy-tracker（policy_schema.md / methodology.md）。v1 承诺向后兼容：只增字段、不删字段、不改已有字段语义。",
   "disclaimer": "本数据仅供参考，不构成法律建议。各产品政策可能随时变更，请以官方最新政策为准。",
   "total_products": 47,
@@ -16,8 +16,8 @@
   },
   "versions_by_training_status": {
     "default_on_opt_out": 30,
-    "explicit_no": 13,
-    "unknown": 7,
+    "explicit_no": 12,
+    "unknown": 8,
     "explicit_yes": 5,
     "inferred": 5,
     "default_off_opt_in": 3
