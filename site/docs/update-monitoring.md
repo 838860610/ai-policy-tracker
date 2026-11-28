@@ -237,7 +237,7 @@ AI 政策更新监控脚本
 
 ## GitHub Actions 产物与提交流程
 
-**数据校验 `ci.yml`**：PR / push 时运行全量回归测试、`validate_data.py`，以及 README / 文档 / 产品页 / feed / API 五项 `--check`。main push 全绿后，`publish` 先 `git pull --rebase origin main` 同步最新真源，再生成 `bundle.json`、文档页、产品详情页 / sitemap、`feed.xml` 与只读 API，生成后复验并暂存最终产物；仅有差异时才 bot commit + push。生成后不再 rebase，避免旧产物与新真源混交；若同步后又有新推送导致 push 失败，本轮不部署。
+**数据校验 `ci.yml`**：PR / push / 手动触发时运行全量回归测试、`validate_data.py`，以及 README / 文档 / 产品页 / feed / API 五项 `--check`。main push 全绿后，`publish` 先 `git pull --rebase origin main` 同步最新真源，再生成 `bundle.json`、文档页、产品详情页 / sitemap、`feed.xml` 与只读 API，生成后复验并暂存最终产物；仅有差异时才 bot commit + push。生成后不再 rebase，避免旧产物与新真源混交；若同步后又有新推送导致 push 失败，本轮不部署。
 
 **政策监控 `monitor.yml`**：记录本轮起点 → 运行 `check_updates.py --scope ci` → `gen_feed.py` → 可选 `notify_webhook.py`（只通知本轮写出的状态，避免前置步骤失败时重发旧告警）→ `git pull --rebase --autostash origin main` → 暂存状态、快照、两个队列与 `feed.xml` → 仅有差异时提交并 push → 健康门禁。监控步骤使用 `continue-on-error`，通知使用 `always()` + `continue-on-error`：通知未配置时静默跳过，通知失败不阻断提交；任一目标 `failed` 都会让 `--fail-on-error` 返回非零，即使同产品另有目标 `changed`，监控结果仍会保留并部署。
 

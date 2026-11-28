@@ -157,7 +157,7 @@ CI 跑 `--scope ci` 不检查它们，但**沿用上次目标结果**（含快�
 
 | 工作流 | 触发 | 职责 |
 |--------|------|------|
-| `ci.yml`（数据校验） | push main / PR | 全量回归测试 + 数据校验 + README / docs / product / feed / API 五项 `--check` → main 全绿后先同步最新 main，再生成五类产物、复验、按差异提交；若同步后又有新推送导致 push 失败，不部署旧产物 |
+| `ci.yml`（数据校验） | push main / PR / 手动 | 全量回归测试 + 数据校验 + README / docs / product / feed / API 五项 `--check` → main 全绿后先同步最新 main，再生成五类产物、复验、按差异提交；若同步后又有新推送导致 push 失败，不部署旧产物 |
 | `monitor.yml`（政策更新监控） | 每周一 09:00 北京时间 / 手动 | `--scope ci` 跑监控 → 生成 feed.xml → webhook 通知（仅本轮新状态，未配置静默跳过，continue-on-error）→ rebase 后 bot 提交状态/快照/队列/feed |
 | `deploy.yml`（部署 Pages） | 数据校验成功即部署；政策更新监控成功或失败均部署（校验失败不部署；限 main） | 发布 `site/` 到 GitHub Pages |
 

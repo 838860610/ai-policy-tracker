@@ -356,7 +356,7 @@ AI 政策更新监控脚本
     可用 --only nano-ai:main 之类的命令单独重试
 </code></pre>
 <h2>GitHub Actions 产物与提交流程</h2>
-<p><strong>数据校验 <code>ci.yml</code></strong>：PR / push 时运行全量回归测试、<code>validate_data.py</code>，以及 README / 文档 / 产品页 / feed / API 五项 <code>--check</code>。main push 全绿后，<code>publish</code> 先 <code>git pull --rebase origin main</code> 同步最新真源，再生成 <code>bundle.json</code>、文档页、产品详情页 / sitemap、<code>feed.xml</code> 与只读 API，生成后复验并暂存最终产物；仅有差异时才 bot commit + push。生成后不再 rebase，避免旧产物与新真源混交；若同步后又有新推送导致 push 失败，本轮不部署。</p>
+<p><strong>数据校验 <code>ci.yml</code></strong>：PR / push / 手动触发时运行全量回归测试、<code>validate_data.py</code>，以及 README / 文档 / 产品页 / feed / API 五项 <code>--check</code>。main push 全绿后，<code>publish</code> 先 <code>git pull --rebase origin main</code> 同步最新真源，再生成 <code>bundle.json</code>、文档页、产品详情页 / sitemap、<code>feed.xml</code> 与只读 API，生成后复验并暂存最终产物；仅有差异时才 bot commit + push。生成后不再 rebase，避免旧产物与新真源混交；若同步后又有新推送导致 push 失败，本轮不部署。</p>
 <p><strong>政策监控 <code>monitor.yml</code></strong>：记录本轮起点 → 运行 <code>check_updates.py --scope ci</code> → <code>gen_feed.py</code> → 可选 <code>notify_webhook.py</code>（只通知本轮写出的状态，避免前置步骤失败时重发旧告警）→ <code>git pull --rebase --autostash origin main</code> → 暂存状态、快照、两个队列与 <code>feed.xml</code> → 仅有差异时提交并 push → 健康门禁。监控步骤使用 <code>continue-on-error</code>，通知使用 <code>always()</code> + <code>continue-on-error</code>：通知未配置时静默跳过，通知失败不阻断提交；任一目标 <code>failed</code> 都会让 <code>--fail-on-error</code> 返回非零，即使同产品另有目标 <code>changed</code>，监控结果仍会保留并部署。</p>
 <h2>定时运行</h2>
 <h3>Cron（每周运行一次，推荐）</h3>

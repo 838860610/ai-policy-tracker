@@ -1,8 +1,9 @@
 name: 数据校验
 
-# PR 与主分支推送时自动运行回归测试、数据结构校验和 README 汇总表一致性检查，
-# 并在 main 推送后重新生成 site/generated/bundle.json（社交分享卡片改由部署工作流现场生成，避免每次 CI 都产生自动提交造成分叉）。
+# PR、主分支推送与手动触发时运行回归测试、数据结构校验和产物一致性检查，
+# 并在 main 推送后重新生成站点产物（社交分享卡片改由部署工作流现场生成）。
 on:
+  workflow_dispatch: {}
   pull_request:
   push:
     branches: [main]

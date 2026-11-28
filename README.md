@@ -275,7 +275,7 @@ skill 提取新旧快照 diff、判断是实质性条款变化还是噪声，并
 仓库内置 GitHub Actions 工作流：
 
 - `.github/workflows/monitor.yml`——每周一北京时间 09:00 自动运行 `check_updates.py`：检测变化 → 生成 `feed.xml` → 可选 webhook 通知（未配置静默跳过、失败不阻断）→ rebase 后提交 `update_status.json` + `monitor_health.json` + 快照 + 待核实队列 + feed。**不含** AI 分析 / 建 Issue 步骤；检查失败会以非零状态结束 job，但已提交结果仍会部署
-- `.github/workflows/ci.yml`——PR 与主分支推送时运行全量回归测试、数据校验及 README / 文档 / 产品页 / feed / API 五项一致性检查；main 推送全绿后先同步最新 main，再生成 `bundle.json`、文档页、产品页 / sitemap、feed 与 API 并复验，按差异提交（OG 图片由部署阶段生成）
+- `.github/workflows/ci.yml`——PR、主分支推送或手动触发时运行全量回归测试、数据校验及 README / 文档 / 产品页 / feed / API 五项一致性检查；main 推送全绿后先同步最新 main，再生成 `bundle.json`、文档页、产品页 / sitemap、feed 与 API 并复验，按差异提交（OG 图片由部署阶段生成）
 - `.github/workflows/deploy.yml`——在上述工作流跑完后把 `site/` 目录部署到 GitHub Pages（也可手动触发）
 - 依赖目前不做自动 PR 更新；升级依赖时需人工运行校验并审阅变更
 

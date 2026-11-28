@@ -25,7 +25,7 @@
     生成 feed.xml → 可选 webhook（未配置静默跳过，失败不阻断）
     → rebase 后 bot 提交状态 / 快照 / 两个队列 / feed
 
- ③ 校验线 ci.yml（push / PR 触发，与 ② 共用写入并发组，避免同时提交）
+ ③ 校验线 ci.yml（push / PR / 手动触发，与 ② 共用写入并发组，避免同时提交）
      全量回归测试 → validate_data → README / 文档 / 产品页 / feed / API 五项 --check
      全绿且为 main push → publish：先同步最新 main → 生成五类产物 → 复验 → 按最终差异 bot 提交
      （bot 的 GITHUB_TOKEN 提交不再触发 push 事件，不会死循环）

@@ -59,6 +59,7 @@
 
 ### Fixed
 
+- **CI 支持手动触发**：`ci.yml` 增加 `workflow_dispatch`，除 PR 与 main push 外也可在 Actions 页面手动运行完整数据校验
 - **监控范围跳过导致状态与待核实项丢失**：`--scope local` 过去只保留 local 目标，`--no-browser` 混合产品会直接丢掉 browser 目标；随后队列按当前 targets 重建，CI 目标、健康异常和未核实变更可能被静默清除。现在两个方向的范围跳过、局部重试与 browser 跳过都沿用旧目标状态，只标 `skipped_this_run`
 - **定向 `--resolve` 参数解析错误**：文档中的 `--resolve <product_id> [target]` 会把 target 解析成另一个产品 ID，导致整个产品的待核实项和告警被清除。改为显式解析产品与可选目标，并补临时仓库回归测试
 - **CI 旧产物 rebase 竞态**：publish 过去先生成、后 rebase，可能把旧真源生成的 bundle/feed/API 叠到新提交上。现在先同步最新 main，再生成与复验；生成后不再 rebase，push 失败即整轮不部署

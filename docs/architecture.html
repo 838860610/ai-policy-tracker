@@ -224,7 +224,7 @@
       <div class="pillar tone-ci">
         <button type="button" class="pillar-head" data-step="ci-yml" aria-haspopup="dialog" aria-expanded="false">
           <i class="cdot" style="background:var(--blue)"></i>
-          <span class="t"><strong>③ 校验线 · ci.yml</strong><span>push / PR 触发 · validate 只读，publish 才写回</span></span>
+          <span class="t"><strong>③ 校验线 · ci.yml</strong><span>push / PR / 手动触发 · validate 只读，publish 才写回</span></span>
         </button>
         <div class="mini-list">
           <button type="button" class="mini" data-step="ci-test" aria-haspopup="dialog" aria-expanded="false"><i>1</i><span class="t"><strong>回归测试</strong><span>全量 · tests/test_scripts.py · 约 15 秒</span></span></button>
@@ -505,7 +505,7 @@
     /* ---------- 03 校验线 ---------- */
     'ci-yml': {
       stage: '03 · 校验线',
-      title: 'ci.yml 数据校验（push main / PR 触发）',
+      title: 'ci.yml 数据校验（push main / PR / 手动触发）',
       desc: '仓库的守门员：validate 只读（persist-credentials: false），运行全量回归测试、数据结构校验与 README / docs / product / feed / api 五项 --check；PR 到此结束。main push 全绿后 publish 先同步最新 main，再生成五类产物、复验并按最终差异提交。校验不过 → 不生成、不发布。',
       files: ['.github/workflows/ci.yml', 'tests/test_scripts.py'],
       cmds: ['.venv/bin/python -m unittest discover -s tests -q   # 全量，约 15 秒\n.venv/bin/python scripts/validate_data.py            # 0 错 0 警'],

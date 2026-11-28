@@ -13,7 +13,7 @@ flowchart TD
 
     subgraph ACTIONS["GitHub Actions · 两条工作流（共用写入并发组）"]
         MON["② 监控线 monitor.yml · 每周一 09:00 北京时间 / 手动<br/>check_updates.py --scope ci · 按目标配置选择 requests / browser<br/>抓取 → 提取去噪 → 空白归一化 → 与基线快照全等比对<br/>生成 feed → 可选 webhook（仅本轮新状态）→ rebase 后 bot 提交状态 / 快照 / 队列 / feed"]
-        CI["③ 校验线 ci.yml · push / PR 触发<br/>全量回归测试 + validate_data + README / docs / product / feed / api 五项 --check<br/>全绿且为 main push → 先同步最新 main → 生成五类产物 → 复验 → bot 提交"]
+        CI["③ 校验线 ci.yml · push / PR / 手动触发<br/>全量回归测试 + validate_data + README / docs / product / feed / api 五项 --check<br/>全绿且为 main push → 先同步最新 main → 生成五类产物 → 复验 → bot 提交"]
     end
 
     AXIS{"统一判定<br/>status × health"}
@@ -55,7 +55,7 @@ flowchart TD
 | --- | --- | --- | --- |
 | ① 数据层 | `site/data/policies/{id}.json` | 人工 / 核实回写 | 对外版《数据流水线》 |
 | ② 监控线 | `.github/workflows/monitor.yml` → `check_updates.py` | 每周一 09:00 北京 / 手动 | `site/docs/update-monitoring.md` |
-| ③ 校验线 | `.github/workflows/ci.yml` | push / PR | 对外版《数据流水线》③ |
+| ③ 校验线 | `.github/workflows/ci.yml` | push / PR / 手动 | 对外版《数据流水线》③ |
 | ④ 部署 | `.github/workflows/deploy.yml` | workflow_run（两条线完成后） | 对外版《数据流水线》④ |
 | ⑤ 展示层 | `site/index.html`、`site/p/{id}.html` | — | 对外版《数据流水线》⑤ |
 | ⑥ 核实层 | `skills/policy-change-verify/` | 队列非空 / 人工发起 | 对外版《数据流水线》⑥ |

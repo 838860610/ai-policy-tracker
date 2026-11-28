@@ -2599,6 +2599,12 @@ class TestSiteConsistency(unittest.TestCase):
         self.assertLess(sync_pos, generate_pos,
                         "CI 必须在生成前同步 main，不能把旧真源产物 rebase 到新提交")
 
+    def test_ci_supports_manual_dispatch(self):
+        with open(os.path.join(BASE_DIR, ".github", "workflows", "ci.yml"),
+                  encoding="utf-8") as f:
+            ci = f.read()
+        self.assertIn("workflow_dispatch:", ci)
+
     def test_monitor_marks_start_for_fresh_notifications(self):
         with open(os.path.join(BASE_DIR, ".github", "workflows", "monitor.yml"),
                   encoding="utf-8") as f:
